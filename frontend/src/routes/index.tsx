@@ -4,7 +4,7 @@ import {
   Heart, Home, Laptop, Store,
   ShoppingCart, Sparkles, Wrench, Zap,
 } from "lucide-react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { TopBar } from "@/components/TopBar";
 import { Footer } from "@/components/Footer";
@@ -189,14 +189,26 @@ function Storefront() {
 
       <section id="products" className="py-8">
         <SectionHead icon={<Flame />} title={t('popularProducts')} />
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+        <div className="mt-4">
           {loading ? (
-            <div className="col-span-full py-20 text-center text-sm text-muted-foreground">Loading products...</div>
+            <div className="py-20 text-center text-sm text-muted-foreground">Loading products...</div>
           ) : products.length === 0 ? (
-            <div className="col-span-full py-20 text-center text-sm text-muted-foreground">No products available yet.</div>
+            <div className="py-20 text-center text-sm text-muted-foreground">No products available yet.</div>
           ) : (
-            products.slice(0, 10).map((p) => (
-              <article key={p.id} className="group overflow-hidden rounded-md border border-border bg-card p-3 shadow-card transition hover:-translate-y-1 hover:shadow-card-hover">
+            (() => {
+              // Two rows: first slides right-to-left, second left-to-right.
+              const list = products.slice(0, 20);
+              const half = Math.ceil(list.length / 2);
+              const rows = list.length >= 6 ? [list.slice(0, half), list.slice(half)] : [list, list];
+              return rows.map((row, r) => (
+                <div key={r} className="marquee">
+                  <div
+                    className={`marquee-track${r === 1 ? " reverse" : ""}`}
+                    style={{ "--marquee-duration": `${Math.max(25, row.length * 7)}s` } as CSSProperties}
+                  >
+                    {[0, 1].map((copy) =>
+                      row.map((p) => (
+              <article key={`${copy}-${p.id}`} data-marquee-copy={copy === 1 ? "" : undefined} aria-hidden={copy === 1 || undefined} className="group w-44 shrink-0 overflow-hidden rounded-md border border-border bg-card p-3 shadow-card transition hover:-translate-y-1 hover:shadow-card-hover sm:w-52">
                 <div className="relative aspect-square overflow-hidden rounded-sm bg-muted">
                   <img src={p.image_url} width={816} height={816} loading="lazy" alt={p.title} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
                   {p.sale && <span className="absolute left-2 top-2 rounded-full bg-sale px-2 py-1 text-[10px] font-black text-sale-foreground">{p.sale}</span>}
@@ -227,7 +239,12 @@ function Storefront() {
                   </Button>
                 </div>
               </article>
-            ))
+                      )),
+                    )}
+                  </div>
+                </div>
+              ));
+            })()
           )}
         </div>
       </section>

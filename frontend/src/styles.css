@@ -178,4 +178,18 @@ a:hover .category-icon { transform: translateY(-2px); }
 @media (min-width: 768px) { .nav-label { display: block; } header [aria-label="Wishlist"], header [aria-label^="Cart"], header [aria-label="My account"] { width: 4.2rem; height: 3.4rem; flex-direction: column; gap: .15rem; } }
 @media (max-width: 639px) { .hero img { object-position: 64% center; } .hero .bg-hero-fade { background: linear-gradient(90deg, oklch(0.2 0.05 250 / .75), oklch(0.2 0.05 250 / .35)); } }
 
-@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition-duration: .01ms !important; } }
+/* Popular Products marquee: each track holds the items twice, so sliding by
+   exactly half loops seamlessly. Hover/focus pauses it. */
+.marquee { overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); }
+.marquee-track { display: flex; width: max-content; gap: .75rem; padding: .5rem 0; animation: marquee-rtl var(--marquee-duration, 40s) linear infinite; }
+.marquee-track.reverse { animation-name: marquee-ltr; }
+.marquee:hover .marquee-track, .marquee:focus-within .marquee-track { animation-play-state: paused; }
+@keyframes marquee-rtl { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes marquee-ltr { from { transform: translateX(-50%); } to { transform: translateX(0); } }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; } * { transition-duration: .01ms !important; }
+  .marquee { overflow-x: auto; -webkit-mask-image: none; mask-image: none; }
+  .marquee-track { animation: none; }
+  .marquee-track [data-marquee-copy] { display: none; }
+}
