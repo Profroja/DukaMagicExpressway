@@ -178,6 +178,18 @@ a:hover .category-icon { transform: translateY(-2px); }
 @media (min-width: 768px) { .nav-label { display: block; } header [aria-label="Wishlist"], header [aria-label^="Cart"], header [aria-label="My account"] { width: 4.2rem; height: 3.4rem; flex-direction: column; gap: .15rem; } }
 @media (max-width: 639px) { .hero img { object-position: 64% center; } .hero .bg-hero-fade { background: linear-gradient(90deg, oklch(0.2 0.05 250 / .75), oklch(0.2 0.05 250 / .35)); } }
 
+/* Dark-background inputs (login / register): stop the browser's autofill
+   from painting a light box that hides the white text and the field icons. */
+.autofill-dark:-webkit-autofill,
+.autofill-dark:-webkit-autofill:hover,
+.autofill-dark:-webkit-autofill:focus {
+  -webkit-text-fill-color: #ffffff;
+  caret-color: #ffffff;
+  -webkit-box-shadow: 0 0 0 1000px rgb(30 41 59 / 0.92) inset;
+  box-shadow: 0 0 0 1000px rgb(30 41 59 / 0.92) inset;
+  transition: background-color 9999s ease-out 0s;
+}
+
 /* Popular Products marquee: each track holds the items twice, so sliding by
    exactly half loops seamlessly. Hover/focus pauses it. */
 .marquee { overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); }

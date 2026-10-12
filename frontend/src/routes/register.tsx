@@ -484,6 +484,15 @@ function RegisterPage() {
           backdrop-filter: blur(12px);
         }
         .field-input::placeholder { color: rgba(255,255,255,0.4); }
+        .field-input:-webkit-autofill,
+        .field-input:-webkit-autofill:hover,
+        .field-input:-webkit-autofill:focus {
+          -webkit-text-fill-color: #fff;
+          caret-color: #fff;
+          -webkit-box-shadow: 0 0 0 1000px rgb(30 41 59 / 0.92) inset;
+          box-shadow: 0 0 0 1000px rgb(30 41 59 / 0.92) inset;
+          transition: background-color 9999s ease-out 0s;
+        }
         .field-input:focus {
           border-color: var(--color-primary);
           background: rgba(255,255,255,0.2);
@@ -541,7 +550,7 @@ function Field({
     <div>
       <label className="mb-2 block text-sm font-bold text-white/90">{label}</label>
       <div className="relative">
-        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50">{icon}</span>
+        <span className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-white/60">{icon}</span>
         {children}
       </div>
     </div>

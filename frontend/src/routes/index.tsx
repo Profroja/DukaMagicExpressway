@@ -174,7 +174,6 @@ function Storefront() {
             {banners[banner] && (
               <>
                 <div key={banner} className="relative z-10 flex min-h-[360px] max-w-xl animate-banner-in flex-col justify-center px-7 py-12 sm:px-14 md:min-h-[370px]">
-                  <span className="mb-3 w-fit rounded-full bg-primary px-3 py-1 text-xs font-extrabold uppercase text-primary-foreground shadow-md sm:bg-primary/10 sm:text-primary">{banners[banner].kicker}</span>
                   <h1 className="text-4xl font-black leading-[1.08] text-white drop-shadow-lg sm:text-navy sm:drop-shadow-none">{banners[banner].title} <span className="block text-primary drop-shadow-lg sm:drop-shadow-none">{banners[banner].accent}</span></h1>
                   <Button className="mt-7 w-fit rounded-full px-7" onClick={() => document.getElementById("products")?.scrollIntoView({ behavior: "smooth" })}>{t('shopNow')} <ChevronRight /></Button>
                 </div>

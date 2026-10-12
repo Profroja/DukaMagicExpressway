@@ -157,13 +157,14 @@ function LoginPage() {
                   Email Address
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 size-5 -translate-y-1/2 text-white/50" />
+                  <Mail className="pointer-events-none absolute left-4 top-1/2 z-10 size-5 -translate-y-1/2 text-white/60" />
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
-                    className="h-12 w-full rounded-xl border border-white/20 bg-white/10 pl-12 pr-4 text-sm text-white placeholder:text-white/40 outline-none backdrop-blur-sm transition focus:border-primary focus:bg-white/20 focus:ring-2 focus:ring-primary/30"
+                    autoComplete="email"
+                    className="autofill-dark h-12 w-full rounded-xl border border-white/20 bg-white/10 pl-12 pr-4 text-sm text-white placeholder:text-white/40 outline-none backdrop-blur-sm transition focus:border-primary focus:bg-white/20 focus:ring-2 focus:ring-primary/30"
                     required
                   />
                 </div>
@@ -175,19 +176,20 @@ function LoginPage() {
                   Password
                 </label>
                 <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 size-5 -translate-y-1/2 text-white/50" />
+                  <Lock className="pointer-events-none absolute left-4 top-1/2 z-10 size-5 -translate-y-1/2 text-white/60" />
                   <input
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="h-12 w-full rounded-xl border border-white/20 bg-white/10 pl-12 pr-12 text-sm text-white placeholder:text-white/40 outline-none backdrop-blur-sm transition focus:border-primary focus:bg-white/20 focus:ring-2 focus:ring-primary/30"
+                    autoComplete="current-password"
+                    className="autofill-dark h-12 w-full rounded-xl border border-white/20 bg-white/10 pl-12 pr-12 text-sm text-white placeholder:text-white/40 outline-none backdrop-blur-sm transition focus:border-primary focus:bg-white/20 focus:ring-2 focus:ring-primary/30"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-white/50 transition hover:text-white"
+                    className="absolute right-4 top-1/2 z-10 -translate-y-1/2 text-white/60 transition hover:text-white"
                   >
                     {showPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
                   </button>
