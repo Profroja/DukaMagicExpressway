@@ -236,7 +236,14 @@ export default function TrackScreen() {
               </Text>
               <Text style={styles.chipMeta}>{t("deliveredBy")}</Text>
             </View>
-            <Text style={styles.chipPrice}>{formatMoney(order.currency, order.total)}</Text>
+            <View style={{ alignItems: "flex-end" }}>
+              <Text style={styles.chipPrice}>{formatMoney(order.currency, order.total)}</Text>
+              {!!order.deliveryFee && (
+                <Text style={styles.chipMeta}>
+                  {t("inclDelivery", { fee: formatMoney(order.currency, order.deliveryFee) })}
+                </Text>
+              )}
+            </View>
           </View>
         )}
       </View>

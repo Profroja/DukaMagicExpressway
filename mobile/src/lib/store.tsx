@@ -22,7 +22,10 @@ export type CustomerOrder = {
   imageUrl: string;
   listingType: "product" | "service";
   quantity: number;
+  /** What the customer pays, including delivery. */
   total: number;
+  /** Delivery fee included in total (0 for services / no fee). */
+  deliveryFee?: number;
   currency: string;
   phone: string;
   status: OrderStatus;

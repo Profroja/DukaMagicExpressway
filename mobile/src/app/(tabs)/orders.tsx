@@ -86,6 +86,7 @@ export default function OrdersScreen() {
 }
 
 function OrderCard({ order, language }: { order: CustomerOrder; language: string }) {
+  const { t } = useLanguage();
   const active = isActiveOrder(order.status);
   const uri = mediaUrl(order.imageUrl);
   const isService = order.listingType === "service";
@@ -113,6 +114,11 @@ function OrderCard({ order, language }: { order: CustomerOrder; language: string
             {formatMoney(order.currency, order.total)}
             <Text style={styles.qty}> · x{order.quantity}</Text>
           </Text>
+          {!!order.deliveryFee && (
+            <Text style={styles.qty}>
+              {t("inclDelivery", { fee: formatMoney(order.currency, order.deliveryFee) })}
+            </Text>
+          )}
           <View style={{ marginTop: 6 }}>
             <StatusBadge status={order.status} />
           </View>

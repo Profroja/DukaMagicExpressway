@@ -39,6 +39,7 @@ urlpatterns = [
     path('api/vendor/products/', catalog_views.vendor_listings_view),
     path('api/catalog/', catalog_views.public_catalog_view),
     path('api/delivery/quote/', orders_delivery.delivery_quote_view),
+    path('api/delivery/map/', orders_delivery.delivery_map_view),
     path('api/orders/quick/', orders_views.quick_order_view),
     path('api/orders/quick/<uuid:order_id>/', orders_views.quick_order_status_view),
     path('api/vendor/orders/', orders_views.vendor_orders_view),

@@ -587,3 +587,8 @@ class DeliveryFeeTests(TestCase):
         self.assertFalse(
             self.client.get("/api/delivery/quote/", {"lat": self.FAR["latitude"], "lng": self.FAR["longitude"]}).json()["deliverable"]
         )
+
+    def test_map_image_needs_key_and_valid_point(self):
+        # No GOOGLE_MAPS_API_KEY in tests: no map, and bad points are refused.
+        self.assertEqual(self.client.get("/api/delivery/map/", {"lat": "-6.78", "lng": "39.26"}).status_code, 404)
+        self.assertEqual(self.client.get("/api/delivery/map/", {"lat": "x", "lng": "39.26"}).status_code, 404)

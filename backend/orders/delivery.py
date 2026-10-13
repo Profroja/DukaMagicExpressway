@@ -7,12 +7,13 @@ the straight-line distance.
 import json
 import logging
 import math
+import urllib.parse
 import urllib.request
 from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
 from django.db import transaction
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
 from auths.views import _is_admin
@@ -133,6 +134,42 @@ def delivery_quote_view(request):
             "currency": "TZS",
         }
     )
+
+
+STATIC_MAP_URL = "https://maps.googleapis.com/maps/api/staticmap"
+
+
+def delivery_map_view(request):
+    """Public: GET ?lat=&lng= -> PNG map with the customer's pin.
+
+    The mobile app shows this on its location step; fetching it here keeps the
+    Google key on the server.
+    """
+    if request.method != "GET":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    coords = parse_coordinates(request.GET.get("lat"), request.GET.get("lng"))
+    key = getattr(settings, "GOOGLE_MAPS_API_KEY", "")
+    if coords is None or not key:
+        return JsonResponse({"error": "Map not available."}, status=404)
+    lat, lng = coords
+    params = urllib.parse.urlencode({
+        "center": f"{lat},{lng}",
+        "zoom": "16",
+        "size": "640x400",
+        "scale": "2",
+        "markers": f"color:0xFF5A14|{lat},{lng}",
+        "key": key,
+    })
+    try:
+        with urllib.request.urlopen(f"{STATIC_MAP_URL}?{params}", timeout=8) as response:
+            image = response.read()
+            content_type = response.headers.get("Content-Type", "image/png")
+    except Exception:
+        logger.warning("Google Static Maps failed", exc_info=True)
+        return JsonResponse({"error": "Map not available."}, status=502)
+    result = HttpResponse(image, content_type=content_type)
+    result["Cache-Control"] = "public, max-age=86400"
+    return result
 
 
 def _settings_payload():

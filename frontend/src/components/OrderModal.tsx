@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   ArrowLeft,
+  ArrowRight,
   CheckCircle2,
   MapPin,
   Minus,
@@ -64,7 +65,7 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
   const { t } = useLanguage();
   const [mounted, setMounted] = useState(false);
   const [quantity, setQuantity] = useState(1);
-  const [step, setStep] = useState<"details" | "contact" | "tracking">("details");
+  const [step, setStep] = useState<"details" | "contact" | "location" | "tracking">("details");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
@@ -172,6 +173,25 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
         if (label) setAddress((prev) => prev || label.slice(0, 255));
       });
     }
+  };
+
+  const contactError = () => {
+    if (!name.trim()) return isSwahili ? "Tafadhali weka jina lako." : "Please enter your name.";
+    if (!phone.trim() || phone.replace(/\D/g, "").length < 9)
+      return isSwahili
+        ? "Tafadhali weka namba sahihi ya simu."
+        : "Please enter a valid mobile number.";
+    return "";
+  };
+
+  const goToLocation = () => {
+    const problem = contactError();
+    if (problem) {
+      setError(problem);
+      return;
+    }
+    setError("");
+    setStep("location");
   };
 
   const handleOrder = async () => {
@@ -558,6 +578,164 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
               )}
             </div>
           </div>
+        ) : step === "location" ? (
+          <div className="flex flex-col p-4 pb-6 sm:p-6 md:p-8">
+            <div className="pr-10">
+              <h2 className="text-xl sm:text-2xl font-black text-navy leading-tight">
+                {isService
+                  ? isSwahili
+                    ? "Tukuje Wapi?"
+                    : "Where should we come?"
+                  : isSwahili
+                    ? "Tukuletee Wapi?"
+                    : "Where should we deliver?"}
+              </h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {isSwahili
+                  ? 'Bonyeza "Tumia mahali nilipo", au gusa ramani kuweka alama mahali halisi.'
+                  : 'Tap "Use my location", or tap the map to drop the pin on the exact spot.'}
+              </p>
+            </div>
+
+            <div className="mt-4">
+              <LocationPicker
+                value={location}
+                onChange={pickLocation}
+                locateLabel={isSwahili ? "Tumia mahali nilipo" : "Use my location"}
+                className="h-[42dvh] min-h-[260px] sm:h-[380px]"
+              />
+            </div>
+
+            <div className="relative mt-3">
+              <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <input
+                value={address}
+                onChange={(e) => {
+                  setAddress(e.target.value);
+                  setError("");
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleOrder();
+                }}
+                maxLength={255}
+                placeholder={
+                  isSwahili
+                    ? "Maelezo: mtaa, jengo, alama..."
+                    : "Directions: street, building, landmark..."
+                }
+                className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm font-semibold text-navy outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+
+            {/* Order summary with delivery fee */}
+            <div className="mt-4 rounded-2xl border border-slate-100 bg-slate-50/80 p-3 text-sm">
+              <div className="flex items-center gap-3">
+                {product.image_url && (
+                  <img src={product.image_url} alt="" className="size-11 rounded-lg object-cover" />
+                )}
+                <p className="min-w-0 flex-1 truncate font-extrabold text-navy">{itemLabel}</p>
+                {isService ? (
+                  <ServicePrice
+                    price={unitPrice}
+                    currency={currency}
+                    className="font-black text-primary whitespace-nowrap"
+                  />
+                ) : (
+                  <span className="font-bold text-slate-700 whitespace-nowrap">
+                    {currency} {totalPrice.toLocaleString()}
+                  </span>
+                )}
+              </div>
+              {!isService && (
+                <>
+                  <div className="mt-2 flex justify-between text-slate-600">
+                    <span className="flex items-center gap-1">
+                      <Truck className="size-3.5" />
+                      {isSwahili ? "Gharama ya usafiri" : "Delivery fee"}
+                      {quote?.distance_km && !quoting && (
+                        <span className="text-[11px] text-slate-400">
+                          ({Number(quote.distance_km)} km)
+                        </span>
+                      )}
+                    </span>
+                    <span className="font-bold">
+                      {!location
+                        ? isSwahili
+                          ? "Chagua mahali"
+                          : "Pick a location"
+                        : quoting
+                          ? "..."
+                          : outOfRange
+                            ? isSwahili
+                              ? "Nje ya eneo"
+                              : "Out of range"
+                            : quote?.configured
+                              ? deliveryFee > 0
+                                ? `${currency} ${deliveryFee.toLocaleString()}`
+                                : isSwahili
+                                  ? "Bure"
+                                  : "Free"
+                              : isSwahili
+                                ? "Tutakujulisha"
+                                : "We'll confirm"}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex justify-between border-t border-slate-200 pt-2 text-navy">
+                    <span className="font-black">{isSwahili ? "Jumla" : "Total"}</span>
+                    <span className="text-lg font-black text-primary">
+                      {currency} {grandTotal.toLocaleString()}
+                    </span>
+                  </div>
+                  {outOfRange && (
+                    <p className="mt-2 text-[11px] font-semibold text-red-600">
+                      {isSwahili
+                        ? `Tunaleta hadi km ${Number(quote?.max_km)}. Mahali hapa ni km ${Number(quote?.distance_km)}.`
+                        : `We deliver up to ${Number(quote?.max_km)} km; this spot is ${Number(quote?.distance_km)} km away.`}
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+
+            {error && (
+              <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-600">
+                {error}
+              </p>
+            )}
+
+            <div className="mt-5 space-y-2">
+              <Button
+                onClick={handleOrder}
+                disabled={ordering || quoting}
+                className="w-full h-12 rounded-xl text-base font-black shadow-lg shadow-primary/20 transition hover:shadow-xl active:scale-[0.99]"
+              >
+                <Zap className="size-5 fill-current" />
+                {ordering
+                  ? isSwahili
+                    ? "Inatuma..."
+                    : "Submitting..."
+                  : isService
+                    ? isSwahili
+                      ? "Thibitisha Uhifadhi"
+                      : "Confirm Booking"
+                    : isSwahili
+                      ? "Thibitisha Agizo"
+                      : "Confirm Order"}
+              </Button>
+              <button
+                type="button"
+                onClick={() => {
+                  setError("");
+                  setStep("contact");
+                }}
+                disabled={ordering}
+                className="flex w-full items-center justify-center gap-1.5 text-xs font-bold text-muted-foreground transition hover:text-navy"
+              >
+                <ArrowLeft className="size-3.5" />
+                {isSwahili ? "Rudi nyuma" : "Back"}
+              </button>
+            </div>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2">
             {/* Left Side: Big Product Image */}
@@ -757,7 +935,7 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
                             setError("");
                           }}
                           onKeyDown={(e) => {
-                            if (e.key === "Enter") handleOrder();
+                            if (e.key === "Enter") goToLocation();
                           }}
                           type="tel"
                           placeholder="e.g. 0712 345 678"
@@ -765,102 +943,6 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
                         />
                       </div>
                     </div>
-
-                    {/* Delivery location: map pin (required for goods) + optional directions */}
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                        {isService
-                          ? isSwahili
-                            ? "Mahali Huduma Itakapofanyika"
-                            : "Where should we come?"
-                          : isSwahili
-                            ? "Mahali pa Kuletewa"
-                            : "Delivery Location"}
-                      </label>
-                      <LocationPicker
-                        value={location}
-                        onChange={pickLocation}
-                        locateLabel={isSwahili ? "Tumia mahali nilipo" : "Use my location"}
-                        className="h-48 sm:h-52"
-                      />
-                      <div className="relative mt-2">
-                        <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                        <input
-                          value={address}
-                          onChange={(e) => {
-                            setAddress(e.target.value);
-                            setError("");
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") handleOrder();
-                          }}
-                          maxLength={255}
-                          placeholder={
-                            isSwahili
-                              ? "Maelezo: mtaa, jengo, alama..."
-                              : "Directions: street, building, landmark..."
-                          }
-                          className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm font-semibold text-navy outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Delivery fee + total */}
-                    {!isService && (
-                      <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-3 text-sm">
-                        <div className="flex justify-between text-slate-600">
-                          <span>{isSwahili ? "Bidhaa" : "Items"}</span>
-                          <span className="font-bold">
-                            {currency} {totalPrice.toLocaleString()}
-                          </span>
-                        </div>
-                        <div className="mt-1 flex justify-between text-slate-600">
-                          <span className="flex items-center gap-1">
-                            <Truck className="size-3.5" />
-                            {isSwahili ? "Gharama ya usafiri" : "Delivery fee"}
-                            {quote?.distance_km && !quoting && (
-                              <span className="text-[11px] text-slate-400">
-                                ({Number(quote.distance_km)} km)
-                              </span>
-                            )}
-                          </span>
-                          <span className="font-bold">
-                            {!location
-                              ? isSwahili
-                                ? "Chagua mahali"
-                                : "Pick a location"
-                              : quoting
-                                ? "..."
-                                : outOfRange
-                                  ? isSwahili
-                                    ? "Nje ya eneo"
-                                    : "Out of range"
-                                  : quote?.configured
-                                    ? deliveryFee > 0
-                                      ? `${currency} ${deliveryFee.toLocaleString()}`
-                                      : isSwahili
-                                        ? "Bure"
-                                        : "Free"
-                                    : isSwahili
-                                      ? "Tutakujulisha"
-                                      : "We'll confirm"}
-                          </span>
-                        </div>
-                        <div className="mt-2 flex justify-between border-t border-slate-200 pt-2 text-navy">
-                          <span className="font-black">{isSwahili ? "Jumla" : "Total"}</span>
-                          <span className="text-base font-black text-primary">
-                            {currency} {grandTotal.toLocaleString()}
-                          </span>
-                        </div>
-                        {outOfRange && (
-                          <p className="mt-2 text-[11px] font-semibold text-red-600">
-                            {isSwahili
-                              ? `Tunaleta hadi km ${Number(quote?.max_km)}. Mahali hapa ni km ${Number(quote?.distance_km)}.`
-                              : `We deliver up to ${Number(quote?.max_km)} km; this spot is ${Number(quote?.distance_km)} km away.`}
-                          </p>
-                        )}
-                      </div>
-                    )}
 
                     {error && (
                       <p className="rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-600">
@@ -871,22 +953,11 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
 
                   <div className="mt-6 pt-4 border-t border-slate-100 space-y-2">
                     <Button
-                      onClick={handleOrder}
-                      disabled={ordering || quoting}
+                      onClick={goToLocation}
                       className="w-full h-12 rounded-xl text-base font-black shadow-lg shadow-primary/20 transition hover:shadow-xl active:scale-[0.99]"
                     >
-                      <Zap className="size-5 fill-current" />
-                      {ordering
-                        ? isSwahili
-                          ? "Inatuma..."
-                          : "Submitting..."
-                        : isService
-                          ? isSwahili
-                            ? "Thibitisha Uhifadhi"
-                            : "Confirm Booking"
-                          : isSwahili
-                            ? "Thibitisha Agizo"
-                            : "Confirm Order"}
+                      {isSwahili ? "Endelea" : "Continue"}
+                      <ArrowRight className="size-5" />
                     </Button>
                     {!isService && (
                       <button

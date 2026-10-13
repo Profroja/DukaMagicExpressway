@@ -30,6 +30,11 @@ async function db() {
         );
         CREATE INDEX IF NOT EXISTS orders_created ON orders (created_at DESC);
       `);
+      // Added with delivery fees; older installs get the column here.
+      const columns = await database.getAllAsync<{ name: string }>("PRAGMA table_info(orders)");
+      if (!columns.some((c) => c.name === "delivery_fee")) {
+        await database.execAsync("ALTER TABLE orders ADD COLUMN delivery_fee REAL NOT NULL DEFAULT 0");
+      }
       await migrateLegacy(database);
       return database;
     })();
@@ -40,10 +45,10 @@ async function db() {
 async function insert(database: SQLite.SQLiteDatabase, o: CustomerOrder) {
   await database.runAsync(
     `INSERT OR REPLACE INTO orders
-       (id, listing_id, title, image_url, listing_type, quantity, total, currency, phone, status, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, listing_id, title, image_url, listing_type, quantity, total, delivery_fee, currency, phone, status, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     o.id, o.listingId, o.title, o.imageUrl ?? "", o.listingType ?? "product",
-    o.quantity, o.total, o.currency, o.phone, o.status, o.createdAt,
+    o.quantity, o.total, o.deliveryFee ?? 0, o.currency, o.phone, o.status, o.createdAt,
   );
 }
 
@@ -60,7 +65,7 @@ async function migrateLegacy(database: SQLite.SQLiteDatabase) {
 
 type Row = {
   id: string; listing_id: string; title: string; image_url: string; listing_type: string;
-  quantity: number; total: number; currency: string; phone: string; status: string; created_at: string;
+  quantity: number; total: number; delivery_fee: number | null; currency: string; phone: string; status: string; created_at: string;
 };
 
 export async function loadOrders(): Promise<CustomerOrder[]> {
@@ -73,6 +78,7 @@ export async function loadOrders(): Promise<CustomerOrder[]> {
     listingType: r.listing_type === "service" ? "service" : "product",
     quantity: r.quantity,
     total: r.total,
+    deliveryFee: r.delivery_fee ?? 0,
     currency: r.currency,
     phone: r.phone,
     status: r.status as OrderStatus,

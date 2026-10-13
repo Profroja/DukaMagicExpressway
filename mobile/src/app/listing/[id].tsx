@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button, EmptyState, ErrorState, PriceText } from "@/components/ui";
 import { Colors, Radius, Shadow } from "@/constants/theme";
 import {
+  API_URL,
   ApiError,
   fetchDeliveryQuote,
   fetchListing,
@@ -46,7 +47,7 @@ export default function ListingScreen() {
   const [loading, setLoading] = useState(!listing);
   const [failed, setFailed] = useState(false);
   const [quantity, setQuantity] = useState(Math.max(1, Number(qty) || 1));
-  const [chosenStep, setStep] = useState<"details" | "contact">(
+  const [chosenStep, setStep] = useState<"details" | "contact" | "location">(
     initialStep === "contact" ? "contact" : "details",
   );
   const [name, setName] = useState("");
@@ -58,6 +59,7 @@ export default function ListingScreen() {
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState("");
   const [quote, setQuote] = useState<DeliveryQuote | null>(null);
+  const [mapFailed, setMapFailed] = useState(false);
   // Keep the form above the keyboard and the focused field in view.
   const { ref: rootRef, overlap: keyboardOverlap } = useKeyboardOverlap();
   const scrollRef = useRef<ScrollView>(null);
@@ -87,7 +89,7 @@ export default function ListingScreen() {
 
   const isService = listing?.listing_type === "service";
   // Services skip quantity - straight to the booking form.
-  const step = isService ? "contact" : chosenStep;
+  const step = isService && chosenStep === "details" ? "contact" : chosenStep;
 
   if (loading) {
     return <ActivityIndicator color={Colors.primary} style={{ marginTop: 80 }} />;
@@ -115,6 +117,7 @@ export default function ListingScreen() {
       const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
       const point = { latitude: position.coords.latitude, longitude: position.coords.longitude };
       setCoords(point);
+      setMapFailed(false);
       const [place] = await Location.reverseGeocodeAsync(point).catch(() => []);
       if (place && !address.trim()) {
         const label = [place.district || place.street || place.name, place.city || place.region]
@@ -128,6 +131,22 @@ export default function ListingScreen() {
     } finally {
       setLocating(false);
     }
+  };
+
+  const contactError = () => {
+    if (!name.trim()) return t("errName");
+    const digits = phone.replace(/\D/g, "");
+    if (digits.length < 9 || digits.length > 15) return t("errPhone");
+    return "";
+  };
+
+  // Details are fine: on to the location step, asking for the location right away.
+  const goToLocation = () => {
+    const problem = contactError();
+    if (problem) return setError(problem);
+    setError("");
+    setStep("location");
+    if (!coords) shareLocation();
   };
 
   const submit = async () => {
@@ -157,6 +176,7 @@ export default function ListingScreen() {
         listingType: listing.listing_type,
         quantity: isService ? 1 : quantity,
         total: Number(result.grand_total) || total + deliveryFee,
+        deliveryFee: Number(result.delivery_fee) || 0,
         currency: result.currency || listing.currency,
         phone: phone.trim(),
         status: "new",
@@ -178,7 +198,7 @@ export default function ListingScreen() {
     >
       <Stack.Screen
         options={{
-          title: step === "contact" ? (isService ? t("completeBooking") : t("completeOrder")) : "",
+          title: step !== "details" ? (isService ? t("completeBooking") : t("completeOrder")) : "",
         }}
       />
       <ScrollView
@@ -251,6 +271,117 @@ export default function ListingScreen() {
               </View>
             </View>
           </>
+        ) : step === "location" ? (
+          <View style={styles.form}>
+            <Text style={styles.stepTitle}>{isService ? t("whereCome") : t("whereDeliver")}</Text>
+            <Text style={styles.formHint}>{t("locationHint")}</Text>
+
+            {/* Big map of the shared spot (served by our backend), or a big share button. */}
+            <View style={styles.mapCard}>
+              {coords && !mapFailed ? (
+                <Image
+                  source={{ uri: `${API_URL}/api/delivery/map/?lat=${coords.latitude.toFixed(6)}&lng=${coords.longitude.toFixed(6)}` }}
+                  style={StyleSheet.absoluteFill}
+                  contentFit="cover"
+                  transition={250}
+                  onError={() => setMapFailed(true)}
+                />
+              ) : (
+                <View style={styles.mapEmpty}>
+                  <Ionicons name={coords ? "location" : "navigate-circle"} size={56} color={Colors.primary} />
+                  {coords ? (
+                    <Text style={styles.mapEmptyText}>
+                      {t("mapUnavailable")}
+                      {"\n"}
+                      {coords.latitude.toFixed(5)}, {coords.longitude.toFixed(5)}
+                    </Text>
+                  ) : null}
+                </View>
+              )}
+              {locating && (
+                <View style={styles.mapBusy}>
+                  <ActivityIndicator color="#FFFFFF" size="large" />
+                  <Text style={styles.mapBusyText}>{t("locating")}</Text>
+                </View>
+              )}
+              <Pressable
+                onPress={shareLocation}
+                disabled={locating}
+                style={[styles.mapButton, coords && styles.mapButtonSecondary]}
+                accessibilityRole="button"
+              >
+                <Ionicons name="navigate" size={16} color={coords ? Colors.primary : "#FFFFFF"} />
+                <Text style={[styles.mapButtonText, coords && { color: Colors.primary }]}>
+                  {coords ? t("updateLocation") : t("shareLocation")}
+                </Text>
+              </Pressable>
+            </View>
+            {coords && !locating && (
+              <Text style={styles.locationMeta}>
+                <Ionicons name="checkmark-circle" size={13} color={Colors.success} /> {t("locationShared")}
+                {quote?.distance_km ? ` · ${Number(quote.distance_km)} km` : ""}
+              </Text>
+            )}
+            {!!locationError && <Text style={styles.locationError}>{locationError}</Text>}
+
+            <View style={[styles.inputWrap, { marginTop: 10 }]}>
+              <Ionicons name="location-outline" size={18} color={Colors.textFaint} />
+              <TextInput
+                value={address}
+                onChangeText={setAddress}
+                placeholder={t("locationPlaceholder")}
+                placeholderTextColor={Colors.textFaint}
+                ref={addressRef}
+                style={styles.input}
+                maxLength={255}
+                returnKeyType="send"
+                onFocus={revealField}
+                onSubmitEditing={submit}
+              />
+            </View>
+
+            {!isService && (
+              <View style={styles.totals}>
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalLabel}>{t("items")}</Text>
+                  <Text style={styles.totalValue}>{formatMoney(listing.currency, total)}</Text>
+                </View>
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalLabel}>{t("deliveryFee")}</Text>
+                  <Text style={[styles.totalValue, outOfRange && { color: Colors.danger }]}>
+                    {!coords
+                      ? t("pickLocation")
+                      : outOfRange
+                        ? t("outOfRange")
+                        : quote?.configured
+                          ? deliveryFee > 0
+                            ? formatMoney(listing.currency, deliveryFee)
+                            : t("free")
+                          : t("weConfirm")}
+                  </Text>
+                </View>
+                <View style={[styles.totalRow, styles.grandRow]}>
+                  <Text style={styles.grandLabel}>{t("total")}</Text>
+                  <Text style={styles.grandValue}>{formatMoney(listing.currency, total + deliveryFee)}</Text>
+                </View>
+                {outOfRange && (
+                  <Text style={styles.locationError}>
+                    {t("outOfRangeNote", {
+                      max: String(Number(quote?.max_km)),
+                      km: String(Number(quote?.distance_km)),
+                    })}
+                  </Text>
+                )}
+              </View>
+            )}
+
+            {!!error && (
+              <View style={styles.error}>
+                <Ionicons name="alert-circle" size={16} color={Colors.danger} />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
+          </View>
         ) : (
           <View style={styles.form}>
             <Text style={styles.formHint}>{t("contactHint")}</Text>
@@ -313,91 +444,9 @@ export default function ListingScreen() {
                 returnKeyType="next"
                 submitBehavior="submit"
                 onFocus={revealField}
-                onSubmitEditing={() => addressRef.current?.focus()}
+                onSubmitEditing={goToLocation}
               />
             </Field>
-            <Text style={styles.label}>{isService ? t("serviceLocation") : t("deliveryLocation")}</Text>
-            <Pressable
-              onPress={shareLocation}
-              disabled={locating}
-              style={[styles.locationBtn, coords && styles.locationBtnDone]}
-              accessibilityRole="button"
-            >
-              {locating ? (
-                <ActivityIndicator color={Colors.primary} />
-              ) : (
-                <Ionicons
-                  name={coords ? "checkmark-circle" : "navigate"}
-                  size={22}
-                  color={coords ? Colors.success : Colors.primary}
-                />
-              )}
-              <View style={{ flex: 1 }}>
-                <Text style={styles.locationTitle}>
-                  {locating ? t("locating") : coords ? t("locationShared") : t("shareLocation")}
-                </Text>
-                {coords && !locating && (
-                  <Text style={styles.locationMeta}>
-                    {coords.latitude.toFixed(5)}, {coords.longitude.toFixed(5)}
-                    {quote?.distance_km ? ` · ${Number(quote.distance_km)} km` : ""}
-                  </Text>
-                )}
-              </View>
-              {coords && !locating && <Text style={styles.locationAction}>{t("updateLocation")}</Text>}
-            </Pressable>
-            {!!locationError && <Text style={styles.locationError}>{locationError}</Text>}
-
-            <View style={[styles.inputWrap, { marginTop: 10 }]}>
-              <Ionicons name="location-outline" size={18} color={Colors.textFaint} />
-              <TextInput
-                value={address}
-                onChangeText={setAddress}
-                placeholder={t("locationPlaceholder")}
-                placeholderTextColor={Colors.textFaint}
-                ref={addressRef}
-                style={styles.input}
-                maxLength={255}
-                returnKeyType="send"
-                onFocus={revealField}
-                onSubmitEditing={submit}
-              />
-            </View>
-
-            {!isService && (
-              <View style={styles.totals}>
-                <View style={styles.totalRow}>
-                  <Text style={styles.totalLabel}>{t("items")}</Text>
-                  <Text style={styles.totalValue}>{formatMoney(listing.currency, total)}</Text>
-                </View>
-                <View style={styles.totalRow}>
-                  <Text style={styles.totalLabel}>{t("deliveryFee")}</Text>
-                  <Text style={[styles.totalValue, outOfRange && { color: Colors.danger }]}>
-                    {!coords
-                      ? t("pickLocation")
-                      : outOfRange
-                        ? t("outOfRange")
-                        : quote?.configured
-                          ? deliveryFee > 0
-                            ? formatMoney(listing.currency, deliveryFee)
-                            : t("free")
-                          : t("weConfirm")}
-                  </Text>
-                </View>
-                <View style={[styles.totalRow, styles.grandRow]}>
-                  <Text style={styles.grandLabel}>{t("total")}</Text>
-                  <Text style={styles.grandValue}>{formatMoney(listing.currency, total + deliveryFee)}</Text>
-                </View>
-                {outOfRange && (
-                  <Text style={styles.locationError}>
-                    {t("outOfRangeNote", {
-                      max: String(Number(quote?.max_km)),
-                      km: String(Number(quote?.distance_km)),
-                    })}
-                  </Text>
-                )}
-              </View>
-            )}
-
             {!!error && (
               <View style={styles.error}>
                 <Ionicons name="alert-circle" size={16} color={Colors.danger} />
@@ -424,6 +473,22 @@ export default function ListingScreen() {
             />
             <Button title={t("orderNow")} icon="flash" style={{ flex: 1.2 }} onPress={() => setStep("contact")} />
           </View>
+        ) : step === "contact" ? (
+          <View style={{ gap: 8 }}>
+            <Button title={t("continue")} icon="arrow-forward" onPress={goToLocation} />
+            {!isService && (
+              <Button
+                title={t("back")}
+                icon="arrow-back"
+                variant="ghost"
+                onPress={() => {
+                  setError("");
+                  setStep("details");
+                }}
+                style={{ height: 36 }}
+              />
+            )}
+          </View>
         ) : (
           <View style={{ gap: 8 }}>
             <Button
@@ -433,16 +498,17 @@ export default function ListingScreen() {
               disabled={locating}
               onPress={submit}
             />
-            {!isService && (
-              <Button
-                title={t("back")}
-                icon="arrow-back"
-                variant="ghost"
-                onPress={() => setStep("details")}
-                disabled={submitting}
-                style={{ height: 36 }}
-              />
-            )}
+            <Button
+              title={t("back")}
+              icon="arrow-back"
+              variant="ghost"
+              onPress={() => {
+                setError("");
+                setStep("contact");
+              }}
+              disabled={submitting}
+              style={{ height: 36 }}
+            />
           </View>
         )}
       </View>
@@ -583,23 +649,46 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   errorText: { flex: 1, fontSize: 13, fontWeight: "700", color: Colors.danger },
-  locationBtn: {
+  stepTitle: { fontSize: 22, fontWeight: "900", color: Colors.navy, marginBottom: 6 },
+  mapCard: {
+    marginTop: 16,
+    height: 280,
+    borderRadius: Radius.lg,
+    overflow: "hidden",
+    backgroundColor: "#FFF7ED",
+    borderWidth: 1,
+    borderColor: "#FED7AA",
+  },
+  mapEmpty: { flex: 1, alignItems: "center", justifyContent: "center", gap: 8, paddingBottom: 48 },
+  mapEmptyText: { textAlign: "center", fontSize: 12, color: Colors.textMuted, fontWeight: "600" },
+  mapBusy: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(15,36,59,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
+  mapBusyText: { color: "#FFFFFF", fontSize: 14, fontWeight: "800" },
+  mapButton: {
+    position: "absolute",
+    bottom: 14,
+    alignSelf: "center",
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    minHeight: 58,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: Radius.md,
-    borderWidth: 1.5,
-    borderStyle: "dashed",
-    borderColor: Colors.primary,
-    backgroundColor: "#FFF7ED",
+    gap: 8,
+    paddingHorizontal: 20,
+    height: 46,
+    borderRadius: Radius.full,
+    backgroundColor: Colors.primary,
+    ...Shadow.card,
   },
-  locationBtnDone: { borderStyle: "solid", borderColor: "#BBF7D0", backgroundColor: "#F0FDF4" },
-  locationTitle: { fontSize: 14, fontWeight: "800", color: Colors.navy },
+  mapButtonSecondary: { backgroundColor: "#FFFFFF" },
+  mapButtonText: { color: "#FFFFFF", fontSize: 14, fontWeight: "900" },
   locationMeta: { marginTop: 2, fontSize: 11.5, color: Colors.textMuted },
-  locationAction: { fontSize: 12, fontWeight: "800", color: Colors.primary },
   locationError: { marginTop: 8, fontSize: 12, fontWeight: "700", color: Colors.danger },
   totals: {
     marginTop: 16,
