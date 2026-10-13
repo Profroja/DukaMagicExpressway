@@ -12,13 +12,19 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 const STORAGE_KEY = "mo-expressway-lang";
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [lang, setLangState] = useState<Language>(() => {
-    if (typeof window !== "undefined") {
+  // Start in English like the server render, then switch to the saved language
+  // after hydration; reading localStorage here would make the first browser
+  // render differ from the server HTML (React error #418).
+  const [lang, setLangState] = useState<Language>("en");
+
+  useEffect(() => {
+    try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved === "en" || saved === "sw") return saved;
+      if (saved === "sw") setLangState(saved);
+    } catch {
+      // storage blocked: keep English
     }
-    return "en";
-  });
+  }, []);
 
   const setLang = (newLang: Language) => {
     setLangState(newLang);
@@ -36,9 +42,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   }, [lang]);
 
   return (
-    <LanguageContext.Provider value={{ lang, setLang, t }}>
-      {children}
-    </LanguageContext.Provider>
+    <LanguageContext.Provider value={{ lang, setLang, t }}>{children}</LanguageContext.Provider>
   );
 }
 
