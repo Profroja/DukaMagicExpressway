@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import QuickOrder, StorePurchaseOrder
+from .models import DeliveryFeeRange, DeliverySettings, QuickOrder, StorePurchaseOrder
 
 
 class StorePurchaseOrderInline(admin.TabularInline):
@@ -25,3 +25,13 @@ class StorePurchaseOrderAdmin(admin.ModelAdmin):
     list_display = ("po_number", "store", "listing_title_snapshot", "quantity", "total_amount", "status", "created_at")
     list_filter = ("status", "store")
     search_fields = ("po_number", "listing_title_snapshot", "store__name")
+
+
+@admin.register(DeliverySettings)
+class DeliverySettingsAdmin(admin.ModelAdmin):
+    list_display = ("hub_name", "hub_address", "latitude", "longitude", "updated_at")
+
+
+@admin.register(DeliveryFeeRange)
+class DeliveryFeeRangeAdmin(admin.ModelAdmin):
+    list_display = ("min_km", "max_km", "fee")

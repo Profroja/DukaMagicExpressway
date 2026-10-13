@@ -21,6 +21,7 @@ from django.urls import path
 
 from auths import views as auths_views
 from catalog import views as catalog_views
+from orders import delivery as orders_delivery
 from orders import finance as orders_finance
 from orders import views as orders_views
 from stores import views as stores_views
@@ -37,6 +38,7 @@ urlpatterns = [
     path('api/register/complete/', auths_views.register_complete_view),
     path('api/vendor/products/', catalog_views.vendor_listings_view),
     path('api/catalog/', catalog_views.public_catalog_view),
+    path('api/delivery/quote/', orders_delivery.delivery_quote_view),
     path('api/orders/quick/', orders_views.quick_order_view),
     path('api/orders/quick/<uuid:order_id>/', orders_views.quick_order_status_view),
     path('api/vendor/orders/', orders_views.vendor_orders_view),
@@ -46,6 +48,7 @@ urlpatterns = [
     path('api/admin/users/<uuid:user_id>/password/', auths_views.admin_user_password_view),
     path('api/admin/stores/', stores_views.admin_stores_view),
     path('api/admin/stores/<uuid:store_id>/', stores_views.admin_store_update_view),
+    path('api/admin/stores/<uuid:store_id>/products/', catalog_views.admin_store_listings_view),
     path('api/admin/products/', catalog_views.admin_products_view),
     path('api/admin/products/<uuid:listing_id>/', catalog_views.admin_product_update_view),
     path('api/admin/orders/', orders_views.admin_orders_view),
@@ -53,6 +56,7 @@ urlpatterns = [
     path('api/admin/orders/<uuid:order_id>/sourcing/', orders_views.admin_order_sourcing_view),
     path('api/admin/orders/<uuid:order_id>/purchase-orders/', orders_views.admin_create_purchase_order_view),
     path('api/admin/purchase-orders/<uuid:po_id>/', orders_views.admin_purchase_order_detail_view),
+    path('api/admin/delivery/', orders_delivery.admin_delivery_view),
     path('api/admin/finance/', orders_finance.admin_finance_view),
     path('api/admin/dashboard/', orders_finance.admin_dashboard_view),
     path('api/admin/revenue/', subscriptions_views.admin_revenue_view),

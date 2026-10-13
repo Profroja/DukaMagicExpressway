@@ -134,6 +134,11 @@ class Store(models.Model):
         help_text=_('Store longitude coordinate')
     )
     name = models.CharField(max_length=255)
+    location_name = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text=_('Where the store is, e.g. "Kariakoo, Dar es Salaam"')
+    )
     slug = models.SlugField(max_length=255, unique=True, blank=True)
     description = models.TextField(blank=True)
     logo_url = models.URLField(max_length=500, blank=True)

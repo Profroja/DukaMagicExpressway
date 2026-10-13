@@ -1,5 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Image } from "expo-image";
+import * as Location from "expo-location";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -16,7 +17,16 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Button, EmptyState, ErrorState, PriceText } from "@/components/ui";
 import { Colors, Radius, Shadow } from "@/constants/theme";
-import { ApiError, fetchListing, getCachedListing, mediaUrl, placeOrder, type Listing } from "@/lib/api";
+import {
+  ApiError,
+  fetchDeliveryQuote,
+  fetchListing,
+  getCachedListing,
+  mediaUrl,
+  placeOrder,
+  type DeliveryQuote,
+  type Listing,
+} from "@/lib/api";
 import { formatMoney } from "@/lib/catalog";
 import { useLanguage } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
@@ -44,6 +54,10 @@ export default function ListingScreen() {
   const [address, setAddress] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState("");
+  const [quote, setQuote] = useState<DeliveryQuote | null>(null);
   // Keep the form above the keyboard and the focused field in view.
   const { ref: rootRef, overlap: keyboardOverlap } = useKeyboardOverlap();
   const scrollRef = useRef<ScrollView>(null);
@@ -84,11 +98,45 @@ export default function ListingScreen() {
   const unitPrice = Number(listing.price) || 0;
   const total = unitPrice * quantity;
   const uri = mediaUrl(listing.image_url);
+  // Goods are delivered from our main store; services happen at the customer's place.
+  const deliveryFee = !isService && quote?.configured && quote.deliverable ? Number(quote.fee) || 0 : 0;
+  const outOfRange = !isService && !!quote?.configured && !quote.deliverable;
+
+  const shareLocation = async () => {
+    setLocationError("");
+    setError("");
+    setLocating(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        setLocationError(t("locationDenied"));
+        return;
+      }
+      const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      const point = { latitude: position.coords.latitude, longitude: position.coords.longitude };
+      setCoords(point);
+      const [place] = await Location.reverseGeocodeAsync(point).catch(() => []);
+      if (place && !address.trim()) {
+        const label = [place.district || place.street || place.name, place.city || place.region]
+          .filter(Boolean)
+          .join(", ");
+        if (label) setAddress(label.slice(0, 255));
+      }
+      if (!isService) setQuote(await fetchDeliveryQuote(point.latitude, point.longitude).catch(() => null));
+    } catch {
+      setLocationError(t("locationFailed"));
+    } finally {
+      setLocating(false);
+    }
+  };
 
   const submit = async () => {
     if (!name.trim()) return setError(t("errName"));
     const digits = phone.replace(/\D/g, "");
     if (digits.length < 9 || digits.length > 15) return setError(t("errPhone"));
+    if (!isService && !coords) return setError(t("errLocation"));
+    if (outOfRange)
+      return setError(t("outOfRangeNote", { max: String(Number(quote?.max_km)), km: String(Number(quote?.distance_km)) }));
     setError("");
     setSubmitting(true);
     try {
@@ -98,6 +146,8 @@ export default function ListingScreen() {
         name: name.trim(),
         phone: phone.trim(),
         address: address.trim(),
+        latitude: coords?.latitude,
+        longitude: coords?.longitude,
       });
       saveOrder({
         id: result.order_id,
@@ -106,7 +156,7 @@ export default function ListingScreen() {
         imageUrl: listing.image_url,
         listingType: listing.listing_type,
         quantity: isService ? 1 : quantity,
-        total: Number(result.total) || total,
+        total: Number(result.grand_total) || total + deliveryFee,
         currency: result.currency || listing.currency,
         phone: phone.trim(),
         status: "new",
@@ -266,7 +316,39 @@ export default function ListingScreen() {
                 onSubmitEditing={() => addressRef.current?.focus()}
               />
             </Field>
-            <Field icon="location-outline" label={t("deliveryLocation")}>
+            <Text style={styles.label}>{isService ? t("serviceLocation") : t("deliveryLocation")}</Text>
+            <Pressable
+              onPress={shareLocation}
+              disabled={locating}
+              style={[styles.locationBtn, coords && styles.locationBtnDone]}
+              accessibilityRole="button"
+            >
+              {locating ? (
+                <ActivityIndicator color={Colors.primary} />
+              ) : (
+                <Ionicons
+                  name={coords ? "checkmark-circle" : "navigate"}
+                  size={22}
+                  color={coords ? Colors.success : Colors.primary}
+                />
+              )}
+              <View style={{ flex: 1 }}>
+                <Text style={styles.locationTitle}>
+                  {locating ? t("locating") : coords ? t("locationShared") : t("shareLocation")}
+                </Text>
+                {coords && !locating && (
+                  <Text style={styles.locationMeta}>
+                    {coords.latitude.toFixed(5)}, {coords.longitude.toFixed(5)}
+                    {quote?.distance_km ? ` · ${Number(quote.distance_km)} km` : ""}
+                  </Text>
+                )}
+              </View>
+              {coords && !locating && <Text style={styles.locationAction}>{t("updateLocation")}</Text>}
+            </Pressable>
+            {!!locationError && <Text style={styles.locationError}>{locationError}</Text>}
+
+            <View style={[styles.inputWrap, { marginTop: 10 }]}>
+              <Ionicons name="location-outline" size={18} color={Colors.textFaint} />
               <TextInput
                 value={address}
                 onChangeText={setAddress}
@@ -279,7 +361,42 @@ export default function ListingScreen() {
                 onFocus={revealField}
                 onSubmitEditing={submit}
               />
-            </Field>
+            </View>
+
+            {!isService && (
+              <View style={styles.totals}>
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalLabel}>{t("items")}</Text>
+                  <Text style={styles.totalValue}>{formatMoney(listing.currency, total)}</Text>
+                </View>
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalLabel}>{t("deliveryFee")}</Text>
+                  <Text style={[styles.totalValue, outOfRange && { color: Colors.danger }]}>
+                    {!coords
+                      ? t("pickLocation")
+                      : outOfRange
+                        ? t("outOfRange")
+                        : quote?.configured
+                          ? deliveryFee > 0
+                            ? formatMoney(listing.currency, deliveryFee)
+                            : t("free")
+                          : t("weConfirm")}
+                  </Text>
+                </View>
+                <View style={[styles.totalRow, styles.grandRow]}>
+                  <Text style={styles.grandLabel}>{t("total")}</Text>
+                  <Text style={styles.grandValue}>{formatMoney(listing.currency, total + deliveryFee)}</Text>
+                </View>
+                {outOfRange && (
+                  <Text style={styles.locationError}>
+                    {t("outOfRangeNote", {
+                      max: String(Number(quote?.max_km)),
+                      km: String(Number(quote?.distance_km)),
+                    })}
+                  </Text>
+                )}
+              </View>
+            )}
 
             {!!error && (
               <View style={styles.error}>
@@ -313,6 +430,7 @@ export default function ListingScreen() {
               title={submitting ? t("submitting") : isService ? t("confirmBooking") : t("confirmOrder")}
               icon="checkmark-circle"
               loading={submitting}
+              disabled={locating}
               onPress={submit}
             />
             {!isService && (
@@ -465,6 +583,39 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   errorText: { flex: 1, fontSize: 13, fontWeight: "700", color: Colors.danger },
+  locationBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    minHeight: 58,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: Radius.md,
+    borderWidth: 1.5,
+    borderStyle: "dashed",
+    borderColor: Colors.primary,
+    backgroundColor: "#FFF7ED",
+  },
+  locationBtnDone: { borderStyle: "solid", borderColor: "#BBF7D0", backgroundColor: "#F0FDF4" },
+  locationTitle: { fontSize: 14, fontWeight: "800", color: Colors.navy },
+  locationMeta: { marginTop: 2, fontSize: 11.5, color: Colors.textMuted },
+  locationAction: { fontSize: 12, fontWeight: "800", color: Colors.primary },
+  locationError: { marginTop: 8, fontSize: 12, fontWeight: "700", color: Colors.danger },
+  totals: {
+    marginTop: 16,
+    backgroundColor: "#FFFFFF",
+    borderRadius: Radius.lg,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#EEF2F6",
+    gap: 6,
+  },
+  totalRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  totalLabel: { fontSize: 13, color: Colors.textMuted, fontWeight: "600" },
+  totalValue: { fontSize: 13, color: Colors.navy, fontWeight: "800" },
+  grandRow: { marginTop: 4, paddingTop: 8, borderTopWidth: 1, borderTopColor: "#EEF2F6" },
+  grandLabel: { fontSize: 15, fontWeight: "900", color: Colors.navy },
+  grandValue: { fontSize: 17, fontWeight: "900", color: Colors.primary },
   footer: {
     paddingHorizontal: 16,
     paddingTop: 12,

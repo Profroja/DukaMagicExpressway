@@ -224,6 +224,10 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
 SITE_URL = os.getenv("SITE_URL", "https://dukaexpressway.co.tz").rstrip("/")
 SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "dukaexpressway@gmail.com")
 
+# Google Routes API key for driving distances (delivery fees). Without it the
+# straight-line distance from the main store is used.
+GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "")
+
 # Order emails for the admin team go ONLY to these addresses (comma separated),
 # e.g. ORDER_NOTIFY_EMAILS=orders@example.com. If empty, every active admin
 # account with an email is notified instead.

@@ -1,8 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
+  CheckCircle2,
   CircleUserRound,
+  MapPin,
   Package,
+  Pencil,
+  Plus,
   Power,
   Search,
   Star,
@@ -13,6 +17,7 @@ import Swal from "sweetalert2";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { AddProductDialog, CreateStoreDialog } from "@/components/admin/StoreDialogs";
 
 export const Route = createFileRoute("/admin/stores")({
   component: AdminStoresPage,
@@ -30,6 +35,7 @@ type AdminStore = {
   name: string;
   slug: string;
   status: string;
+  location_name: string;
   category: string;
   additional_categories: string[];
   rating_avg: string;
@@ -68,9 +74,11 @@ function AdminStoresPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [productStore, setProductStore] = useState<AdminStore | null>(null);
 
-  const loadStores = async () => {
-    setLoading(true);
+  const loadStores = async (quiet = false) => {
+    if (!quiet) setLoading(true);
     try {
       const response = await fetch("/api/admin/stores/", { credentials: "include" });
       if (!response.ok) return;
@@ -86,6 +94,36 @@ function AdminStoresPage() {
   useEffect(() => {
     loadStores();
   }, []);
+
+  const editLocation = async (store: AdminStore) => {
+    const { value, isConfirmed } = await Swal.fire({
+      title: "Store location",
+      input: "text",
+      inputLabel: store.name,
+      inputValue: store.location_name,
+      inputPlaceholder: "e.g. Kariakoo, Dar es Salaam",
+      showCancelButton: true,
+      confirmButtonColor: "#ea580c",
+      confirmButtonText: "Save",
+    });
+    if (!isConfirmed) return;
+    const response = await fetch(`/api/admin/stores/${store.id}/`, {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ location_name: String(value ?? "") }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      Swal.fire({
+        title: "Update failed",
+        text: data.error || "Something went wrong.",
+        icon: "error",
+      });
+      return;
+    }
+    setStores((prev) => prev.map((s) => (s.id === data.store.id ? data.store : s)));
+  };
 
   const toggleStatus = async (store: AdminStore, activate: boolean) => {
     if (!activate) {
@@ -138,6 +176,7 @@ function AdminStoresPage() {
       return (
         s.name.toLowerCase().includes(term) ||
         s.slug.toLowerCase().includes(term) ||
+        (s.location_name || "").toLowerCase().includes(term) ||
         s.category.toLowerCase().includes(term) ||
         s.owner.name.toLowerCase().includes(term) ||
         s.owner.phone_number.toLowerCase().includes(term) ||
@@ -186,12 +225,20 @@ function AdminStoresPage() {
   return (
     <>
       {/* Page Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-black text-slate-900">Stores</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          See every store and what it provides. Deactivating a store hides all its products and
-          services from the public portal.
-        </p>
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-black text-slate-900">Stores</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            See every store and what it provides. Deactivating a store hides all its products and
+            services from the public portal.
+          </p>
+        </div>
+        <Button
+          onClick={() => setCreating(true)}
+          className="shrink-0 bg-gradient-to-r from-primary to-orange-600"
+        >
+          <Plus className="size-4" /> Add Store
+        </Button>
       </div>
 
       {/* Stats Grid */}
@@ -220,7 +267,7 @@ function AdminStoresPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-slate-400" />
           <Input
             type="text"
-            placeholder="Search by store, category, owner, phone or product..."
+            placeholder="Search by store, location, category, owner, phone or product..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10"
@@ -252,11 +299,12 @@ function AdminStoresPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[980px] text-sm">
+            <table className="w-full min-w-[1150px] text-sm">
               <thead>
                 <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wider text-slate-400">
                   <th className="py-3 pr-3">S/N</th>
                   <th className="py-3 pr-3">Store</th>
+                  <th className="py-3 pr-3">Location</th>
                   <th className="py-3 pr-3">Owner</th>
                   <th className="py-3 pr-3">Category</th>
                   <th className="py-3 pr-3">What it provides</th>
@@ -282,6 +330,24 @@ function AdminStoresPage() {
                           <p className="truncate text-xs text-slate-400">/{store.slug}</p>
                         </div>
                       </div>
+                    </td>
+                    <td className="py-3 pr-3">
+                      <button
+                        type="button"
+                        onClick={() => editLocation(store)}
+                        title="Edit location"
+                        className="group flex max-w-[200px] items-start gap-1.5 text-left"
+                      >
+                        <MapPin className="mt-0.5 size-3.5 shrink-0 text-primary" />
+                        <span
+                          className={
+                            store.location_name ? "text-slate-700" : "text-xs italic text-slate-400"
+                          }
+                        >
+                          {store.location_name || "Add location"}
+                        </span>
+                        <Pencil className="mt-0.5 size-3 shrink-0 text-slate-300 opacity-0 transition group-hover:opacity-100" />
+                      </button>
                     </td>
                     <td className="py-3 pr-3">
                       <div className="flex items-center gap-2">
@@ -351,29 +417,50 @@ function AdminStoresPage() {
                       </div>
                     </td>
                     <td className="py-3 text-right">
-                      {store.status === "suspended" ? (
-                        <Button
-                          variant="default"
-                          size="sm"
-                          className="bg-gradient-to-r from-primary to-orange-600"
-                          disabled={busyId === store.id}
-                          onClick={() => toggleStatus(store, true)}
-                        >
-                          <Power className="size-4" />{" "}
-                          <span className="hidden sm:inline">Activate</span>
-                        </Button>
-                      ) : (
+                      <div className="flex justify-end gap-2">
                         <Button
                           variant="outline"
                           size="sm"
-                          className="border-red-200 text-red-600 hover:bg-red-50"
-                          disabled={busyId === store.id}
-                          onClick={() => toggleStatus(store, false)}
+                          onClick={() => setProductStore(store)}
+                          title="Add a product or service to this store"
                         >
-                          <Power className="size-4" />{" "}
-                          <span className="hidden sm:inline">Deactivate</span>
+                          <Plus className="size-4" />{" "}
+                          <span className="hidden sm:inline">Add item</span>
                         </Button>
-                      )}
+                        {store.status === "pending" || store.status === "rejected" ? (
+                          <Button
+                            size="sm"
+                            className="bg-emerald-600 hover:bg-emerald-700"
+                            disabled={busyId === store.id}
+                            onClick={() => toggleStatus(store, true)}
+                          >
+                            <CheckCircle2 className="size-4" />{" "}
+                            <span className="hidden sm:inline">Approve</span>
+                          </Button>
+                        ) : store.status === "suspended" ? (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            className="bg-gradient-to-r from-primary to-orange-600"
+                            disabled={busyId === store.id}
+                            onClick={() => toggleStatus(store, true)}
+                          >
+                            <Power className="size-4" />{" "}
+                            <span className="hidden sm:inline">Activate</span>
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-red-200 text-red-600 hover:bg-red-50"
+                            disabled={busyId === store.id}
+                            onClick={() => toggleStatus(store, false)}
+                          >
+                            <Power className="size-4" />{" "}
+                            <span className="hidden sm:inline">Deactivate</span>
+                          </Button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -382,6 +469,17 @@ function AdminStoresPage() {
           </div>
         )}
       </div>
+
+      <CreateStoreDialog
+        open={creating}
+        onClose={() => setCreating(false)}
+        onCreated={(store) => setStores((prev) => [store as AdminStore, ...prev])}
+      />
+      <AddProductDialog
+        store={productStore}
+        onClose={() => setProductStore(null)}
+        onAdded={() => loadStores(true)}
+      />
     </>
   );
 }

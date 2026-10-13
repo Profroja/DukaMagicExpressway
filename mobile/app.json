@@ -28,6 +28,12 @@
       "expo-sqlite",
       "expo-background-task",
       [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Duka Magic Expressway uses your location to deliver your order and calculate the delivery fee."
+        }
+      ],
+      [
         "expo-notifications",
         {
           "icon": "./assets/images/adaptive-icon.png",

@@ -489,3 +489,101 @@ class PlatformBuyerFlowTests(TestCase):
         self.assertEqual(
             self._json("get", f"/api/admin/orders/{order_id}/sourcing/", self.vendor).status_code, 403
         )
+
+
+@override_settings(GOOGLE_MAPS_API_KEY="")  # straight-line distance, no network calls
+class DeliveryFeeTests(TestCase):
+    # Main store at Kariakoo; customer ~4.5 km away at Sinza, ~43 km away at Bagamoyo road.
+    HUB = {"latitude": "-6.818900", "longitude": "39.277000"}
+    NEAR = {"latitude": "-6.780000", "longitude": "39.265000"}
+    FAR = {"latitude": "-6.440000", "longitude": "38.900000"}
+
+    def setUp(self):
+        self.admin = User.objects.create_user("+255700000101", "pw", role=UserRole.ADMIN)
+        vendor = User.objects.create_user("+255700000102", "pw", role=UserRole.VENDOR_OWNER)
+        store = Store.objects.create(
+            owner=vendor, name="Kariakoo Phones",
+            category=StoreCategory.objects.create(name="Electronics"), status=StoreStatus.APPROVED,
+        )
+        self.listing = Listing.objects.create(
+            store=store, category=ProductCategory.objects.create(name="Phones"),
+            title="Tecno Spark", description="Phone", price="300000",
+        )
+
+    def _post(self, url, body, method="post"):
+        return getattr(self.client, method)(url, data=json.dumps(body), content_type="application/json")
+
+    def _configure(self):
+        self.client.force_login(self.admin)
+        res = self._post("/api/admin/delivery/", {
+            "hub": {"name": "Main store", "address": "Kariakoo", **self.HUB},
+            "ranges": [
+                {"min_km": "5", "max_km": "15", "fee": "5000"},
+                {"min_km": "0", "max_km": "5", "fee": "2000"},
+            ],
+        }, method="put")
+        self.assertEqual(res.status_code, 200, res.content)
+        self.client.logout()
+        return res.json()
+
+    def _order(self, **coords):
+        return self._post("/api/orders/quick/", {
+            "listing_id": str(self.listing.pk), "quantity": 2,
+            "name": "Amina", "phone": "0712345678", **coords,
+        })
+
+    def test_orders_work_without_delivery_setup(self):
+        res = self._order()
+        self.assertEqual(res.status_code, 201, res.content)
+        self.assertEqual(res.json()["delivery_fee"], "0.00")
+
+    def test_admin_settings_and_validation(self):
+        data = self._configure()
+        self.assertTrue(data["configured"])
+        self.assertEqual([r["min_km"] for r in data["ranges"]], ["0.00", "5.00"])
+
+        self.client.force_login(self.admin)
+        overlap = self._post("/api/admin/delivery/", {
+            "hub": self.HUB,
+            "ranges": [{"min_km": 0, "max_km": 10, "fee": 1}, {"min_km": 5, "max_km": 20, "fee": 2}],
+        }, method="put")
+        self.assertEqual(overlap.status_code, 400)
+        backwards = self._post("/api/admin/delivery/", {
+            "hub": self.HUB, "ranges": [{"min_km": 10, "max_km": 5, "fee": 1}],
+        }, method="put")
+        self.assertEqual(backwards.status_code, 400)
+
+        vendor = User.objects.get(phone_number="+255700000102")
+        self.client.force_login(vendor)
+        self.assertEqual(self.client.get("/api/admin/delivery/").status_code, 403)
+
+    def test_quote_and_order_charge_delivery_fee(self):
+        self._configure()
+        quote = self.client.get("/api/delivery/quote/", {"lat": self.NEAR["latitude"], "lng": self.NEAR["longitude"]})
+        self.assertEqual(quote.status_code, 200)
+        self.assertTrue(quote.json()["deliverable"])
+        self.assertEqual(quote.json()["fee"], "2000.00")
+
+        res = self._order(**self.NEAR)
+        self.assertEqual(res.status_code, 201, res.content)
+        body = res.json()
+        self.assertEqual(body["delivery_fee"], "2000.00")
+        self.assertEqual(body["grand_total"], "602000.00")
+        order = QuickOrder.objects.get(pk=body["order_id"])
+        self.assertEqual(str(order.delivery_latitude), self.NEAR["latitude"])
+        self.assertGreater(order.delivery_distance_km, 0)
+
+        self.client.force_login(self.admin)
+        listed = self.client.get("/api/admin/orders/").json()["orders"][0]
+        self.assertEqual(listed["delivery_fee"], "2000.00")
+        self.assertEqual(listed["delivery_longitude"], self.NEAR["longitude"])
+
+    def test_location_required_and_range_limit(self):
+        self._configure()
+        self.assertEqual(self._order().status_code, 400)  # no location shared
+        far = self._order(**self.FAR)
+        self.assertEqual(far.status_code, 400)
+        self.assertIn("15 km", far.json()["error"])
+        self.assertFalse(
+            self.client.get("/api/delivery/quote/", {"lat": self.FAR["latitude"], "lng": self.FAR["longitude"]}).json()["deliverable"]
+        )

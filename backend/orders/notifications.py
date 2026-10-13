@@ -118,11 +118,22 @@ def notify_admins_new_customer_order(order):
     rows = [
         ("Product", f"{order.quantity}x {order.listing.title}"),
         ("Customer pays", _money(order.currency, order.total_amount)),
+    ]
+    if order.delivery_fee:
+        distance = f" ({order.delivery_distance_km} km)" if order.delivery_distance_km is not None else ""
+        rows.append(("Delivery fee", _money(order.currency, order.delivery_fee) + distance))
+        rows.append(("Total with delivery", _money(order.currency, order.total_amount + order.delivery_fee)))
+    rows += [
         ("Customer", order.customer_name),
         ("Phone", order.customer_phone),
     ]
     if order.delivery_address:
         rows.append(("Delivery location", order.delivery_address))
+    if order.delivery_latitude is not None:
+        rows.append((
+            "Map pin",
+            f"https://www.google.com/maps?q={order.delivery_latitude},{order.delivery_longitude}",
+        ))
     rows.append(("Listed by", order.store.name))
     _send(
         admin_recipients(),

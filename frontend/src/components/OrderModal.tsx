@@ -1,9 +1,41 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, CheckCircle2, MapPin, Minus, PackageCheck, PackageSearch, Phone, PhoneCall, Plus, ShoppingBag, Store, Truck, User, X, XCircle, Zap } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  MapPin,
+  Minus,
+  PackageCheck,
+  PackageSearch,
+  Phone,
+  PhoneCall,
+  Plus,
+  ShoppingBag,
+  Store,
+  Truck,
+  User,
+  X,
+  XCircle,
+  Zap,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/lib/LanguageContext";
 import { ServicePrice } from "@/components/ServicePrice";
-import { isActiveCustomerOrder, saveCustomerOrder, updateCustomerOrderStatus, type CustomerOrderStatus } from "@/lib/customerOrders";
+import {
+  isActiveCustomerOrder,
+  saveCustomerOrder,
+  updateCustomerOrderStatus,
+  type CustomerOrderStatus,
+} from "@/lib/customerOrders";
+import { LocationPicker, type LatLng } from "@/components/LocationPicker";
+import { reverseGeocode } from "@/lib/googleMaps";
+
+type DeliveryQuote = {
+  configured: boolean;
+  deliverable: boolean;
+  distance_km: string | null;
+  fee: string | null;
+  max_km: string | null;
+};
 
 export type OrderModalProduct = {
   id: string;
@@ -40,6 +72,10 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
   const [error, setError] = useState("");
   const [orderId, setOrderId] = useState<string | null>(null);
   const [orderStatus, setOrderStatus] = useState<OrderStatus>("new");
+  const [location, setLocation] = useState<LatLng | null>(null);
+  const [quote, setQuote] = useState<DeliveryQuote | null>(null);
+  const [quoting, setQuoting] = useState(false);
+  const [placedFee, setPlacedFee] = useState(0);
 
   useEffect(() => {
     if (open) {
@@ -52,6 +88,9 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
       setError("");
       setOrderId(null);
       setOrderStatus("new");
+      setLocation(null);
+      setQuote(null);
+      setPlacedFee(0);
       document.body.style.overflow = "hidden";
       return () => {
         document.body.style.overflow = "";
@@ -91,6 +130,27 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
     return () => window.clearInterval(timer);
   }, [step, orderId, orderStatus]);
 
+  // Delivery fee for the chosen location, priced by distance from our main store.
+  useEffect(() => {
+    if (!location) return;
+    let cancelled = false;
+    setQuoting(true);
+    fetch(`/api/delivery/quote/?lat=${location.lat}&lng=${location.lng}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: DeliveryQuote | null) => {
+        if (!cancelled) setQuote(data);
+      })
+      .catch(() => {
+        if (!cancelled) setQuote(null);
+      })
+      .finally(() => {
+        if (!cancelled) setQuoting(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [location]);
+
   if (!mounted || !product) return null;
 
   const unitPrice = Number(product.price) || 0;
@@ -98,6 +158,21 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
   const currency = product.currency || "TZS";
   const isSwahili = t("orderNow") === "Agiza Sasa";
   const isService = product.listing_type === "service";
+  // Goods are delivered from our main store; services happen at the customer's place.
+  const deliveryFee =
+    !isService && quote?.configured && quote.deliverable ? Number(quote.fee) || 0 : 0;
+  const outOfRange = !isService && !!quote?.configured && !quote.deliverable;
+  const grandTotal = totalPrice + deliveryFee;
+
+  const pickLocation = (point: LatLng) => {
+    setLocation(point);
+    setError("");
+    if (!address.trim()) {
+      reverseGeocode(point.lat, point.lng).then((label) => {
+        if (label) setAddress((prev) => prev || label.slice(0, 255));
+      });
+    }
+  };
 
   const handleOrder = async () => {
     if (!name.trim()) {
@@ -105,7 +180,25 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
       return;
     }
     if (!phone.trim() || phone.replace(/\D/g, "").length < 9) {
-      setError(isSwahili ? "Tafadhali weka namba sahihi ya simu." : "Please enter a valid mobile number.");
+      setError(
+        isSwahili ? "Tafadhali weka namba sahihi ya simu." : "Please enter a valid mobile number.",
+      );
+      return;
+    }
+    if (!isService && !location) {
+      setError(
+        isSwahili
+          ? "Tafadhali onyesha mahali pa kuletewa kwenye ramani."
+          : "Please share your delivery location on the map.",
+      );
+      return;
+    }
+    if (outOfRange) {
+      setError(
+        isSwahili
+          ? `Samahani, tunaleta hadi km ${Number(quote?.max_km)} kutoka dukani kwetu.`
+          : `Sorry, we deliver up to ${Number(quote?.max_km)} km from our store.`,
+      );
       return;
     }
 
@@ -121,16 +214,25 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
           name: name.trim(),
           phone: phone.trim(),
           address: address.trim(),
+          latitude: location ? location.lat.toFixed(6) : null,
+          longitude: location ? location.lng.toFixed(6) : null,
         }),
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
-        setError(data?.error || (isSwahili ? "Imeshindwa kutuma agizo. Jaribu tena." : "Could not place the order. Try again."));
+        setError(
+          data?.error ||
+            (isSwahili
+              ? "Imeshindwa kutuma agizo. Jaribu tena."
+              : "Could not place the order. Try again."),
+        );
         return;
       }
 
       setOrderId(data.order_id);
       setOrderStatus("new");
+      const fee = Number(data.delivery_fee) || 0;
+      setPlacedFee(fee);
       saveCustomerOrder({
         id: data.order_id,
         listingId: product.id,
@@ -138,7 +240,7 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
         imageUrl: product.image_url,
         store: "Duka Magic Expressway",
         quantity,
-        total: totalPrice,
+        total: totalPrice + fee,
         currency,
         phone: phone.trim(),
         status: "new",
@@ -169,7 +271,12 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
   };
 
   // The customer only ever deals with Duka Magic Expressway; which store supplies the goods stays internal.
-  const trackingSteps: { key: string; label: string; labelSw: string; icon: typeof PackageCheck }[] = [
+  const trackingSteps: {
+    key: string;
+    label: string;
+    labelSw: string;
+    icon: typeof PackageCheck;
+  }[] = [
     { key: "received", label: "Received", labelSw: "Limepokelewa", icon: PackageCheck },
     { key: "confirmed", label: "Confirmed", labelSw: "Limethibitishwa", icon: PhoneCall },
     { key: "preparing", label: "Preparing", labelSw: "Linaandaliwa", icon: PackageSearch },
@@ -229,21 +336,34 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
               {!isDelivered && orderStatus !== "cancelled" && (
                 <>
                   <span className="absolute size-36 rounded-full bg-primary/25 animate-ping" />
-                  <span className="absolute size-52 rounded-full bg-primary/15 animate-ping" style={{ animationDelay: "0.4s" }} />
-                  <span className="absolute size-56 rounded-full bg-primary/8 animate-ping sm:size-72" style={{ animationDelay: "0.8s" }} />
+                  <span
+                    className="absolute size-52 rounded-full bg-primary/15 animate-ping"
+                    style={{ animationDelay: "0.4s" }}
+                  />
+                  <span
+                    className="absolute size-56 rounded-full bg-primary/8 animate-ping sm:size-72"
+                    style={{ animationDelay: "0.8s" }}
+                  />
                 </>
               )}
               {isDelivered && (
                 <>
                   <span className="absolute size-36 rounded-full bg-emerald-500/25 animate-ping" />
-                  <span className="absolute size-52 rounded-full bg-emerald-500/10 animate-ping" style={{ animationDelay: "0.4s" }} />
+                  <span
+                    className="absolute size-52 rounded-full bg-emerald-500/10 animate-ping"
+                    style={{ animationDelay: "0.4s" }}
+                  />
                 </>
               )}
-              <div className={`relative z-10 flex size-28 items-center justify-center overflow-hidden rounded-full border-4 shadow-2xl transition-colors duration-500 ${
-                isDelivered ? "border-emerald-400 bg-emerald-500" :
-                orderStatus === "cancelled" ? "border-red-400 bg-red-500" :
-                "border-white bg-white"
-              }`}>
+              <div
+                className={`relative z-10 flex size-28 items-center justify-center overflow-hidden rounded-full border-4 shadow-2xl transition-colors duration-500 ${
+                  isDelivered
+                    ? "border-emerald-400 bg-emerald-500"
+                    : orderStatus === "cancelled"
+                      ? "border-red-400 bg-red-500"
+                      : "border-white bg-white"
+                }`}
+              >
                 {isDelivered ? (
                   <CheckCircle2 className="size-14 text-white" />
                 ) : orderStatus === "cancelled" ? (
@@ -255,7 +375,11 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
                 ) : orderStatus === "contacted" ? (
                   <PhoneCall className="size-12 text-primary animate-pulse" />
                 ) : product.image_url ? (
-                  <img src={product.image_url} alt={product.title} className="h-full w-full object-cover" />
+                  <img
+                    src={product.image_url}
+                    alt={product.title}
+                    className="h-full w-full object-cover"
+                  />
                 ) : (
                   <ShoppingBag className="size-12 text-primary" />
                 )}
@@ -269,9 +393,20 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
                   {isSwahili ? "Limefika! 🎉" : "Delivered! 🎉"}
                 </h2>
                 <p className="mt-3 max-w-sm text-sm leading-relaxed text-slate-300">
-                  {isSwahili
-                    ? <>Asante kwa kununua na <b className="text-white">Duka Magic Expressway</b>. <b className="text-white">{itemLabel}</b> {isService ? "imekamilika" : "imekufikia"}.</>
-                    : <>Thank you for shopping with <b className="text-white">Duka Magic Expressway</b>. Your <b className="text-white">{itemLabel}</b> {isService ? "is complete" : "has been delivered"}.</>}
+                  {isSwahili ? (
+                    <>
+                      Asante kwa kununua na <b className="text-white">Duka Magic Expressway</b>.{" "}
+                      <b className="text-white">{itemLabel}</b>{" "}
+                      {isService ? "imekamilika" : "imekufikia"}.
+                    </>
+                  ) : (
+                    <>
+                      Thank you for shopping with{" "}
+                      <b className="text-white">Duka Magic Expressway</b>. Your{" "}
+                      <b className="text-white">{itemLabel}</b>{" "}
+                      {isService ? "is complete" : "has been delivered"}.
+                    </>
+                  )}
                 </p>
               </>
             ) : orderStatus === "cancelled" ? (
@@ -280,30 +415,52 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
                   {isSwahili ? "Agizo Limeghairiwa" : "Order Cancelled"}
                 </h2>
                 <p className="mt-3 max-w-sm text-sm text-slate-300">
-                  {isSwahili ? "Agizo hili halijatelekezwa tena." : "This order is no longer being processed."}
+                  {isSwahili
+                    ? "Agizo hili halijatelekezwa tena."
+                    : "This order is no longer being processed."}
                 </p>
               </>
             ) : (
               <>
                 <h2 className="text-2xl sm:text-3xl font-black text-white">
                   {orderStatus === "picked_up"
-                    ? (isSwahili ? "Agizo Liko Njiani!" : "On the Way!")
+                    ? isSwahili
+                      ? "Agizo Liko Njiani!"
+                      : "On the Way!"
                     : orderStatus === "confirmed" || orderStatus === "sourcing"
-                      ? (isSwahili ? "Tunaandaa Agizo Lako" : "Preparing Your Order")
+                      ? isSwahili
+                        ? "Tunaandaa Agizo Lako"
+                        : "Preparing Your Order"
                       : orderStatus === "contacted"
-                        ? (isSwahili ? "Tunathibitisha Agizo" : "Confirming Your Order")
-                        : (isSwahili ? "Agizo Limepokelewa!" : "Order Received!")}
+                        ? isSwahili
+                          ? "Tunathibitisha Agizo"
+                          : "Confirming Your Order"
+                        : isSwahili
+                          ? "Agizo Limepokelewa!"
+                          : "Order Received!"}
                 </h2>
                 <p className="mt-3 flex items-center justify-center gap-1 text-sm text-slate-300">
                   {orderStatus === "picked_up"
-                    ? (isSwahili ? "Duka Magic Expressway inakuletea agizo lako" : "Duka Magic Expressway is bringing your order to you")
+                    ? isSwahili
+                      ? "Duka Magic Expressway inakuletea agizo lako"
+                      : "Duka Magic Expressway is bringing your order to you"
                     : orderStatus === "confirmed" || orderStatus === "sourcing"
-                      ? (isSwahili ? "Tunakusanya bidhaa zako" : "We are getting your items ready")
-                      : (isSwahili ? `Duka Magic Expressway itakupigia ${phone} kuthibitisha` : `Duka Magic Expressway will call ${phone} to confirm`)}
+                      ? isSwahili
+                        ? "Tunakusanya bidhaa zako"
+                        : "We are getting your items ready"
+                      : isSwahili
+                        ? `Duka Magic Expressway itakupigia ${phone} kuthibitisha`
+                        : `Duka Magic Expressway will call ${phone} to confirm`}
                   <span className="ml-1 flex gap-1">
                     <span className="size-1.5 rounded-full bg-primary animate-bounce" />
-                    <span className="size-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0.15s" }} />
-                    <span className="size-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0.3s" }} />
+                    <span
+                      className="size-1.5 rounded-full bg-primary animate-bounce"
+                      style={{ animationDelay: "0.15s" }}
+                    />
+                    <span
+                      className="size-1.5 rounded-full bg-primary animate-bounce"
+                      style={{ animationDelay: "0.3s" }}
+                    />
                   </span>
                 </p>
               </>
@@ -317,19 +474,27 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
                 return (
                   <div key={s.key} className="flex flex-1 items-center last:flex-none">
                     <div className="flex flex-col items-center gap-2">
-                      <div className={`flex size-9 items-center justify-center rounded-full border-2 transition-all duration-500 ${
-                        done ? "border-emerald-400 bg-emerald-500 text-white" :
-                        active ? "border-primary bg-primary/20 text-primary" :
-                        "border-slate-600 bg-slate-800 text-slate-500"
-                      }`}>
+                      <div
+                        className={`flex size-9 items-center justify-center rounded-full border-2 transition-all duration-500 ${
+                          done
+                            ? "border-emerald-400 bg-emerald-500 text-white"
+                            : active
+                              ? "border-primary bg-primary/20 text-primary"
+                              : "border-slate-600 bg-slate-800 text-slate-500"
+                        }`}
+                      >
                         {done ? <CheckCircle2 className="size-4" /> : <s.icon className="size-4" />}
                       </div>
-                      <span className={`text-[10px] font-bold whitespace-nowrap ${done || active ? "text-white" : "text-slate-500"}`}>
+                      <span
+                        className={`text-[10px] font-bold whitespace-nowrap ${done || active ? "text-white" : "text-slate-500"}`}
+                      >
                         {isSwahili ? s.labelSw : s.label}
                       </span>
                     </div>
                     {i < trackingSteps.length - 1 && (
-                      <div className={`mx-2 mb-6 h-0.5 flex-1 rounded transition-colors duration-500 ${stepIndex > i + 1 ? "bg-emerald-400" : "bg-slate-700"}`} />
+                      <div
+                        className={`mx-2 mb-6 h-0.5 flex-1 rounded transition-colors duration-500 ${stepIndex > i + 1 ? "bg-emerald-400" : "bg-slate-700"}`}
+                      />
                     )}
                   </div>
                 );
@@ -338,28 +503,49 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
 
             {/* Order summary chip */}
             <div className="mt-6 flex w-full max-w-sm items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-3 py-3 backdrop-blur sm:mt-8 sm:px-4">
-              {product.image_url && <img src={product.image_url} alt="" className="size-10 rounded-lg object-cover" />}
+              {product.image_url && (
+                <img src={product.image_url} alt="" className="size-10 rounded-lg object-cover" />
+              )}
               <div className="text-left">
                 <p className="text-xs font-bold text-white">{itemLabel}</p>
-                <p className="text-[11px] text-slate-400">{isSwahili ? "Inaletwa na Duka Magic Expressway" : "Delivered by Duka Magic Expressway"}</p>
+                <p className="text-[11px] text-slate-400">
+                  {isSwahili
+                    ? "Inaletwa na Duka Magic Expressway"
+                    : "Delivered by Duka Magic Expressway"}
+                </p>
               </div>
               {isService ? (
-                <ServicePrice price={unitPrice} currency={currency} className="ml-4 text-sm font-black text-primary whitespace-nowrap" />
+                <ServicePrice
+                  price={unitPrice}
+                  currency={currency}
+                  className="ml-4 text-sm font-black text-primary whitespace-nowrap"
+                />
               ) : (
-                <p className="ml-4 text-sm font-black text-primary whitespace-nowrap">{currency} {totalPrice.toLocaleString()}</p>
+                <div className="ml-4 text-right">
+                  <p className="text-sm font-black text-primary whitespace-nowrap">
+                    {currency} {(totalPrice + placedFee).toLocaleString()}
+                  </p>
+                  {placedFee > 0 && (
+                    <p className="text-[10px] text-slate-400 whitespace-nowrap">
+                      {isSwahili ? "pamoja na usafiri" : "incl. delivery"}{" "}
+                      {placedFee.toLocaleString()}
+                    </p>
+                  )}
+                </div>
               )}
             </div>
 
             {/* Actions */}
             <div className="mt-6 w-full max-w-sm sm:mt-8">
               {orderStatus !== "new" && orderStatus !== "contacted" ? (
-                <Button
-                  onClick={onClose}
-                  className="w-full h-12 rounded-xl text-base font-black"
-                >
+                <Button onClick={onClose} className="w-full h-12 rounded-xl text-base font-black">
                   {isDelivered || orderStatus === "cancelled"
-                    ? (isSwahili ? "Sawa, Asante!" : "Done")
-                    : (isSwahili ? "Funga — fuatilia kwenye Maagizo Yangu" : "Close — track in My Orders")}
+                    ? isSwahili
+                      ? "Sawa, Asante!"
+                      : "Done"
+                    : isSwahili
+                      ? "Funga — fuatilia kwenye Maagizo Yangu"
+                      : "Close — track in My Orders"}
                 </Button>
               ) : (
                 <button
@@ -488,8 +674,12 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
                     <div>
                       <h2 className="text-xl sm:text-2xl font-black text-navy leading-tight">
                         {isService
-                          ? (isSwahili ? "Maliza Uhifadhi Wako" : "Complete Your Booking")
-                          : (isSwahili ? "Maliza Agizo Lako" : "Complete Your Order")}
+                          ? isSwahili
+                            ? "Maliza Uhifadhi Wako"
+                            : "Complete Your Booking"
+                          : isSwahili
+                            ? "Maliza Agizo Lako"
+                            : "Complete Your Order"}
                       </h2>
                       <p className="mt-1 text-xs text-muted-foreground">
                         {isSwahili
@@ -501,14 +691,26 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
                     {/* Mini order summary */}
                     <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50/80 p-3">
                       {product.image_url && (
-                        <img src={product.image_url} alt="" className="size-14 rounded-xl object-cover" />
+                        <img
+                          src={product.image_url}
+                          alt=""
+                          className="size-14 rounded-xl object-cover"
+                        />
                       )}
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-extrabold text-navy">{product.title}</p>
-                        <p className="text-xs text-muted-foreground">{isService ? "Duka Magic Expressway" : `${quantity}x · Duka Magic Expressway`}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {isService
+                            ? "Duka Magic Expressway"
+                            : `${quantity}x · Duka Magic Expressway`}
+                        </p>
                       </div>
                       {isService ? (
-                        <ServicePrice price={unitPrice} currency={currency} className="text-sm font-black text-primary whitespace-nowrap" />
+                        <ServicePrice
+                          price={unitPrice}
+                          currency={currency}
+                          className="text-sm font-black text-primary whitespace-nowrap"
+                        />
                       ) : (
                         <p className="text-sm font-black text-primary whitespace-nowrap">
                           {currency} {totalPrice.toLocaleString()}
@@ -516,7 +718,9 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
                       )}
                     </div>
                     {isService && (
-                      <p className="-mt-2 text-[11px] text-muted-foreground">{t("servicePriceNote")}</p>
+                      <p className="-mt-2 text-[11px] text-muted-foreground">
+                        {t("servicePriceNote")}
+                      </p>
                     )}
 
                     {/* Name */}
@@ -528,7 +732,10 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
                         <User className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                         <input
                           value={name}
-                          onChange={(e) => { setName(e.target.value); setError(""); }}
+                          onChange={(e) => {
+                            setName(e.target.value);
+                            setError("");
+                          }}
                           placeholder={isSwahili ? "Mfano: Amina Juma" : "e.g. Amina Juma"}
                           className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm font-semibold text-navy outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
                           autoFocus
@@ -545,8 +752,13 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
                         <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                         <input
                           value={phone}
-                          onChange={(e) => { setPhone(e.target.value); setError(""); }}
-                          onKeyDown={(e) => { if (e.key === "Enter") handleOrder(); }}
+                          onChange={(e) => {
+                            setPhone(e.target.value);
+                            setError("");
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleOrder();
+                          }}
                           type="tel"
                           placeholder="e.g. 0712 345 678"
                           className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm font-semibold text-navy outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
@@ -554,41 +766,127 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
                       </div>
                     </div>
 
-                    {/* Delivery location (optional) */}
+                    {/* Delivery location: map pin (required for goods) + optional directions */}
                     <div>
                       <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                        {isSwahili ? "Mahali pa Kuletewa (si lazima)" : "Delivery Location (optional)"}
+                        {isService
+                          ? isSwahili
+                            ? "Mahali Huduma Itakapofanyika"
+                            : "Where should we come?"
+                          : isSwahili
+                            ? "Mahali pa Kuletewa"
+                            : "Delivery Location"}
                       </label>
-                      <div className="relative">
+                      <LocationPicker
+                        value={location}
+                        onChange={pickLocation}
+                        locateLabel={isSwahili ? "Tumia mahali nilipo" : "Use my location"}
+                        className="h-48 sm:h-52"
+                      />
+                      <div className="relative mt-2">
                         <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                         <input
                           value={address}
-                          onChange={(e) => { setAddress(e.target.value); setError(""); }}
-                          onKeyDown={(e) => { if (e.key === "Enter") handleOrder(); }}
+                          onChange={(e) => {
+                            setAddress(e.target.value);
+                            setError("");
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleOrder();
+                          }}
                           maxLength={255}
-                          placeholder={isSwahili ? "Mfano: Sinza Mori, Dar es Salaam" : "e.g. Sinza Mori, Dar es Salaam"}
-                          className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm font-semibold text-navy outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                          placeholder={
+                            isSwahili
+                              ? "Maelezo: mtaa, jengo, alama..."
+                              : "Directions: street, building, landmark..."
+                          }
+                          className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm font-semibold text-navy outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
                         />
                       </div>
                     </div>
 
+                    {/* Delivery fee + total */}
+                    {!isService && (
+                      <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-3 text-sm">
+                        <div className="flex justify-between text-slate-600">
+                          <span>{isSwahili ? "Bidhaa" : "Items"}</span>
+                          <span className="font-bold">
+                            {currency} {totalPrice.toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="mt-1 flex justify-between text-slate-600">
+                          <span className="flex items-center gap-1">
+                            <Truck className="size-3.5" />
+                            {isSwahili ? "Gharama ya usafiri" : "Delivery fee"}
+                            {quote?.distance_km && !quoting && (
+                              <span className="text-[11px] text-slate-400">
+                                ({Number(quote.distance_km)} km)
+                              </span>
+                            )}
+                          </span>
+                          <span className="font-bold">
+                            {!location
+                              ? isSwahili
+                                ? "Chagua mahali"
+                                : "Pick a location"
+                              : quoting
+                                ? "..."
+                                : outOfRange
+                                  ? isSwahili
+                                    ? "Nje ya eneo"
+                                    : "Out of range"
+                                  : quote?.configured
+                                    ? deliveryFee > 0
+                                      ? `${currency} ${deliveryFee.toLocaleString()}`
+                                      : isSwahili
+                                        ? "Bure"
+                                        : "Free"
+                                    : isSwahili
+                                      ? "Tutakujulisha"
+                                      : "We'll confirm"}
+                          </span>
+                        </div>
+                        <div className="mt-2 flex justify-between border-t border-slate-200 pt-2 text-navy">
+                          <span className="font-black">{isSwahili ? "Jumla" : "Total"}</span>
+                          <span className="text-base font-black text-primary">
+                            {currency} {grandTotal.toLocaleString()}
+                          </span>
+                        </div>
+                        {outOfRange && (
+                          <p className="mt-2 text-[11px] font-semibold text-red-600">
+                            {isSwahili
+                              ? `Tunaleta hadi km ${Number(quote?.max_km)}. Mahali hapa ni km ${Number(quote?.distance_km)}.`
+                              : `We deliver up to ${Number(quote?.max_km)} km; this spot is ${Number(quote?.distance_km)} km away.`}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
                     {error && (
-                      <p className="rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-600">{error}</p>
+                      <p className="rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-600">
+                        {error}
+                      </p>
                     )}
                   </div>
 
                   <div className="mt-6 pt-4 border-t border-slate-100 space-y-2">
                     <Button
                       onClick={handleOrder}
-                      disabled={ordering}
+                      disabled={ordering || quoting}
                       className="w-full h-12 rounded-xl text-base font-black shadow-lg shadow-primary/20 transition hover:shadow-xl active:scale-[0.99]"
                     >
                       <Zap className="size-5 fill-current" />
                       {ordering
-                        ? (isSwahili ? "Inatuma..." : "Submitting...")
+                        ? isSwahili
+                          ? "Inatuma..."
+                          : "Submitting..."
                         : isService
-                          ? (isSwahili ? "Thibitisha Uhifadhi" : "Confirm Booking")
-                          : (isSwahili ? "Thibitisha Agizo" : "Confirm Order")}
+                          ? isSwahili
+                            ? "Thibitisha Uhifadhi"
+                            : "Confirm Booking"
+                          : isSwahili
+                            ? "Thibitisha Agizo"
+                            : "Confirm Order"}
                     </Button>
                     {!isService && (
                       <button

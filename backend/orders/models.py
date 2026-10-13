@@ -255,6 +255,22 @@ class QuickOrder(models.Model):
     customer_name = models.CharField(max_length=120)
     customer_phone = models.CharField(max_length=30)
     delivery_address = models.CharField(max_length=255, blank=True)
+    # Where the customer wants it delivered (their shared GPS / map pin).
+    delivery_latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    delivery_longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    delivery_distance_km = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text=_('Distance from our main store when the order was placed')
+    )
+    delivery_fee = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        help_text=_('Delivery fee from the km price ranges, on top of total_amount')
+    )
     admin_note = models.TextField(blank=True)
     quantity = models.PositiveIntegerField(default=1)
     unit_price = models.DecimalField(max_digits=12, decimal_places=2)
@@ -438,3 +454,51 @@ class StorePurchaseOrder(models.Model):
 
     def __str__(self):
         return f"{self.po_number} - {self.store.name}"
+
+
+class DeliverySettings(models.Model):
+    """Our main store (where deliveries start). A single row, edited by admins."""
+
+    id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
+    hub_name = models.CharField(max_length=120, blank=True, default='Duka Magic Expressway')
+    hub_address = models.CharField(max_length=255, blank=True)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='+'
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'delivery_settings'
+        verbose_name = _('delivery settings')
+        verbose_name_plural = _('delivery settings')
+
+    def __str__(self):
+        return self.hub_name or 'Main store'
+
+    @classmethod
+    def load(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+
+class DeliveryFeeRange(models.Model):
+    """Delivery fee for a distance band, e.g. 0-5 km = TZS 3,000."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    min_km = models.DecimalField(max_digits=7, decimal_places=2)
+    max_km = models.DecimalField(max_digits=7, decimal_places=2)
+    fee = models.DecimalField(max_digits=12, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'delivery_fee_ranges'
+        ordering = ['min_km']
+
+    def __str__(self):
+        return f"{self.min_km}-{self.max_km} km: {self.fee}"

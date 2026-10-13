@@ -15,6 +15,7 @@ import {
   X,
   LogOut,
   CircleUserRound,
+  Truck,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -29,6 +30,7 @@ const menuItems = [
   { icon: Store, label: "Stores", href: "/admin/stores" },
   { icon: Package, label: "Products", href: "/admin/products" },
   { icon: ShoppingCart, label: "Orders", href: "/admin/orders" },
+  { icon: Truck, label: "Delivery", href: "/admin/delivery" },
   { icon: TrendingUp, label: "Revenue", href: "/admin/revenue" },
   { icon: Coins, label: "Monthly Subscriptions", href: "/admin/subscriptions" },
   { icon: Calendar, label: "Calendar", href: "#" },

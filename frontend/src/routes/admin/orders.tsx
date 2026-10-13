@@ -19,6 +19,7 @@ import {
   Receipt,
   XCircle,
 } from "lucide-react";
+import { googleMapsLink } from "@/lib/googleMaps";
 import Swal from "sweetalert2";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -83,6 +84,11 @@ type AdminOrder = {
   customer_name: string;
   customer_phone: string;
   delivery_address: string;
+  delivery_latitude: string | null;
+  delivery_longitude: string | null;
+  delivery_distance_km: string | null;
+  delivery_fee: string;
+  grand_total: string;
   admin_note: string;
   quantity: number;
   unit_price: string;
@@ -400,12 +406,17 @@ function AdminOrdersPage() {
   /** Closing records exactly what the customer paid - the money Revenue counts. */
   const closeOrder = async (order: AdminOrder) => {
     const cost = order.cost !== null ? Number(order.cost) : null;
-    const agreed = Number(order.total);
+    const fee = Number(order.delivery_fee) || 0;
+    const agreed = Number(order.total) > 0 ? Number(order.total) + fee : 0;
     const result = await Swal.fire({
       title: "Close order",
       html:
         `${escapeHtml(order.customer_name)} · ${order.quantity}x ${escapeHtml(order.product_title)}` +
-        (agreed > 0 ? `<br/>Agreed price: <b>${money(order.currency, agreed)}</b>.` : "") +
+        (agreed > 0
+          ? `<br/>Agreed price: <b>${money(order.currency, agreed)}</b>` +
+            (fee > 0 ? ` (incl. delivery ${money(order.currency, fee)})` : "") +
+            "."
+          : "") +
         (cost !== null ? `<br/>We paid the store <b>${money(order.currency, cost)}</b>.` : "") +
         (order.listing_type === "service"
           ? "<br/><br/>Enter exactly what the customer paid for this job (not the starting price)."
@@ -808,6 +819,21 @@ function AdminOrdersPage() {
                             <MapPin className="size-3 shrink-0" /> {order.delivery_address}
                           </p>
                         )}
+                        {order.delivery_latitude && order.delivery_longitude && (
+                          <a
+                            href={googleMapsLink(order.delivery_latitude, order.delivery_longitude)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-0.5 flex items-center gap-1 text-[11px] font-bold text-sky-600 hover:underline"
+                          >
+                            <MapPin className="size-3 shrink-0" /> View on map
+                            {order.delivery_distance_km && (
+                              <span className="font-medium text-slate-400">
+                                · {Number(order.delivery_distance_km)} km
+                              </span>
+                            )}
+                          </a>
+                        )}
                       </td>
                       <td className="whitespace-nowrap py-3 pr-3">
                         {order.status === "closed" && order.amount_paid ? (
@@ -827,9 +853,16 @@ function AdminOrdersPage() {
                         ) : order.price_on_request ? (
                           <span className="font-semibold text-amber-600">Price on request</span>
                         ) : (
-                          <span className="font-bold text-slate-900">
-                            {money(order.currency, order.total)}
-                          </span>
+                          <>
+                            <span className="font-bold text-slate-900">
+                              {money(order.currency, order.grand_total)}
+                            </span>
+                            {Number(order.delivery_fee) > 0 && (
+                              <p className="text-[10px] text-slate-400">
+                                incl. delivery {money(order.currency, order.delivery_fee)}
+                              </p>
+                            )}
+                          </>
                         )}
                         {order.status === "delivered" && (
                           <p className="text-[10px] font-semibold text-amber-700">

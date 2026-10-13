@@ -10,7 +10,7 @@ from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 
-from catalog.models import Listing
+from catalog.models import Listing, ListingType
 from catalog.views import BLOCKED_STORE_STATUSES, purchasable_listings
 from stores.models import Store, StoreStatus
 from subscriptions.models import SubscriptionInvoice, SubscriptionStatus
@@ -25,7 +25,7 @@ from .models import (
     QuickOrderStatus,
     StorePurchaseOrder,
 )
-from . import notifications
+from . import delivery, notifications
 from .notifications import PLATFORM_BUYER_NAME
 
 
@@ -100,12 +100,39 @@ def quick_order_view(request):
     except (InvalidOperation, TypeError):
         return JsonResponse({"error": "Could not calculate order total."}, status=400)
 
+    # The customer's location; goods pay a delivery fee from our main store.
+    raw_lat, raw_lng = data.get("latitude"), data.get("longitude")
+    coords = delivery.parse_coordinates(raw_lat, raw_lng)
+    if coords is None and (raw_lat not in (None, "") or raw_lng not in (None, "")):
+        return JsonResponse({"error": "Your location is not valid. Please share it again."}, status=400)
+    delivery_fee, distance_km = Decimal("0.00"), None
+    if listing.listing_type != ListingType.SERVICE and delivery.is_configured():
+        if coords is None:
+            return JsonResponse(
+                {"error": "Share your delivery location so we can calculate the delivery fee."},
+                status=400,
+            )
+        result = delivery.quote(*coords)
+        if not result["deliverable"]:
+            return JsonResponse(
+                {"error": f"Sorry, we deliver up to {float(result['max_km']):g} km from our store. "
+                          f"Your location is {float(result['distance_km']):g} km away."},
+                status=400,
+            )
+        delivery_fee, distance_km = result["fee"], result["distance_km"]
+    elif coords is not None and delivery.is_configured():
+        distance_km = delivery.quote(*coords)["distance_km"]
+
     order = QuickOrder.objects.create(
         listing=listing,
         store=listing.store,
         customer_name=name,
         customer_phone=phone,
         delivery_address=address,
+        delivery_latitude=coords[0] if coords else None,
+        delivery_longitude=coords[1] if coords else None,
+        delivery_distance_km=distance_km,
+        delivery_fee=delivery_fee,
         quantity=quantity,
         unit_price=unit_price,
         total_amount=total,
@@ -120,6 +147,9 @@ def quick_order_view(request):
             "ok": True,
             "order_id": str(order.pk),
             "total": str(order.total_amount),
+            "delivery_fee": str(order.delivery_fee),
+            "distance_km": str(distance_km) if distance_km is not None else None,
+            "grand_total": str(order.total_amount + order.delivery_fee),
             "currency": order.currency,
         },
         status=201,
@@ -144,6 +174,8 @@ def quick_order_status_view(request, order_id):
                 "order_id": str(order.pk),
                 "status": public_status,
                 "total": str(order.total_amount),
+                "delivery_fee": str(order.delivery_fee),
+                "grand_total": str(order.total_amount + order.delivery_fee),
                 "currency": order.currency,
             }
         )
@@ -484,7 +516,9 @@ def _admin_order_to_dict(order):
     ]
     cost = sum((po.total_amount for po in priced), Decimal("0"))
     has_cost = bool(priced)
-    received = order.amount_paid if order.amount_paid is not None else order.total_amount
+    received = (
+        order.amount_paid if order.amount_paid is not None else order.total_amount + order.delivery_fee
+    )
     return {
         "id": str(order.pk),
         "product_title": order.listing.title,
@@ -496,6 +530,13 @@ def _admin_order_to_dict(order):
         "customer_name": order.customer_name,
         "customer_phone": order.customer_phone,
         "delivery_address": order.delivery_address,
+        "delivery_latitude": str(order.delivery_latitude) if order.delivery_latitude is not None else None,
+        "delivery_longitude": str(order.delivery_longitude) if order.delivery_longitude is not None else None,
+        "delivery_distance_km": (
+            str(order.delivery_distance_km) if order.delivery_distance_km is not None else None
+        ),
+        "delivery_fee": str(order.delivery_fee),
+        "grand_total": str(order.total_amount + order.delivery_fee),
         "admin_note": order.admin_note,
         "quantity": order.quantity,
         "unit_price": str(order.unit_price),

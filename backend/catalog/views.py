@@ -199,7 +199,25 @@ def vendor_listings_view(request):
         return JsonResponse(
             {"error": "No store linked to this account."}, status=400
         )
+    return _store_listings(request, store)
 
+
+@csrf_exempt
+def admin_store_listings_view(request, store_id):
+    """Admin: list a store's products/services and add or edit them for it.
+
+    Same rules as the vendor's own product page (categories, product vs
+    service, price, image)."""
+    if not _is_admin(request.user):
+        return JsonResponse({"error": "Forbidden"}, status=403)
+    store = Store.objects.select_related("category").filter(pk=store_id).first()
+    if store is None:
+        return JsonResponse({"error": "Store not found."}, status=404)
+    return _store_listings(request, store)
+
+
+def _store_listings(request, store):
+    """GET the store's listings + allowed categories; POST to create or edit one."""
     store_kind = store.listing_kind
     listing_label = {"product": "product", "service": "service"}.get(store_kind, "item")
 

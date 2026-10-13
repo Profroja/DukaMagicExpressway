@@ -36,12 +36,7 @@ import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/lib/LanguageContext";
 import { BrandLogo } from "@/components/BrandLogo";
 import heroImage from "@/assets/market-hero.jpg";
-
-declare global {
-  interface Window {
-    __gmapsReady?: () => void;
-  }
-}
+import { PIN_ICON, loadGoogleMaps } from "@/lib/googleMaps";
 
 export const Route = createFileRoute("/register")({
   head: () => ({
@@ -550,7 +545,9 @@ function Field({
     <div>
       <label className="mb-2 block text-sm font-bold text-white/90">{label}</label>
       <div className="relative">
-        <span className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-white/60">{icon}</span>
+        <span className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-white/60">
+          {icon}
+        </span>
         {children}
       </div>
     </div>
@@ -568,49 +565,6 @@ function Link({ children, toLogin }: { children: React.ReactNode; toLogin: boole
       {children}
     </button>
   );
-}
-
-const GOOGLE_MAPS_API_KEY = import.meta.env["VITE_GOOGLE_MAPS_API_KEY"] as string | undefined;
-
-const PIN_ICON =
-  "data:image/svg+xml;charset=utf-8," +
-  encodeURIComponent(`
-  <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="#F97316" stroke="#ffffff" stroke-width="1.6">
-    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-    <circle cx="12" cy="10" r="3.2" fill="#ffffff" stroke="none"/>
-  </svg>`);
-
-let gmapsPromise: Promise<void> | null = null;
-
-function loadGoogleMaps(): Promise<void> {
-  if (window.google?.maps) return Promise.resolve();
-  if (!GOOGLE_MAPS_API_KEY) return Promise.reject(new Error("Google Maps API key is not configured."));
-  if (gmapsPromise) return gmapsPromise;
-  gmapsPromise = new Promise<void>((resolve, reject) => {
-    const existing = document.getElementById("gmaps-script");
-    if (existing) {
-      existing.addEventListener("load", () => resolve());
-      existing.addEventListener("error", () => reject(new Error("Could not load Google Maps.")));
-      return;
-    }
-    const script = document.createElement("script");
-    script.id = "gmaps-script";
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&v=weekly&callback=__gmapsReady`;
-    script.async = true;
-    script.defer = true;
-    window.__gmapsReady = () => resolve();
-    script.onerror = () => reject(new Error("Could not load Google Maps."));
-    const timer = window.setTimeout(() => {
-      reject(
-        new Error(
-          "Google Maps failed to load. Check that your API key is valid, enabled, and unrestricted to this origin.",
-        ),
-      );
-    }, 12000);
-    script.onload = () => window.clearTimeout(timer);
-    document.head.appendChild(script);
-  });
-  return gmapsPromise;
 }
 
 function MapPicker({

@@ -110,13 +110,28 @@ export async function fetchListing(id: string): Promise<Listing | undefined> {
   return [...products.products, ...services.services].find((item) => item.id === id);
 }
 
+export type DeliveryQuote = {
+  configured: boolean;
+  deliverable: boolean;
+  distance_km: string | null;
+  fee: string | null;
+  max_km: string | null;
+};
+
+/** Delivery fee from our main store to this point (priced by km ranges). */
+export async function fetchDeliveryQuote(latitude: number, longitude: number): Promise<DeliveryQuote> {
+  return request(`/api/delivery/quote/?lat=${latitude}&lng=${longitude}`);
+}
+
 export async function placeOrder(input: {
   listingId: string;
   quantity: number;
   name: string;
   phone: string;
   address: string;
-}): Promise<{ order_id: string; total: string; currency: string }> {
+  latitude?: number | null;
+  longitude?: number | null;
+}): Promise<{ order_id: string; total: string; delivery_fee: string; grand_total: string; currency: string }> {
   return request("/api/orders/quick/", {
     method: "POST",
     body: JSON.stringify({
@@ -125,6 +140,8 @@ export async function placeOrder(input: {
       name: input.name,
       phone: input.phone,
       address: input.address,
+      latitude: input.latitude != null ? input.latitude.toFixed(6) : null,
+      longitude: input.longitude != null ? input.longitude.toFixed(6) : null,
     }),
   });
 }
