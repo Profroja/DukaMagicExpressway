@@ -1339,18 +1339,11 @@ function SourcingDialog({
   onClose: () => void;
   onCreated: (order: AdminOrder) => void;
 }) {
-  const [query, setQuery] = useState("");
-  const [options, setOptions] = useState<SourcingOption[]>([]);
-  const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<SourcingOption | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [unitPrice, setUnitPrice] = useState("");
   const [note, setNote] = useState("");
   const [askQuote, setAskQuote] = useState(false);
-  const [originalUnavailable, setOriginalUnavailable] = useState<{
-    store: string;
-    reason: string;
-  } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [storeQuery, setStoreQuery] = useState("");
   const [storeMatches, setStoreMatches] = useState<KnownStore[]>([]);
@@ -1359,7 +1352,6 @@ function SourcingDialog({
 
   useEffect(() => {
     if (!order) return;
-    setQuery("");
     setStoreQuery("");
     setStoreMatches([]);
     setSelected(null);
@@ -1368,32 +1360,6 @@ function SourcingDialog({
     setNote("");
     setAskQuote(false);
   }, [order]);
-
-  useEffect(() => {
-    if (!order) return;
-    const controller = new AbortController();
-    const timer = window.setTimeout(async () => {
-      setLoading(true);
-      try {
-        const params = query.trim() ? `?q=${encodeURIComponent(query.trim())}` : "";
-        const response = await fetch(`/api/admin/orders/${order.id}/sourcing/${params}`, {
-          credentials: "include",
-          signal: controller.signal,
-        });
-        const data = await response.json().catch(() => ({}));
-        setOptions(response.ok ? data.options || [] : []);
-        setOriginalUnavailable(response.ok ? data.original_unavailable || null : null);
-      } catch {
-        // Aborted or offline - keep the last results.
-      } finally {
-        setLoading(false);
-      }
-    }, 250);
-    return () => {
-      controller.abort();
-      window.clearTimeout(timer);
-    };
-  }, [order, query]);
 
   // Stores the admin types by name / phone / location ("I know this store").
   useEffect(() => {
@@ -1532,8 +1498,8 @@ function SourcingDialog({
                 ? "Booking details"
                 : "Purchase details"
               : isBooking
-                ? "Book a provider"
-                : "Buy from a store"}
+                ? "Choose the provider"
+                : "Choose the store"}
           </DialogTitle>
           <DialogDescription>
             {order && (
@@ -1570,166 +1536,75 @@ function SourcingDialog({
           />
         ) : (
           <>
-            {/* The admin knows the store: type it, pick it, send. */}
-            <div className="rounded-xl border border-primary/30 bg-orange-50/50 p-3">
-              <p className="mb-2 text-sm font-black text-slate-900">
-                Send to a {isBooking ? "provider" : "store"} you know
-              </p>
-              <div className="relative">
-                <StoreIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-primary" />
-                <Input
-                  autoFocus
-                  placeholder={`Type the ${isBooking ? "provider" : "store"} name, phone or location...`}
-                  value={storeQuery}
-                  onChange={(e) => setStoreQuery(e.target.value)}
-                  className="bg-white pl-9"
-                />
-                {storeQuery.trim() && (
-                  <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl">
-                    {storeSearching && storeMatches.length === 0 ? (
-                      <p className="px-3 py-3 text-xs text-slate-500">Searching...</p>
-                    ) : storeMatches.length === 0 ? (
-                      <p className="px-3 py-3 text-xs text-slate-500">
-                        No {isBooking ? "provider" : "store"} matches "{storeQuery.trim()}".
-                      </p>
-                    ) : (
-                      storeMatches.map((store) => (
-                        <button
-                          key={store.id}
-                          type="button"
-                          onClick={() => chooseStore(store)}
-                          className="flex w-full items-center gap-3 border-b border-slate-100 px-3 py-2.5 text-left last:border-0 hover:bg-orange-50"
-                        >
-                          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-primary to-orange-600 text-white">
-                            <StoreIcon className="size-4" />
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-black text-slate-900">
-                              {store.name}
-                            </span>
-                            <span className="flex flex-wrap items-center gap-x-2 text-xs">
-                              {store.phone && (
-                                <span className="inline-flex items-center gap-1 font-bold text-primary">
-                                  <Phone className="size-3" /> {store.phone}
-                                </span>
-                              )}
-                              {store.location && (
-                                <span className="inline-flex items-center gap-1 text-slate-500">
-                                  <MapPin className="size-3" /> {store.location}
-                                </span>
-                              )}
-                              {store.owner && <span className="text-slate-400">{store.owner}</span>}
-                            </span>
-                          </span>
-                          {store.status === "pending" && (
-                            <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">
-                              Not approved
-                            </span>
-                          )}
-                          <ChevronRight className="size-4 shrink-0 text-slate-300" />
-                        </button>
-                      ))
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <p className="text-center text-xs font-bold uppercase tracking-wider text-slate-400">
-              or pick a store that lists this {isBooking ? "service" : "product"}
-            </p>
-
+            {/* Step 1: find the store by name, phone or location. */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+              <StoreIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-primary" />
               <Input
-                placeholder="Search other products or stores..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="pl-9"
+                autoFocus
+                placeholder={`Type the ${isBooking ? "provider" : "store"} name, phone or location...`}
+                value={storeQuery}
+                onChange={(e) => setStoreQuery(e.target.value)}
+                className="h-11 pl-9"
               />
             </div>
 
-            {originalUnavailable && !query.trim() && (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                <b>The customer's choice ({originalUnavailable.store}) can't be bought:</b>{" "}
-                {originalUnavailable.reason} The stores below are alternatives — the customer
-                ordered from {originalUnavailable.store}.
-              </div>
-            )}
-
-            <div className="max-h-[300px] space-y-2 overflow-y-auto pr-1">
-              {loading && options.length === 0 ? (
-                <p className="py-8 text-center text-sm text-slate-500">Finding stores...</p>
-              ) : options.length === 0 ? (
+            <div className="max-h-[340px] space-y-2 overflow-y-auto pr-1">
+              {!storeQuery.trim() ? (
                 <p className="py-8 text-center text-sm text-slate-500">
-                  No store has a matching product.
+                  Start typing to find the {isBooking ? "provider" : "store"}.
+                </p>
+              ) : storeSearching && storeMatches.length === 0 ? (
+                <p className="py-8 text-center text-sm text-slate-500">Searching...</p>
+              ) : storeMatches.length === 0 ? (
+                <p className="py-8 text-center text-sm text-slate-500">
+                  No {isBooking ? "provider" : "store"} matches "{storeQuery.trim()}".
                 </p>
               ) : (
-                options.map((option) => {
-                  return (
-                    <button
-                      key={option.listing_id}
-                      type="button"
-                      onClick={() => choose(option)}
-                      className="group flex w-full items-center gap-3 rounded-xl border border-slate-200 p-3 text-left transition hover:border-primary hover:bg-orange-50/50"
-                    >
-                      <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-100">
-                        {option.image_url ? (
-                          <img
-                            src={option.image_url}
-                            alt=""
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <Package className="size-5 text-slate-300" />
+                storeMatches.map((store) => (
+                  <button
+                    key={store.id}
+                    type="button"
+                    onClick={() => chooseStore(store)}
+                    className="group flex w-full items-center gap-3 rounded-xl border border-slate-200 p-3 text-left transition hover:border-primary hover:bg-orange-50/50"
+                  >
+                    <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-primary to-orange-600 text-white">
+                      <StoreIcon className="size-5" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-base font-black text-slate-900">
+                        {store.name}
+                      </span>
+                      <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm">
+                        {store.phone && (
+                          <span className="inline-flex items-center gap-1 font-bold text-primary">
+                            <Phone className="size-3.5" /> {store.phone}
+                          </span>
                         )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="flex items-center gap-1.5 text-sm font-black text-slate-900">
-                          <StoreIcon className="size-4 shrink-0 text-primary" />
-                          <span className="truncate">{option.store}</span>
-                        </p>
-                        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
-                          {option.store_phone && (
-                            <span className="inline-flex items-center gap-1 font-bold text-primary">
-                              <Phone className="size-3" /> {option.store_phone}
-                            </span>
-                          )}
-                          {(option.store_location || option.region) && (
-                            <span className="inline-flex items-center gap-1 text-slate-500">
-                              <MapPin className="size-3" /> {option.store_location || option.region}
-                            </span>
-                          )}
-                        </div>
-                        <p className="mt-0.5 truncate text-xs text-slate-500">{option.title}</p>
-                        <div className="mt-1 flex flex-wrap gap-1">
-                          {option.is_original && (
-                            <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold text-blue-700">
-                              Customer's choice
-                            </span>
-                          )}
-                          {option.store_status === "pending" && (
-                            <span
-                              className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-700"
-                              title="You can still buy from this store; approve it on the Stores page."
-                            >
-                              Store not approved yet
-                            </span>
-                          )}
-                          {!option.in_stock && (
-                            <span className="rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-bold text-red-600">
-                              Low stock ({option.stock_quantity})
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <p className="whitespace-nowrap text-sm font-black text-slate-900">
-                        {money(option.currency, option.price)}
-                      </p>
-                      <ChevronRight className="size-4 shrink-0 text-slate-300 transition group-hover:text-primary" />
-                    </button>
-                  );
-                })
+                        {store.location && (
+                          <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+                            <MapPin className="size-3" /> {store.location}
+                          </span>
+                        )}
+                      </span>
+                      {store.owner && (
+                        <span className="block text-xs text-slate-400">{store.owner}</span>
+                      )}
+                    </span>
+                    <span className="flex flex-col items-end gap-1">
+                      {order && store.id === order.listed_store_id && (
+                        <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold text-blue-700">
+                          Customer's choice
+                        </span>
+                      )}
+                      {store.status === "pending" && (
+                        <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">
+                          Not approved
+                        </span>
+                      )}
+                    </span>
+                    <ChevronRight className="size-5 shrink-0 text-slate-300 transition group-hover:text-primary" />
+                  </button>
+                ))
               )}
             </div>
           </>
