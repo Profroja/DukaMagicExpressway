@@ -757,7 +757,7 @@ def admin_order_sourcing_view(request, order_id):
     # buyable unless its store was blocked after the order was placed.
     base = (
         purchasable_listings()
-        .select_related("store", "store__region", "category")
+        .select_related("store", "store__region", "store__owner", "category")
         .prefetch_related("images")
     )
 
@@ -789,6 +789,9 @@ def admin_order_sourcing_view(request, order_id):
             "store": item.store.name,
             "store_id": str(item.store_id),
             "region": item.store.region.name if item.store.region_id else "",
+            "store_location": item.store.location_name,
+            "store_phone": item.store.owner.phone_number if item.store.owner_id else "",
+            "store_owner": (item.store.owner.get_full_name() or "") if item.store.owner_id else "",
             "price": str(item.price),
             "currency": item.currency,
             "stock_quantity": item.stock_quantity,

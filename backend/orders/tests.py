@@ -70,6 +70,8 @@ class PlatformBuyerFlowTests(TestCase):
         options = res.json()["options"]
         self.assertEqual(options[0]["listing_id"], str(self.listing.pk))
         self.assertIn(str(self.cheaper.pk), [o["listing_id"] for o in options])
+        # The admin sees who to call at each store.
+        self.assertEqual(options[0]["store_phone"], "+255700000002")
 
         # Admin buys from the cheaper store at a negotiated price.
         res = self._json("post", f"/api/admin/orders/{order_id}/purchase-orders/", self.admin,

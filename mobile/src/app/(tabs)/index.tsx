@@ -1,5 +1,4 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -10,12 +9,15 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
 
 import { AppHeader } from "@/components/AppHeader";
+import { HeroCarousel } from "@/components/HeroCarousel";
 import { ListingGrid } from "@/components/ListingGrid";
-import { EmptyState, ErrorState, SectionHeader, type IconName } from "@/components/ui";
+import { ProductMarquee } from "@/components/ProductMarquee";
+import { EmptyState, ErrorState, SectionHeader } from "@/components/ui";
 import { Colors, Radius, Shadow } from "@/constants/theme";
 import { fetchCatalog, fetchCategories, type CategoryLists, type Listing } from "@/lib/api";
 import { CATEGORIES, categoryStyle, legacyKey } from "@/lib/catalog";
@@ -23,6 +25,7 @@ import { useLanguage } from "@/lib/i18n";
 
 export default function HomeScreen() {
   const { t } = useLanguage();
+  const { width } = useWindowDimensions();
   const [products, setProducts] = useState<Listing[]>([]);
   const [services, setServices] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
@@ -127,31 +130,8 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* Hero */}
-        <LinearGradient
-          colors={[Colors.navy, Colors.navySoft, "#9A3412"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.hero}
-        >
-          <View style={styles.heroGlow} />
-          <Text style={styles.heroTitle}>{t("heroTitle")}</Text>
-          <Text style={styles.heroSubtitle}>{t("heroSubtitle")}</Text>
-          <View style={styles.heroChips}>
-            {(
-              [
-                ["pricetag", t("heroChipAffordable")],
-                ["flash", t("heroChipFast")],
-                ["time", t("heroChipAnyTime")],
-              ] as [IconName, string][]
-            ).map(([icon, label]) => (
-              <View key={label} style={styles.heroChip}>
-                <Ionicons name={icon} size={12} color="#FFFFFF" />
-                <Text style={styles.heroChipText}>{label}</Text>
-              </View>
-            ))}
-          </View>
-        </LinearGradient>
+        {/* Hero: three picture cards that slide by themselves */}
+        <HeroCarousel width={width - 32} />
 
         {/* Categories */}
         <SectionHeader title={t("categories")} icon="grid-outline" />
@@ -211,7 +191,7 @@ export default function HomeScreen() {
             <View style={styles.section}>
               <SectionHeader title={t("popularProducts")} icon="flame-outline" />
               {products.length ? (
-                <ListingGrid items={products.slice(0, 10)} />
+                <ProductMarquee items={products.slice(0, 20)} />
               ) : (
                 <EmptyState icon="bag-handle-outline" title={t("noProducts")} />
               )}
@@ -261,36 +241,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  hero: {
-    marginTop: 16,
-    marginBottom: 22,
-    borderRadius: Radius.xl,
-    padding: 20,
-    overflow: "hidden",
-    ...Shadow.raised,
-  },
-  heroGlow: {
-    position: "absolute",
-    right: -40,
-    top: -40,
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: "rgba(249,115,22,0.35)",
-  },
-  heroTitle: { color: "#FFFFFF", fontSize: 22, fontWeight: "900", lineHeight: 28, maxWidth: "85%" },
-  heroSubtitle: { marginTop: 6, color: "rgba(255,255,255,0.8)", fontSize: 13, lineHeight: 19 },
-  heroChips: { marginTop: 14, flexDirection: "row", gap: 8, flexWrap: "wrap" },
-  heroChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: Radius.full,
-    backgroundColor: "rgba(255,255,255,0.14)",
-  },
-  heroChipText: { color: "#FFFFFF", fontSize: 11, fontWeight: "800" },
   categories: {
     flexDirection: "row",
     flexWrap: "wrap",

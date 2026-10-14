@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   ChevronRight,
   ClipboardList,
+  Lightbulb,
   MapPin,
   Package,
   PackageCheck,
@@ -110,6 +111,9 @@ type SourcingOption = {
   store: string;
   store_id: string;
   region: string;
+  store_location?: string;
+  store_phone?: string;
+  store_owner?: string;
   price: string;
   currency: string;
   stock_quantity: number | null;
@@ -228,6 +232,8 @@ function AdminOrdersPage() {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["key"]>("all");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [sourcingOrder, setSourcingOrder] = useState<AdminOrder | null>(null);
+  // The order open in the Process view (the list is hidden meanwhile).
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
   const loadOrders = async () => {
     setLoading(true);
@@ -683,6 +689,292 @@ function AdminOrdersPage() {
     );
   };
 
+  /** What the admin should do next for this order, in plain words. */
+  const nextStep = (order: AdminOrder) => {
+    const po = activePurchaseOrder(order);
+    const booking = order.listing_type === "service";
+    switch (order.status) {
+      case "new":
+        return "Call the customer to confirm the order, then mark it Contacted or Confirm.";
+      case "contacted":
+        return "Confirm the order once the customer agrees.";
+      case "confirmed":
+        return booking
+          ? "Book a provider: choose a store and send the booking."
+          : "Buy it from a store: choose a store and send the purchase order.";
+      case "sourcing":
+        if (!po) return "The store dropped out. Choose another store.";
+        if (po.price_status === "vendor_proposed")
+          return "The store proposed its own price. Accept it or make a counter-offer.";
+        if (po.price_status === "awaiting_quote") return "Waiting for the store to send its price.";
+        if (po.status === "sent")
+          return "Waiting for the store to accept the order. Call them if it takes long.";
+        if (po.payment_status !== "paid")
+          return "Pay the store. It marks the order as paid, then you can collect it.";
+        return "Collect the items from the store, then mark Picked up.";
+      case "picked_up":
+        return "Deliver to the customer, then mark Delivered.";
+      case "delivered":
+        return "Record exactly what the customer paid to close the order.";
+      case "closed":
+        return "Done. This order is closed.";
+      case "cancelled":
+        return "This order was cancelled.";
+      default:
+        return "";
+    }
+  };
+
+  const processingOrder = orders.find((o) => o.id === processingId);
+
+  if (processingOrder) {
+    const order = processingOrder;
+    const isBooking = order.listing_type === "service";
+    return (
+      <>
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm" onClick={() => setProcessingId(null)}>
+              <ArrowLeft className="size-4" /> All orders
+            </Button>
+            <div>
+              <h1 className="text-xl font-black text-slate-900 sm:text-2xl">
+                Process {isBooking ? "booking" : "order"}
+              </h1>
+              <p className="text-xs text-slate-500">Placed {formatDate(order.created_at)}</p>
+            </div>
+          </div>
+          <Badge className={`px-3 py-1 text-sm font-bold ${STATUS_BADGE[order.status]}`}>
+            {STATUS_LABEL[order.status]}
+          </Badge>
+        </div>
+
+        {/* What to do now */}
+        <div className="mb-5 rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-50 to-white p-4 sm:p-5">
+          <p className="flex items-start gap-2 text-sm font-bold text-slate-900 sm:text-base">
+            <Lightbulb className="mt-0.5 size-5 shrink-0 text-primary" /> {nextStep(order)}
+          </p>
+          <div className="mt-4 [&_button]:h-10 [&_button]:px-4">{renderActions(order)}</div>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-3">
+          {/* Product */}
+          <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+            <h2 className="mb-3 text-xs font-black uppercase tracking-wider text-slate-400">
+              {isBooking ? "Service" : "Product"}
+            </h2>
+            <div className="flex items-center gap-3">
+              <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-100">
+                {order.product_image ? (
+                  <img src={order.product_image} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <Package className="size-6 text-slate-300" />
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="font-bold text-slate-900">
+                  {isBooking ? "" : `${order.quantity}x `}
+                  {order.product_title}
+                </p>
+                <p className="text-xs text-slate-500">Listed by {order.listed_store}</p>
+                {!order.price_on_request && (
+                  <p className="text-xs text-slate-500">
+                    {money(order.currency, order.unit_price)} each
+                  </p>
+                )}
+              </div>
+            </div>
+          </section>
+
+          {/* Customer */}
+          <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+            <h2 className="mb-3 text-xs font-black uppercase tracking-wider text-slate-400">
+              Customer
+            </h2>
+            <p className="text-lg font-black text-slate-900">{order.customer_name}</p>
+            <a
+              href={`tel:${order.customer_phone}`}
+              className="mt-1 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-1.5 text-sm font-black text-white hover:bg-orange-600"
+            >
+              <Phone className="size-4" /> {order.customer_phone}
+            </a>
+            {order.delivery_address && (
+              <p className="mt-3 flex items-start gap-1.5 text-sm text-slate-600">
+                <MapPin className="mt-0.5 size-4 shrink-0 text-slate-400" />{" "}
+                {order.delivery_address}
+              </p>
+            )}
+            {order.delivery_latitude && order.delivery_longitude && (
+              <a
+                href={googleMapsLink(order.delivery_latitude, order.delivery_longitude)}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-1 inline-flex items-center gap-1 text-sm font-bold text-sky-600 hover:underline"
+              >
+                <MapPin className="size-4" /> Open location on map
+                {order.delivery_distance_km && (
+                  <span className="font-medium text-slate-400">
+                    · {Number(order.delivery_distance_km)} km away
+                  </span>
+                )}
+              </a>
+            )}
+          </section>
+
+          {/* Money */}
+          <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+            <h2 className="mb-3 text-xs font-black uppercase tracking-wider text-slate-400">
+              Money
+            </h2>
+            <dl className="space-y-1.5 text-sm">
+              <div className="flex justify-between">
+                <dt className="text-slate-500">Items</dt>
+                <dd className="font-semibold text-slate-800">
+                  {order.price_on_request ? "Price on request" : money(order.currency, order.total)}
+                </dd>
+              </div>
+              {Number(order.delivery_fee) > 0 && (
+                <div className="flex justify-between">
+                  <dt className="text-slate-500">Delivery fee</dt>
+                  <dd className="font-semibold text-slate-800">
+                    {money(order.currency, order.delivery_fee)}
+                  </dd>
+                </div>
+              )}
+              <div className="flex justify-between border-t border-slate-100 pt-1.5">
+                <dt className="font-bold text-slate-700">
+                  {order.status === "closed" ? "Customer paid" : "Customer pays"}
+                </dt>
+                <dd className="font-black text-slate-900">
+                  {order.status === "closed" && order.amount_paid
+                    ? money(order.currency, order.amount_paid)
+                    : money(order.currency, order.grand_total)}
+                </dd>
+              </div>
+              {order.cost !== null && (
+                <div className="flex justify-between">
+                  <dt className="text-slate-500">We pay the store</dt>
+                  <dd className="font-semibold text-slate-800">
+                    {money(order.currency, order.cost)}
+                  </dd>
+                </div>
+              )}
+              {order.margin !== null && (
+                <div className="flex justify-between">
+                  <dt className="text-slate-500">Margin</dt>
+                  <dd
+                    className={`font-black ${Number(order.margin) >= 0 ? "text-emerald-600" : "text-red-600"}`}
+                  >
+                    {money(order.currency, order.margin)}
+                  </dd>
+                </div>
+              )}
+            </dl>
+            {order.status !== "cancelled" && (
+              <button
+                type="button"
+                onClick={() => setCustomerPrice(order)}
+                disabled={busyId === order.id}
+                className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline"
+              >
+                <Pencil className="size-3" />
+                {order.status === "closed"
+                  ? "Correct amount paid"
+                  : order.price_on_request
+                    ? "Set the customer's price"
+                    : "Change the customer's price"}
+              </button>
+            )}
+          </section>
+        </div>
+
+        {/* Stores */}
+        <section className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+          <h2 className="mb-3 text-xs font-black uppercase tracking-wider text-slate-400">
+            {isBooking ? "Provider" : "Store"} / purchase
+          </h2>
+          {order.purchase_orders.length === 0 ? (
+            <p className="text-sm text-slate-500">
+              Not {isBooking ? "booked" : "bought"} from a store yet.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {order.purchase_orders.map((po, i) => {
+                const old = i > 0 || po.status === "rejected" || po.status === "cancelled";
+                return (
+                  <div
+                    key={po.id}
+                    className={`rounded-xl border p-3 sm:p-4 ${old ? "border-slate-100 bg-slate-50/60 opacity-75" : "border-primary/30 bg-orange-50/40"}`}
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="flex items-center gap-2 text-base font-black text-slate-900">
+                          <StoreIcon className="size-4 text-primary" /> {po.store}
+                        </p>
+                        {po.store_phone && (
+                          <a
+                            href={`tel:${po.store_phone}`}
+                            className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-white px-3 py-1 text-sm font-black text-primary hover:bg-orange-50"
+                          >
+                            <Phone className="size-3.5" /> {po.store_phone}
+                          </a>
+                        )}
+                        {po.store_id !== order.listed_store_id && (
+                          <p className="mt-1 text-[11px] font-semibold text-amber-600">
+                            Not the store the customer chose
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <p className="font-mono text-xs text-slate-400">{po.po_number}</p>
+                        <p className="text-sm font-black text-slate-900">
+                          {po.price_status === "awaiting_quote"
+                            ? "Waiting for price"
+                            : money(po.currency, po.total)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      <span
+                        className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold ${PO_BADGE[po.status]}`}
+                      >
+                        {PO_LABEL[po.status]}
+                      </span>
+                      {ACTIVE_PO.includes(po.status) && <NegotiationBadge po={po} />}
+                      {["accepted", "ready", "picked_up"].includes(po.status) &&
+                        (po.payment_status === "paid" ? (
+                          <span className="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700">
+                            Paid ✓
+                            {po.amount_received && ` ${money(po.currency, po.amount_received)}`}
+                          </span>
+                        ) : (
+                          <span className="inline-flex rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-bold text-red-600">
+                            Awaiting payment confirmation
+                          </span>
+                        ))}
+                    </div>
+                    {po.vendor_note && (
+                      <p className="mt-2 text-sm italic text-slate-600">“{po.vendor_note}”</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        <SourcingDialog
+          order={sourcingOrder}
+          onClose={() => setSourcingOrder(null)}
+          onCreated={(updated) => {
+            replaceOrder(updated);
+            setSourcingOrder(null);
+          }}
+        />
+      </>
+    );
+  }
+
   return (
     <>
       {/* Page Header */}
@@ -752,7 +1044,7 @@ function AdminOrdersPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1250px] text-sm">
+            <table className="w-full min-w-[1100px] text-sm">
               <thead>
                 <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wider text-slate-400">
                   <th className="py-3 pr-3">S/N</th>
@@ -983,7 +1275,30 @@ function AdminOrdersPage() {
                       <td className="whitespace-nowrap py-3 pr-3 text-xs text-slate-500">
                         {formatDate(order.created_at)}
                       </td>
-                      <td className="py-3">{renderActions(order)}</td>
+                      <td className="py-3">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            size="sm"
+                            className="bg-gradient-to-r from-primary to-orange-600 text-white"
+                            onClick={() => {
+                              setProcessingId(order.id);
+                              window.scrollTo({ top: 0 });
+                            }}
+                          >
+                            Process <ChevronRight className="size-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-slate-200 text-slate-500 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                            disabled={busyId === order.id}
+                            onClick={() => deleteOrder(order)}
+                            title="Delete order"
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
@@ -1231,11 +1546,23 @@ function SourcingDialog({
                         )}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-bold text-slate-900">{option.title}</p>
-                        <p className="flex items-center gap-1 truncate text-xs text-slate-500">
-                          <StoreIcon className="size-3" /> {option.store}
-                          {option.region && <> · {option.region}</>}
+                        <p className="flex items-center gap-1.5 text-sm font-black text-slate-900">
+                          <StoreIcon className="size-4 shrink-0 text-primary" />
+                          <span className="truncate">{option.store}</span>
                         </p>
+                        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
+                          {option.store_phone && (
+                            <span className="inline-flex items-center gap-1 font-bold text-primary">
+                              <Phone className="size-3" /> {option.store_phone}
+                            </span>
+                          )}
+                          {(option.store_location || option.region) && (
+                            <span className="inline-flex items-center gap-1 text-slate-500">
+                              <MapPin className="size-3" /> {option.store_location || option.region}
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-0.5 truncate text-xs text-slate-500">{option.title}</p>
                         <div className="mt-1 flex flex-wrap gap-1">
                           {option.is_original && (
                             <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold text-blue-700">
@@ -1320,11 +1647,27 @@ function PurchaseDetails({
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-bold text-slate-900">{selected.title}</p>
-          <p className="flex items-center gap-1 truncate text-xs text-slate-500">
-            <StoreIcon className="size-3" /> {selected.store}
-            {selected.region && <> · {selected.region}</>}
+          <p className="flex items-center gap-1.5 text-base font-black text-slate-900">
+            <StoreIcon className="size-4 shrink-0 text-primary" />
+            <span className="truncate">{selected.store}</span>
           </p>
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
+            {selected.store_phone && (
+              <a
+                href={`tel:${selected.store_phone}`}
+                className="inline-flex items-center gap-1 font-bold text-primary hover:underline"
+              >
+                <Phone className="size-3" /> {selected.store_phone}
+              </a>
+            )}
+            {selected.store_owner && <span className="text-slate-500">{selected.store_owner}</span>}
+            {(selected.store_location || selected.region) && (
+              <span className="inline-flex items-center gap-1 text-slate-500">
+                <MapPin className="size-3" /> {selected.store_location || selected.region}
+              </span>
+            )}
+          </div>
+          <p className="mt-0.5 truncate text-xs text-slate-500">{selected.title}</p>
         </div>
         <p className="whitespace-nowrap text-sm font-black text-slate-900">
           {listed > 0 ? money(selected.currency, selected.price) : "Price on request"}
