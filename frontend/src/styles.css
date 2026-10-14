@@ -205,3 +205,10 @@ a:hover .category-icon { transform: translateY(-2px); }
   .marquee-track { animation: none; }
   .marquee-track [data-marquee-copy] { display: none; }
 }
+
+/* Language welcome screen */
+@keyframes lang-rise { from { opacity: 0; transform: translateY(18px) scale(0.98); } to { opacity: 1; transform: none; } }
+@keyframes lang-blob { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(40px, 30px) scale(1.15); } }
+.lang-rise { opacity: 0; animation: lang-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+.lang-blob { animation: lang-blob 12s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .lang-rise { animation: none; opacity: 1; } .lang-blob { animation: none; } }

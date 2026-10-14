@@ -289,6 +289,9 @@ const STORAGE_KEY = "duka-language";
 
 type LanguageContextValue = {
   language: Language;
+  /** null while loading; false until the user picks a language the first time. */
+  chosen: boolean | null;
+  choose: (language: Language) => void;
   toggle: () => void;
   t: (key: Key, vars?: Record<string, string>) => string;
 };
@@ -297,20 +300,25 @@ const LanguageContext = createContext<LanguageContextValue | null>(null);
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguage] = useState<Language>("en");
+  const [chosen, setChosen] = useState<boolean | null>(null);
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY)
       .then((saved) => {
         if (saved === "en" || saved === "sw") setLanguage(saved);
+        setChosen(saved === "en" || saved === "sw");
       })
-      .catch(() => {});
+      .catch(() => setChosen(false));
   }, []);
 
-  const toggle = () => {
-    const next: Language = language === "en" ? "sw" : "en";
+  /** Set and save the language (asked once, on first launch). */
+  const choose = (next: Language) => {
     setLanguage(next);
+    setChosen(true);
     AsyncStorage.setItem(STORAGE_KEY, next).catch(() => {});
   };
+
+  const toggle = () => choose(language === "en" ? "sw" : "en");
 
   const t = (key: Key, vars?: Record<string, string>) => {
     let text = translations[language][key] ?? en[key];
@@ -319,7 +327,9 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <LanguageContext.Provider value={{ language, toggle, t }}>{children}</LanguageContext.Provider>
+    <LanguageContext.Provider value={{ language, chosen, choose, toggle, t }}>
+      {children}
+    </LanguageContext.Provider>
   );
 }
 

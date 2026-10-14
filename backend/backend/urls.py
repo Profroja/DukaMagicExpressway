@@ -50,6 +50,7 @@ urlpatterns = [
     path('api/admin/users/<uuid:user_id>/', auths_views.admin_user_update_view),
     path('api/admin/users/<uuid:user_id>/password/', auths_views.admin_user_password_view),
     path('api/admin/stores/', stores_views.admin_stores_view),
+    path('api/admin/stores/search/', stores_views.admin_store_search_view),
     path('api/admin/stores/<uuid:store_id>/', stores_views.admin_store_update_view),
     path('api/admin/stores/<uuid:store_id>/products/', catalog_views.admin_store_listings_view),
     path('api/admin/stores/<uuid:store_id>/categories/', catalog_views.admin_store_categories_view),

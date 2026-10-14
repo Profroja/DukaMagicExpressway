@@ -5,6 +5,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { LanguagePicker } from "@/components/LanguagePicker";
 import { SplashOverlay } from "@/components/SplashOverlay";
 import { Colors } from "@/constants/theme";
 import { LanguageProvider } from "@/lib/i18n";
@@ -51,6 +52,8 @@ function AppShell() {
           options={{ headerShown: false, presentation: "fullScreenModal", gestureEnabled: false }}
         />
       </Stack>
+      {/* First launch only: under the splash, revealed as it fades. */}
+      <LanguagePicker />
       <SplashOverlay ready={ready} />
     </>
   );

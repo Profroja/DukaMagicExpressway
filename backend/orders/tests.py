@@ -594,3 +594,35 @@ class DeliveryFeeTests(TestCase):
         # No GOOGLE_MAPS_API_KEY in tests: no map, and bad points are refused.
         self.assertEqual(self.client.get("/api/delivery/map/", {"lat": "-6.78", "lng": "39.26"}).status_code, 404)
         self.assertEqual(self.client.get("/api/delivery/map/", {"lat": "x", "lng": "39.26"}).status_code, 404)
+
+
+class SendToKnownStoreTests(TestCase):
+    """The admin types a store they know and sends it the order directly."""
+
+    setUp = PlatformBuyerFlowTests.setUp
+    _json = PlatformBuyerFlowTests._json
+    _place_customer_order = PlatformBuyerFlowTests._place_customer_order
+
+    def test_search_and_send_to_store_without_the_listing(self):
+        order_id = self._place_customer_order()
+        self._json("patch", f"/api/admin/orders/{order_id}/", self.admin, {"status": "confirmed"})
+
+        found = self._json("get", "/api/admin/stores/search/?q=mlimani", self.admin).json()["stores"]
+        self.assertEqual([s["name"] for s in found], ["Mlimani Gadgets"])
+        self.assertEqual(found[0]["phone"], "+255700000003")
+
+        res = self._json("post", f"/api/admin/orders/{order_id}/purchase-orders/", self.admin,
+                         {"store_id": found[0]["id"], "unit_price": "430000"})
+        self.assertEqual(res.status_code, 201, res.content)
+        po = StorePurchaseOrder.objects.get(customer_order_id=order_id)
+        self.assertEqual(po.store, self.other_store)
+        self.assertEqual(po.listing, self.listing)  # the customer's product
+
+        # The store sees our offer, never the other store's listed price.
+        vendor_view = self._json("get", "/api/vendor/orders/", self.other_vendor).json()
+        po_data = vendor_view["orders"][0]
+        self.assertEqual(po_data["listing_price"], "430000.00")
+        self.assertNotIn("Amina", json.dumps(vendor_view))
+
+        # Store search is admin-only.
+        self.assertEqual(self._json("get", "/api/admin/stores/search/?q=a", self.vendor).status_code, 403)

@@ -216,7 +216,9 @@ def _vendor_po_to_dict(po):
         "total": str(po.total_amount),
         "currency": po.currency,
         "status": po.status,
-        "listing_price": str(po.listing.price),
+        # Another store's listed price is never shown; when we send a store a product it
+        # hasn't listed, the "listed" price is simply our offer.
+        "listing_price": str(po.listing.price if po.listing.store_id == po.store_id else po.unit_price),
         "price_status": po.price_status,
         "vendor_quote": str(po.vendor_quote) if po.vendor_quote is not None else None,
         "vendor_quote_note": po.vendor_quote_note,
@@ -834,6 +836,8 @@ def admin_create_purchase_order_view(request, order_id):
     """Admin: buy the goods for a customer order from a chosen store.
 
     POST {"listing_id", "quantity"?, "unit_price"?, "admin_note"?}
+    or {"store_id", ...}: send the customer's product to a store the admin knows,
+    even if that store hasn't listed it (the order's own product is used).
     """
     if not _is_admin(request.user):
         return JsonResponse({"error": "Forbidden"}, status=403)
@@ -861,13 +865,31 @@ def admin_create_purchase_order_view(request, order_id):
             )
 
         listing_id = (data.get("listing_id") or "").strip()
-        try:
-            uuid.UUID(listing_id)
-        except ValueError:
-            return JsonResponse({"error": "Choose a store product."}, status=400)
-        listing = purchasable_listings().filter(pk=listing_id).select_related("store").first()
-        if listing is None:
-            return JsonResponse({"error": "That store product is not available."}, status=404)
+        store_id = (data.get("store_id") or "").strip()
+        if listing_id:
+            try:
+                uuid.UUID(listing_id)
+            except ValueError:
+                return JsonResponse({"error": "Choose a store product."}, status=400)
+            listing = purchasable_listings().filter(pk=listing_id).select_related("store").first()
+            if listing is None:
+                return JsonResponse({"error": "That store product is not available."}, status=404)
+            store = listing.store
+            default_price = listing.price
+        else:
+            try:
+                uuid.UUID(store_id)
+            except ValueError:
+                return JsonResponse({"error": "Choose a store."}, status=400)
+            store = Store.objects.filter(pk=store_id).first()
+            if store is None:
+                return JsonResponse({"error": "Store not found."}, status=404)
+            if store.status in BLOCKED_STORE_STATUSES:
+                return JsonResponse(
+                    {"error": f"{store.name} is {store.get_status_display().lower()}."}, status=400
+                )
+            listing = order.listing
+            default_price = order.unit_price
 
         try:
             quantity = int(data.get("quantity") or order.quantity)
@@ -886,7 +908,7 @@ def admin_create_purchase_order_view(request, order_id):
             raw_price = data.get("unit_price")
             try:
                 unit_price = (
-                    Decimal(str(raw_price).replace(",", "")) if raw_price not in (None, "") else listing.price
+                    Decimal(str(raw_price).replace(",", "")) if raw_price not in (None, "") else default_price
                 )
             except (InvalidOperation, TypeError):
                 return JsonResponse({"error": "Enter a valid unit price."}, status=400)
@@ -899,7 +921,7 @@ def admin_create_purchase_order_view(request, order_id):
         po = StorePurchaseOrder.objects.create(
             po_number=_new_po_number(),
             customer_order=order,
-            store=listing.store,
+            store=store,
             listing=listing,
             listing_title_snapshot=listing.title,
             quantity=quantity,

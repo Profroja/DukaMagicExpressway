@@ -6,6 +6,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db import transaction
+from django.db.models import Q
 from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
@@ -297,3 +298,39 @@ def public_categories_view(request):
     for kind in result:
         result[kind].sort(key=lambda c: (order.get(c["name"].lower(), 10_000), c["name"].lower()))
     return JsonResponse({"success": True, **result})
+
+
+def admin_store_search_view(request):
+    """Admin: stores matching ?q= by name, location or owner name/phone (max 10).
+
+    For sending an order straight to a store or provider the admin knows.
+    """
+    if not _is_admin(request.user):
+        return JsonResponse({"error": "Forbidden"}, status=403)
+    if request.method != "GET":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    q = (request.GET.get("q") or "").strip()
+    stores = Store.objects.select_related("owner").exclude(
+        status__in=(StoreStatus.SUSPENDED, StoreStatus.REJECTED)
+    )
+    if q:
+        stores = stores.filter(
+            Q(name__icontains=q)
+            | Q(location_name__icontains=q)
+            | Q(owner__phone_number__icontains=q)
+            | Q(owner__first_name__icontains=q)
+            | Q(owner__last_name__icontains=q)
+        )
+    results = [
+        {
+            "id": str(store.pk),
+            "name": store.name,
+            "phone": store.owner.phone_number if store.owner_id else "",
+            "owner": (store.owner.get_full_name() or "") if store.owner_id else "",
+            "location": store.location_name,
+            "listing_kind": store.listing_kind,
+            "status": store.status,
+        }
+        for store in stores.order_by("name")[:10]
+    ]
+    return JsonResponse({"success": True, "stores": results})

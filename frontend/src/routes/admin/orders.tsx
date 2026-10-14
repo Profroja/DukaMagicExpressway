@@ -104,6 +104,16 @@ type AdminOrder = {
   created_at: string | null;
 };
 
+type KnownStore = {
+  id: string;
+  name: string;
+  phone: string;
+  owner: string;
+  location: string;
+  listing_kind: string;
+  status: string;
+};
+
 type SourcingOption = {
   listing_id: string;
   title: string;
@@ -1342,11 +1352,16 @@ function SourcingDialog({
     reason: string;
   } | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [storeQuery, setStoreQuery] = useState("");
+  const [storeMatches, setStoreMatches] = useState<KnownStore[]>([]);
+  const [storeSearching, setStoreSearching] = useState(false);
   const isBooking = order?.listing_type === "service";
 
   useEffect(() => {
     if (!order) return;
     setQuery("");
+    setStoreQuery("");
+    setStoreMatches([]);
     setSelected(null);
     setQuantity(order.quantity);
     setUnitPrice("");
@@ -1379,6 +1394,57 @@ function SourcingDialog({
       window.clearTimeout(timer);
     };
   }, [order, query]);
+
+  // Stores the admin types by name / phone / location ("I know this store").
+  useEffect(() => {
+    const term = storeQuery.trim();
+    if (!order || !term) {
+      setStoreMatches([]);
+      return;
+    }
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setStoreSearching(true);
+      try {
+        const response = await fetch(`/api/admin/stores/search/?q=${encodeURIComponent(term)}`, {
+          credentials: "include",
+          signal: controller.signal,
+        });
+        const data = await response.json().catch(() => ({}));
+        setStoreMatches(response.ok ? data.stores || [] : []);
+      } catch {
+        // Aborted or offline - keep the last results.
+      } finally {
+        setStoreSearching(false);
+      }
+    }, 200);
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [order, storeQuery]);
+
+  /** Send the customer's product to a store the admin picked by name. */
+  const chooseStore = (store: KnownStore) => {
+    if (!order) return;
+    choose({
+      listing_id: "",
+      title: order.product_title,
+      image_url: order.product_image,
+      store: store.name,
+      store_id: store.id,
+      region: "",
+      store_location: store.location,
+      store_phone: store.phone,
+      store_owner: store.owner,
+      price: order.price_on_request ? "0" : order.unit_price,
+      currency: order.currency,
+      stock_quantity: null,
+      in_stock: true,
+      is_original: store.id === order.listed_store_id,
+      store_status: store.status,
+    });
+  };
 
   const choose = (option: SourcingOption) => {
     setSelected(option);
@@ -1424,11 +1490,15 @@ function SourcingDialog({
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          askQuote
-            ? { listing_id: selected.listing_id, quantity, request_quote: true, admin_note: note }
-            : { listing_id: selected.listing_id, quantity, unit_price: price, admin_note: note },
-        ),
+        body: JSON.stringify({
+          // A store picked by name gets the customer's own product.
+          ...(selected.listing_id
+            ? { listing_id: selected.listing_id }
+            : { store_id: selected.store_id }),
+          quantity,
+          admin_note: note,
+          ...(askQuote ? { request_quote: true } : { unit_price: price }),
+        }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -1500,6 +1570,75 @@ function SourcingDialog({
           />
         ) : (
           <>
+            {/* The admin knows the store: type it, pick it, send. */}
+            <div className="rounded-xl border border-primary/30 bg-orange-50/50 p-3">
+              <p className="mb-2 text-sm font-black text-slate-900">
+                Send to a {isBooking ? "provider" : "store"} you know
+              </p>
+              <div className="relative">
+                <StoreIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-primary" />
+                <Input
+                  autoFocus
+                  placeholder={`Type the ${isBooking ? "provider" : "store"} name, phone or location...`}
+                  value={storeQuery}
+                  onChange={(e) => setStoreQuery(e.target.value)}
+                  className="bg-white pl-9"
+                />
+                {storeQuery.trim() && (
+                  <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl">
+                    {storeSearching && storeMatches.length === 0 ? (
+                      <p className="px-3 py-3 text-xs text-slate-500">Searching...</p>
+                    ) : storeMatches.length === 0 ? (
+                      <p className="px-3 py-3 text-xs text-slate-500">
+                        No {isBooking ? "provider" : "store"} matches "{storeQuery.trim()}".
+                      </p>
+                    ) : (
+                      storeMatches.map((store) => (
+                        <button
+                          key={store.id}
+                          type="button"
+                          onClick={() => chooseStore(store)}
+                          className="flex w-full items-center gap-3 border-b border-slate-100 px-3 py-2.5 text-left last:border-0 hover:bg-orange-50"
+                        >
+                          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-primary to-orange-600 text-white">
+                            <StoreIcon className="size-4" />
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-black text-slate-900">
+                              {store.name}
+                            </span>
+                            <span className="flex flex-wrap items-center gap-x-2 text-xs">
+                              {store.phone && (
+                                <span className="inline-flex items-center gap-1 font-bold text-primary">
+                                  <Phone className="size-3" /> {store.phone}
+                                </span>
+                              )}
+                              {store.location && (
+                                <span className="inline-flex items-center gap-1 text-slate-500">
+                                  <MapPin className="size-3" /> {store.location}
+                                </span>
+                              )}
+                              {store.owner && <span className="text-slate-400">{store.owner}</span>}
+                            </span>
+                          </span>
+                          {store.status === "pending" && (
+                            <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">
+                              Not approved
+                            </span>
+                          )}
+                          <ChevronRight className="size-4 shrink-0 text-slate-300" />
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <p className="text-center text-xs font-bold uppercase tracking-wider text-slate-400">
+              or pick a store that lists this {isBooking ? "service" : "product"}
+            </p>
+
             <div className="relative">
               <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
               <Input
