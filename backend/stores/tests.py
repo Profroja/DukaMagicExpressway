@@ -82,3 +82,54 @@ class AdminStoreManagementTests(TestCase):
         import shutil
         shutil.rmtree("test-media-stores", ignore_errors=True)
         super().tearDownClass()
+
+
+class CategoryTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user("+255700900101", "AdminPass#2026", role=UserRole.ADMIN)
+        self.client.force_login(self.admin)
+
+    def _create(self, **overrides):
+        body = {
+            "name": "Mama Lishe Kitchen", "category_type": "goods",
+            "categories": ["Food & Drinks"], "owner_name": "Neema", "owner_phone": "+255711000111",
+            **overrides,
+        }
+        return self.client.post("/api/admin/stores/", data=json.dumps(body), content_type="application/json")
+
+    def test_public_list_has_food_and_many_services(self):
+        data = self.client.get("/api/categories/").json()
+        goods = [c["name"] for c in data["goods"]]
+        services = [c["name"] for c in data["services"]]
+        self.assertEqual(goods[0], "Food & Drinks")
+        self.assertIn("Fresh Produce", goods)
+        self.assertNotIn("Services", goods)  # legacy entry hidden
+        self.assertIn("Education & Tutoring", services)
+        self.assertGreater(len(goods), 30)
+
+    def test_store_with_its_own_new_category(self):
+        res = self._create(categories=[], new_categories=[{"name": "  traditional   medicine ", "type": "goods"}])
+        self.assertEqual(res.status_code, 201, res.content)
+        self.assertEqual(res.json()["store"]["additional_categories"], ["Traditional medicine"])
+        # Now offered to everyone.
+        goods = [c["name"] for c in self.client.get("/api/categories/").json()["goods"]]
+        self.assertIn("Traditional medicine", goods)
+        # A goods store can't add a services category.
+        bad = self._create(owner_phone="+255711000112", new_categories=[{"name": "Massage", "type": "services"}])
+        self.assertEqual(bad.status_code, 400)
+
+    def test_vendor_adds_category_later_and_lists_in_it(self):
+        self._create()
+        vendor = User.objects.get(phone_number="+255711000111")
+        self.client.force_login(vendor)
+        res = self.client.post("/api/vendor/categories/", data=json.dumps({"name": "Spices", "type": "goods"}),
+                               content_type="application/json")
+        self.assertEqual(res.status_code, 201, res.content)
+        names = [c["name"] for c in res.json()["categories"]]
+        self.assertIn("Spices", names)
+        wrong = self.client.post("/api/vendor/categories/", data=json.dumps({"name": "Tours", "type": "services"}),
+                                 content_type="application/json")
+        self.assertEqual(wrong.status_code, 400)
+        short = self.client.post("/api/vendor/categories/", data=json.dumps({"name": "1", "type": "goods"}),
+                                 content_type="application/json")
+        self.assertEqual(short.status_code, 400)

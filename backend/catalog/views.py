@@ -10,6 +10,8 @@ from django.views.decorators.csrf import csrf_exempt
 from auths.views import _is_admin
 from stores.models import Store, StoreCategory, StoreStatus, listing_type_for_category
 from subscriptions.views import unpaid_store_ids_for_month
+from stores.categories import CategoryError, add_category
+
 from .models import Listing, ListingImage, ListingType, ProductCategory
 
 
@@ -214,6 +216,59 @@ def admin_store_listings_view(request, store_id):
     if store is None:
         return JsonResponse({"error": "Store not found."}, status=404)
     return _store_listings(request, store)
+
+
+def _add_store_category(request, store):
+    """POST {"name", "type": "goods"|"services"}: add a category to this store.
+
+    For when nothing in the store's list fits a new product or service; the
+    category is created if it's new and then available to every store.
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    try:
+        data = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON body"}, status=400)
+    kind = (data.get("type") or "").strip().lower()
+    allowed = {"product": ["goods"], "service": ["services"], "both": ["goods", "services"]}.get(
+        store.listing_kind, ["goods"]
+    )
+    if kind not in allowed:
+        return JsonResponse(
+            {"error": f"This store sells {' and '.join(allowed)} only."}, status=400
+        )
+    try:
+        category = add_category(kind, data.get("name"), request.user)
+    except CategoryError as exc:
+        return JsonResponse({"error": str(exc)}, status=400)
+    store.categories.add(category)
+    return JsonResponse(
+        {"success": True, "category_id": str(category.pk), "categories": _store_categories(store)},
+        status=201,
+    )
+
+
+@csrf_exempt
+def vendor_categories_view(request):
+    """Vendor: add a category to their own store."""
+    if not request.user.is_authenticated:
+        return JsonResponse({"authenticated": False}, status=401)
+    store = Store.objects.select_related("category").filter(owner=request.user).first()
+    if store is None:
+        return JsonResponse({"error": "No store linked to this account."}, status=400)
+    return _add_store_category(request, store)
+
+
+@csrf_exempt
+def admin_store_categories_view(request, store_id):
+    """Admin: add a category to any store."""
+    if not _is_admin(request.user):
+        return JsonResponse({"error": "Forbidden"}, status=403)
+    store = Store.objects.select_related("category").filter(pk=store_id).first()
+    if store is None:
+        return JsonResponse({"error": "Store not found."}, status=404)
+    return _add_store_category(request, store)
 
 
 def _store_listings(request, store):

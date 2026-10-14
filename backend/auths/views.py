@@ -20,14 +20,8 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 
 from .models import EmailVerification, UserRole
-from stores.models import (
-    BOTH_ROOT,
-    GOODS_ROOT,
-    SERVICES_ROOT,
-    Store,
-    StoreCategory,
-    listing_type_for_category,
-)
+from stores.categories import CategoryError, resolve_store_categories
+from stores.models import Store
 
 User = get_user_model()
 
@@ -369,7 +363,8 @@ def register_complete_view(request):
         return JsonResponse(
             {"error": "Choose what you sell: goods, services or both."}, status=400
         )
-    if not isinstance(selected, list) or not selected:
+    new_categories = data.get("new_categories") or []
+    if not isinstance(selected, list) or not (selected or new_categories):
         return JsonResponse(
             {
                 "error": "Select at least one category you sell "
@@ -389,31 +384,12 @@ def register_complete_view(request):
     except ValidationError as exc:
         return JsonResponse({"error": "; ".join(exc.messages)}, status=400)
 
-    def root(name):
-        category, _ = StoreCategory.objects.get_or_create(
-            name__iexact=name, parent__isnull=True, defaults={"name": name}
+    try:
+        main_category, selected_categories = resolve_store_categories(
+            category_type, selected, new_categories
         )
-        return category
-
-    if category_type == "both":
-        main_category = root(BOTH_ROOT)
-        parents = [root(GOODS_ROOT), root(SERVICES_ROOT)]
-    else:
-        main_category = root(GOODS_ROOT if category_type == "goods" else SERVICES_ROOT)
-        parents = [main_category]
-
-    selected_categories = list(
-        StoreCategory.objects.filter(parent__in=parents, name__in=selected).select_related("parent")
-    )
-    if not selected_categories:
-        return JsonResponse({"error": "Select at least one category you sell."}, status=400)
-    if category_type == "both":
-        kinds = {listing_type_for_category(c) for c in selected_categories}
-        if kinds != {"product", "service"}:
-            return JsonResponse(
-                {"error": "Select at least one goods category and one services category."},
-                status=400,
-            )
+    except CategoryError as exc:
+        return JsonResponse({"error": str(exc)}, status=400)
 
     names = full_name.split(maxsplit=1)
     user = User.objects.create_user(

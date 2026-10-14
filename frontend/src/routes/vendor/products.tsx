@@ -1,5 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Circle, ImagePlus, Package, Pencil, Plus, ToggleLeft, ToggleRight, Wrench, X } from "lucide-react";
+import { NewCategoryInline } from "@/components/NewCategoryInline";
+import { kindsForStore } from "@/lib/categories";
+import {
+  Circle,
+  ImagePlus,
+  Package,
+  Pencil,
+  Plus,
+  ToggleLeft,
+  ToggleRight,
+  Wrench,
+  X,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import Swal from "sweetalert2";
 import { Button } from "@/components/ui/button";
@@ -50,7 +62,13 @@ function VendorProducts() {
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [existingImageUrl, setExistingImageUrl] = useState("");
-  const [form, setForm] = useState({ title: "", description: "", price: "", available: true, category: "" });
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+    price: "",
+    available: true,
+    category: "",
+  });
   const [image, setImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -63,9 +81,7 @@ function VendorProducts() {
   const nounPlural = isMixed ? "Products & Services" : isServiceStore ? "Services" : "Products";
   const ListingIcon = isServiceStore ? Wrench : Package;
   const selectedCategory = categories.find((c) => c.id === form.category);
-  const isService = selectedCategory
-    ? selectedCategory.listing_type === "service"
-    : isServiceStore;
+  const isService = selectedCategory ? selectedCategory.listing_type === "service" : isServiceStore;
   const formNoun = isService ? "service" : "product";
   const formNounTitle = isService ? "Service" : "Product";
 
@@ -186,7 +202,11 @@ function VendorProducts() {
       return;
     }
     if ((!isService && !hasPrice) || (hasPrice && (Number.isNaN(price) || price <= 0))) {
-      Swal.fire({ icon: "error", title: "Invalid price", text: `Enter a valid ${isService ? "service price or leave it blank" : "price per unit"}.` });
+      Swal.fire({
+        icon: "error",
+        title: "Invalid price",
+        text: `Enter a valid ${isService ? "service price or leave it blank" : "price per unit"}.`,
+      });
       return;
     }
     if (!editingId && !image) {
@@ -246,9 +266,10 @@ function VendorProducts() {
     }
   };
 
-  const perUnit = (p: Product) => p.listing_type === "service" && Number(p.price) === 0
-    ? "Price on request"
-    : `${p.currency} ${Number(p.price).toLocaleString()}`;
+  const perUnit = (p: Product) =>
+    p.listing_type === "service" && Number(p.price) === 0
+      ? "Price on request"
+      : `${p.currency} ${Number(p.price).toLocaleString()}`;
 
   return (
     <>
@@ -272,9 +293,12 @@ function VendorProducts() {
           <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-primary/20 to-orange-600/20 flex items-center justify-center mb-4">
             <ListingIcon className="size-7 text-primary" />
           </div>
-          <h3 className="text-lg font-bold text-slate-900 mb-1">No {nounPlural.toLowerCase()} yet</h3>
+          <h3 className="text-lg font-bold text-slate-900 mb-1">
+            No {nounPlural.toLowerCase()} yet
+          </h3>
           <p className="text-sm text-slate-500 mb-6">
-            Add your first {noun} so customers can find {isService ? "and book" : "and order from"} you.
+            Add your first {noun} so customers can find {isService ? "and book" : "and order from"}{" "}
+            you.
           </p>
           <Button onClick={openModal}>
             <Plus className="size-4" /> Add your first {noun}
@@ -554,6 +578,14 @@ function VendorProducts() {
                         </option>
                       ))}
                 </select>
+                <NewCategoryInline
+                  endpoint="/api/vendor/categories/"
+                  kinds={kindsForStore(storeKind)}
+                  onCreated={(all, newId) => {
+                    setCategories(all);
+                    setForm((f) => ({ ...f, category: newId }));
+                  }}
+                />
                 {isMixed && (
                   <p className="text-xs text-slate-400 mt-1">
                     Goods categories add a product; services categories add a service.

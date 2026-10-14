@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Copy, ImagePlus, MapPin, Package, Store as StoreIcon, Wrench } from "lucide-react";
+import { Copy, ImagePlus, MapPin, Package, Store as StoreIcon, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,48 +11,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
-/** Same category lists as vendor self-registration. */
-const GOODS_CATEGORIES = [
-  "Electronics",
-  "Fashion",
-  "Home & Living",
-  "Beauty & Health",
-  "Groceries",
-  "Automotive",
-  "Sports & Outdoors",
-  "Books & Stationery",
-];
-const SERVICE_CATEGORIES = [
-  "Electronics Repair",
-  "Home Repair & Maintenance",
-  "Vehicle Services",
-  "Beauty & Spa",
-  "Professional Services",
-  "Cleaning",
-  "Delivery & Logistics",
-  "Catering & Food",
-  "Photography",
-];
+import { CategoryPicker } from "@/components/CategoryPicker";
+import { NewCategoryInline } from "@/components/NewCategoryInline";
+import { kindsForStore } from "@/lib/categories";
+import {
+  fetchCategories,
+  hasCategoryOf,
+  type CategoryLists,
+  type NewCategory,
+} from "@/lib/categories";
 
 type Kind = "goods" | "services" | "both";
-
-function Chip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-        active
-          ? "border-primary bg-orange-50 text-slate-900"
-          : "border-slate-200 text-slate-600 hover:border-slate-300"
-      }`}
-    >
-      {active && <Check className="size-3 text-primary" />}
-      {label}
-    </button>
-  );
-}
 
 /* ------------------------------------------------------------------ */
 /* Create store                                                        */
@@ -71,6 +40,8 @@ export function CreateStoreDialog({
   const [location, setLocation] = useState("");
   const [kind, setKind] = useState<Kind>("goods");
   const [categories, setCategories] = useState<string[]>([]);
+  const [newCategories, setNewCategories] = useState<NewCategory[]>([]);
+  const [lists, setLists] = useState<CategoryLists>({ goods: [], services: [] });
   const [ownerName, setOwnerName] = useState("");
   const [ownerPhone, setOwnerPhone] = useState("");
   const [ownerEmail, setOwnerEmail] = useState("");
@@ -82,10 +53,12 @@ export function CreateStoreDialog({
 
   useEffect(() => {
     if (!open) return;
+    fetchCategories(true).then(setLists);
     setName("");
     setLocation("");
     setKind("goods");
     setCategories([]);
+    setNewCategories([]);
     setOwnerName("");
     setOwnerPhone("");
     setOwnerEmail("");
@@ -98,22 +71,20 @@ export function CreateStoreDialog({
   const toggle = (c: string) =>
     setCategories((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
 
-  const groups =
-    kind === "goods"
-      ? [{ title: "Goods", items: GOODS_CATEGORIES }]
-      : kind === "services"
-        ? [{ title: "Services", items: SERVICE_CATEGORIES }]
-        : [
-            { title: "Goods", items: GOODS_CATEGORIES },
-            { title: "Services", items: SERVICE_CATEGORIES },
-          ];
-
   const submit = async () => {
     setError("");
-    const allowed = groups.flatMap((g) => g.items);
-    const chosen = categories.filter((c) => allowed.includes(c));
+    const kinds = kind === "both" ? (["goods", "services"] as const) : [kind];
+    const allowed = new Set(kinds.flatMap((k) => lists[k].map((c) => c.name)));
+    const chosen = categories.filter((c) => allowed.has(c));
+    const typed = newCategories.filter((c) => (kinds as readonly string[]).includes(c.type));
     if (!name.trim()) return setError("Enter the store name.");
-    if (!chosen.length) return setError("Select at least one category.");
+    if (!chosen.length && !typed.length) return setError("Select at least one category.");
+    if (
+      kind === "both" &&
+      (!hasCategoryOf("goods", lists, chosen, typed) ||
+        !hasCategoryOf("services", lists, chosen, typed))
+    )
+      return setError("Select at least one goods category and one services category.");
     if (!ownerName.trim() || !ownerPhone.trim())
       return setError("Enter the owner's name and phone number.");
     setSaving(true);
@@ -127,6 +98,7 @@ export function CreateStoreDialog({
           location_name: location.trim(),
           category_type: kind,
           categories: chosen,
+          new_categories: typed,
           owner_name: ownerName.trim(),
           owner_phone: ownerPhone.trim(),
           owner_email: ownerEmail.trim(),
@@ -241,23 +213,15 @@ export function CreateStoreDialog({
               </div>
             </div>
 
-            {groups.map((group) => (
-              <div key={group.title}>
-                <p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">
-                  {group.title} categories
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {group.items.map((c) => (
-                    <Chip
-                      key={c}
-                      label={c}
-                      active={categories.includes(c)}
-                      onClick={() => toggle(c)}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))}
+            <CategoryPicker
+              kind={kind}
+              lists={lists}
+              selected={categories}
+              onToggle={toggle}
+              newCategories={newCategories}
+              onAddNew={(c) => setNewCategories((prev) => [...prev, c])}
+              onRemoveNew={(n) => setNewCategories((prev) => prev.filter((c) => c.name !== n))}
+            />
 
             <div className="rounded-xl border border-slate-200 p-4">
               <p className="mb-3 text-sm font-bold text-slate-800">Owner (vendor login)</p>
@@ -357,7 +321,7 @@ export function AddProductDialog({
   onClose,
   onAdded,
 }: {
-  store: { id: string; name: string } | null;
+  store: { id: string; name: string; listing_kind?: string } | null;
   onClose: () => void;
   onAdded: () => void;
 }) {
@@ -404,6 +368,12 @@ export function AddProductDialog({
       })
       .finally(() => setLoadingCats(false));
   }, [store]);
+
+  const applyNewCategory = (all: CategoryOpt[], newId: string) => {
+    const subs = all.filter((c) => c.parent);
+    setCategories(subs.length ? subs : all);
+    setCategoryId(newId);
+  };
 
   const selected = categories.find((c) => c.id === categoryId);
   const isService = selected?.listing_type === "service";
@@ -475,6 +445,11 @@ export function AddProductDialog({
         ) : categories.length === 0 ? (
           <p className="py-8 text-center text-sm text-slate-500">
             This store has no categories yet.
+            <NewCategoryInline
+              endpoint={`/api/admin/stores/${store?.id}/categories/`}
+              kinds={kindsForStore(store?.listing_kind)}
+              onCreated={applyNewCategory}
+            />
           </p>
         ) : (
           <div className="space-y-3">
@@ -542,6 +517,11 @@ export function AddProductDialog({
                         </option>
                       ))}
                 </select>
+                <NewCategoryInline
+                  endpoint={`/api/admin/stores/${store?.id}/categories/`}
+                  kinds={kindsForStore(store?.listing_kind)}
+                  onCreated={applyNewCategory}
+                />
               </div>
               <div>
                 <Label>{isService ? "Starting price (optional)" : "Price (TZS)"}</Label>

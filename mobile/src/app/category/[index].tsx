@@ -1,26 +1,32 @@
 import { Stack, useLocalSearchParams } from "expo-router";
-import { useCallback } from "react";
 
 import { ListingScreen } from "@/components/ListingScreen";
 import { fetchCatalog } from "@/lib/api";
-import { CATEGORIES, inCategory } from "@/lib/catalog";
+import { CATEGORIES, inCategory, legacyKey } from "@/lib/catalog";
 import { useLanguage } from "@/lib/i18n";
 
-/** Same rules as the website's category pages (server-side filtered). */
+/**
+ * One category, same rules as the website's category pages (server-side
+ * filtered). The param is the category name; a number is an old link to one
+ * of the original 9 categories.
+ */
 export default function CategoryScreen() {
   const { t } = useLanguage();
   const { index } = useLocalSearchParams<{ index: string }>();
-  const category = CATEGORIES[Number(index)] ?? CATEGORIES[0];
+  const raw = String(index ?? "").trim();
+  const name = /^\d+$/.test(raw) ? (CATEGORIES[Number(raw)]?.dbName ?? CATEGORIES[0].dbName) : raw;
+  const key = legacyKey(name);
 
-  const load = useCallback(async () => {
-    if (category.key === "services") return (await fetchCatalog({ type: "service" })).services;
-    const data = await fetchCatalog({ category: category.dbName, type: "product" });
-    return data.products.filter((item) => inCategory(item, category.dbName));
-  }, [category]);
+  // The React Compiler memoizes this per category name.
+  const load = async () => {
+    if (name.toLowerCase() === "services") return (await fetchCatalog({ type: "service" })).services;
+    const data = await fetchCatalog({ category: name });
+    return [...data.products, ...data.services].filter((item) => inCategory(item, name));
+  };
 
   return (
     <>
-      <Stack.Screen options={{ title: t(category.key) }} />
+      <Stack.Screen options={{ title: key ? t(key) : name }} />
       <ListingScreen load={load} emptyIcon="bag-handle-outline" emptyTitle={t("noProducts")} />
     </>
   );

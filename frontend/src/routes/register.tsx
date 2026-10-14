@@ -3,32 +3,18 @@ import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
-  Briefcase,
-  Camera,
-  Car,
   Check,
-  ChefHat,
   Crosshair,
-  Dumbbell,
-  Droplets,
-  Hammer,
-  Heart,
   Lock,
   LocateFixed,
   Mail,
   MailCheck,
   MapPin,
-  Monitor,
   Phone,
   ShoppingBasket,
-  Shirt,
-  Sofa,
-  Sparkles,
   Store,
-  Truck,
   User,
   Wrench,
-  BookOpen,
   Loader2,
   type LucideIcon,
 } from "lucide-react";
@@ -37,6 +23,13 @@ import { useLanguage } from "@/lib/LanguageContext";
 import { BrandLogo } from "@/components/BrandLogo";
 import heroImage from "@/assets/market-hero.jpg";
 import { PIN_ICON, loadGoogleMaps } from "@/lib/googleMaps";
+import { CategoryPicker } from "@/components/CategoryPicker";
+import {
+  fetchCategories,
+  hasCategoryOf,
+  type CategoryLists,
+  type NewCategory,
+} from "@/lib/categories";
 
 export const Route = createFileRoute("/register")({
   head: () => ({
@@ -52,52 +45,7 @@ export const Route = createFileRoute("/register")({
   component: RegisterPage,
 });
 
-const GOODS_CATEGORIES = [
-  "Electronics",
-  "Fashion",
-  "Home & Living",
-  "Beauty & Health",
-  "Groceries",
-  "Automotive",
-  "Sports & Outdoors",
-  "Books & Stationery",
-  "Services",
-];
-
-const SERVICE_CATEGORIES = [
-  "Electronics Repair",
-  "Home Repair & Maintenance",
-  "Vehicle Services",
-  "Beauty & Spa",
-  "Professional Services",
-  "Cleaning",
-  "Delivery & Logistics",
-  "Catering & Food",
-  "Photography",
-];
-
 type CategoryType = "goods" | "services" | "both";
-
-const CATEGORY_ICONS: Record<string, LucideIcon> = {
-  Electronics: Monitor,
-  Fashion: Shirt,
-  "Home & Living": Sofa,
-  "Beauty & Health": Heart,
-  Groceries: ShoppingBasket,
-  Automotive: Car,
-  "Sports & Outdoors": Dumbbell,
-  "Books & Stationery": BookOpen,
-  Services: Store,
-  "Electronics Repair": Wrench,
-  "Home Repair & Maintenance": Hammer,
-  "Vehicle Services": Car,
-  "Beauty & Spa": Sparkles,
-  "Professional Services": Briefcase,
-  Cleaning: Droplets,
-  "Delivery & Logistics": Truck,
-  "Catering & Food": ChefHat,
-  Photography: Camera,
-};
 
 type Step = "email" | "check-email" | "verifying" | "business";
 
@@ -124,6 +72,12 @@ function RegisterPage() {
   const [longitude, setLongitude] = useState<number | null>(null);
   const [categoryType, setCategoryType] = useState<CategoryType | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
+  const [newCategories, setNewCategories] = useState<NewCategory[]>([]);
+  const [categoryLists, setCategoryLists] = useState<CategoryLists>({ goods: [], services: [] });
+
+  useEffect(() => {
+    fetchCategories().then(setCategoryLists);
+  }, []);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -218,15 +172,6 @@ function RegisterPage() {
     setSelected((prev) => (prev.includes(name) ? prev.filter((c) => c !== name) : [...prev, name]));
   };
 
-  const categories =
-    categoryType === "goods"
-      ? GOODS_CATEGORIES
-      : categoryType === "services"
-        ? SERVICE_CATEGORIES
-        : categoryType === "both"
-          ? [...GOODS_CATEGORIES, ...SERVICE_CATEGORIES]
-          : [];
-
   const handleComplete = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!verifiedToken) {
@@ -237,14 +182,14 @@ function RegisterPage() {
       setFormError("Choose what you sell: goods, services or both.");
       return;
     }
-    if (selected.length === 0) {
+    if (selected.length === 0 && newCategories.length === 0) {
       setFormError("Select at least one category you sell.");
       return;
     }
     if (
       categoryType === "both" &&
-      (!selected.some((c) => GOODS_CATEGORIES.includes(c)) ||
-        !selected.some((c) => SERVICE_CATEGORIES.includes(c)))
+      (!hasCategoryOf("goods", categoryLists, selected, newCategories) ||
+        !hasCategoryOf("services", categoryLists, selected, newCategories))
     ) {
       setFormError("Select at least one goods category and one services category.");
       return;
@@ -269,6 +214,7 @@ function RegisterPage() {
           store_name: storeName,
           category_type: categoryType,
           categories: selected,
+          new_categories: newCategories,
           latitude,
           longitude,
         }),
@@ -438,11 +384,20 @@ function RegisterPage() {
               setCategoryType={(ct) => {
                 setFormError(null);
                 setSelected([]);
+                setNewCategories([]);
                 setCategoryType(ct);
               }}
-              categories={categories}
+              categoryLists={categoryLists}
               selected={selected}
               toggleCategory={toggleCategory}
+              newCategories={newCategories}
+              onAddNew={(c) => {
+                setFormError(null);
+                setNewCategories((prev) => [...prev, c]);
+              }}
+              onRemoveNew={(name) =>
+                setNewCategories((prev) => prev.filter((c) => c.name !== name))
+              }
               submitting={submitting}
               formError={formError}
               onSubmit={handleComplete}
@@ -819,9 +774,12 @@ function BusinessForm(props: {
   setLongitude: (v: number | null) => void;
   categoryType: CategoryType | null;
   setCategoryType: (v: CategoryType) => void;
-  categories: string[];
+  categoryLists: CategoryLists;
   selected: string[];
   toggleCategory: (name: string) => void;
+  newCategories: NewCategory[];
+  onAddNew: (category: NewCategory) => void;
+  onRemoveNew: (name: string) => void;
   submitting: boolean;
   formError: string | null;
   onSubmit: (e: React.FormEvent) => void;
@@ -1002,56 +960,18 @@ function BusinessForm(props: {
                     subtitle="Goods & services"
                   />
                 </div>
-                {(props.categoryType === "both"
-                  ? [
-                      { label: "Select goods you sell", items: GOODS_CATEGORIES },
-                      { label: "Select services you offer", items: SERVICE_CATEGORIES },
-                    ]
-                  : props.categories.length > 0
-                    ? [
-                        {
-                          label: `Select ${props.categoryType === "goods" ? "goods" : "services"} you sell`,
-                          items: props.categories,
-                        },
-                      ]
-                    : []
-                ).map((group) => (
-                  <div key={group.label}>
-                    <label className="mb-2 block text-sm font-bold text-white/90">
-                      {group.label} <span className="text-primary">*</span>
-                    </label>
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                      {group.items.map((name) => {
-                        const Icon = CATEGORY_ICONS[name] ?? Store;
-                        const isSelected = props.selected.includes(name);
-                        return (
-                          <button
-                            key={name}
-                            type="button"
-                            onClick={() => props.toggleCategory(name)}
-                            className={`group flex items-center gap-2 rounded-xl border px-3 py-3 text-left text-xs font-semibold transition ${
-                              isSelected
-                                ? "border-primary bg-primary/25 text-white shadow-md ring-1 ring-primary/50"
-                                : "border-white/15 bg-white/5 text-white/70 hover:border-primary/50 hover:bg-white/10 hover:text-white"
-                            }`}
-                          >
-                            <Icon
-                              className={`size-4 shrink-0 ${isSelected ? "text-primary" : "text-white/50 group-hover:text-primary"}`}
-                            />
-                            <span className="flex-1 leading-tight">{name}</span>
-                            <span
-                              className={`grid size-4 shrink-0 place-items-center rounded-full border ${
-                                isSelected ? "border-primary bg-primary" : "border-white/25"
-                              }`}
-                            >
-                              {isSelected && <Check className="size-3 text-white" />}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
+                {props.categoryType && (
+                  <CategoryPicker
+                    kind={props.categoryType}
+                    lists={props.categoryLists}
+                    selected={props.selected}
+                    onToggle={props.toggleCategory}
+                    newCategories={props.newCategories}
+                    onAddNew={props.onAddNew}
+                    onRemoveNew={props.onRemoveNew}
+                    tone="dark"
+                  />
+                )}
               </div>
             </>
           )}

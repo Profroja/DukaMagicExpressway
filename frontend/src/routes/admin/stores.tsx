@@ -36,6 +36,7 @@ type AdminStore = {
   slug: string;
   status: string;
   location_name: string;
+  listing_kind: string;
   category: string;
   additional_categories: string[];
   rating_avg: string;

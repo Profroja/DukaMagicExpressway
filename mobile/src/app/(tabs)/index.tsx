@@ -17,8 +17,8 @@ import { AppHeader } from "@/components/AppHeader";
 import { ListingGrid } from "@/components/ListingGrid";
 import { EmptyState, ErrorState, SectionHeader, type IconName } from "@/components/ui";
 import { Colors, Radius, Shadow } from "@/constants/theme";
-import { fetchCatalog, type Listing } from "@/lib/api";
-import { CATEGORIES } from "@/lib/catalog";
+import { fetchCatalog, fetchCategories, type CategoryLists, type Listing } from "@/lib/api";
+import { CATEGORIES, categoryStyle, legacyKey } from "@/lib/catalog";
 import { useLanguage } from "@/lib/i18n";
 
 export default function HomeScreen() {
@@ -29,8 +29,10 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [failed, setFailed] = useState(false);
   const [query, setQuery] = useState("");
+  const [categoryLists, setCategoryLists] = useState<CategoryLists | null>(null);
 
   const load = useCallback(async () => {
+    fetchCategories().then(setCategoryLists).catch(() => {});
     try {
       const data = await fetchCatalog();
       setProducts(data.products);
@@ -47,6 +49,9 @@ export default function HomeScreen() {
   // First load - state only changes once the response arrives.
   useEffect(() => {
     let alive = true;
+    fetchCategories()
+      .then((data) => alive && setCategoryLists(data))
+      .catch(() => {});
     fetchCatalog()
       .then((data) => {
         if (!alive) return;
@@ -60,6 +65,25 @@ export default function HomeScreen() {
       alive = false;
     };
   }, []);
+
+  // Categories with things to buy first (busiest first), then built-in goods;
+  // the original 9 until the list arrives. Then "Services" and "All categories".
+  const busy = categoryLists
+    ? [...categoryLists.goods, ...categoryLists.services]
+        .filter((c) => c.count > 0)
+        .sort((a, b) => b.count - a.count)
+        .map((c) => c.name)
+    : [];
+  const fill = (categoryLists ? categoryLists.goods.map((c) => c.name) : CATEGORIES.map((c) => c.dbName)).filter(
+    (n) => !busy.includes(n),
+  );
+  const tiles = [...busy, ...fill].filter((n) => n.toLowerCase() !== "services").slice(0, 7);
+  const label = (name: string) => {
+    const key = legacyKey(name);
+    return key ? t(key) : name;
+  };
+  const openCategory = (name: string) =>
+    router.push({ pathname: "/category/[index]", params: { index: name } });
 
   const search = () => {
     const q = query.trim();
@@ -116,8 +140,9 @@ export default function HomeScreen() {
           <View style={styles.heroChips}>
             {(
               [
-                ["flash", t("orderNow")],
-                ["bicycle", t("statusPickedUp")],
+                ["pricetag", t("heroChipAffordable")],
+                ["flash", t("heroChipFast")],
+                ["time", t("heroChipAnyTime")],
               ] as [IconName, string][]
             ).map(([icon, label]) => (
               <View key={label} style={styles.heroChip}>
@@ -131,22 +156,45 @@ export default function HomeScreen() {
         {/* Categories */}
         <SectionHeader title={t("categories")} icon="grid-outline" />
         <View style={styles.categories}>
-          {CATEGORIES.map((cat, index) => (
-            <Pressable
-              key={cat.key}
-              onPress={() =>
-                router.push({ pathname: "/category/[index]", params: { index: String(index) } })
-              }
-              style={({ pressed }) => [styles.category, pressed && { opacity: 0.7 }]}
-            >
-              <View style={[styles.categoryIcon, { backgroundColor: `${cat.color}14` }]}>
-                <Ionicons name={cat.icon as IconName} size={22} color={cat.color} />
-              </View>
-              <Text style={styles.categoryLabel} numberOfLines={2}>
-                {t(cat.key)}
-              </Text>
-            </Pressable>
-          ))}
+          {tiles.map((name, index) => {
+            const style = categoryStyle(name, index);
+            return (
+              <Pressable
+                key={name}
+                onPress={() => openCategory(name)}
+                style={({ pressed }) => [styles.category, pressed && { opacity: 0.7 }]}
+              >
+                <View style={[styles.categoryIcon, { backgroundColor: `${style.color}14` }]}>
+                  <Ionicons name={style.icon} size={22} color={style.color} />
+                </View>
+                <Text style={styles.categoryLabel} numberOfLines={2}>
+                  {label(name)}
+                </Text>
+              </Pressable>
+            );
+          })}
+          <Pressable
+            onPress={() => openCategory("Services")}
+            style={({ pressed }) => [styles.category, pressed && { opacity: 0.7 }]}
+          >
+            <View style={[styles.categoryIcon, { backgroundColor: "#47556914" }]}>
+              <Ionicons name="construct-outline" size={22} color="#475569" />
+            </View>
+            <Text style={styles.categoryLabel} numberOfLines={2}>
+              {t("services")}
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => router.push("/categories")}
+            style={({ pressed }) => [styles.category, pressed && { opacity: 0.7 }]}
+          >
+            <View style={[styles.categoryIcon, { backgroundColor: `${Colors.primary}14` }]}>
+              <Ionicons name="grid-outline" size={22} color={Colors.primary} />
+            </View>
+            <Text style={styles.categoryLabel} numberOfLines={2}>
+              {t("allCategories")}
+            </Text>
+          </Pressable>
         </View>
 
         {loading ? (

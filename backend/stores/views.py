@@ -1,4 +1,5 @@
 import json
+from collections import Counter
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
@@ -12,15 +13,8 @@ from django.views.decorators.csrf import csrf_exempt
 from auths.models import UserRole
 from auths.views import _generate_password, _is_admin
 from catalog.models import ListingType
-from .models import (
-    BOTH_ROOT,
-    GOODS_ROOT,
-    SERVICES_ROOT,
-    Store,
-    StoreCategory,
-    StoreStatus,
-    listing_type_for_category,
-)
+from .categories import GOODS_CATEGORIES, SERVICE_CATEGORIES, CategoryError, resolve_store_categories
+from .models import GOODS_ROOT, SERVICES_ROOT, Store, StoreCategory, StoreStatus
 
 User = get_user_model()
 
@@ -74,18 +68,12 @@ def _store_queryset():
     )
 
 
-def _root_category(name):
-    category, _ = StoreCategory.objects.get_or_create(
-        name__iexact=name, parent__isnull=True, defaults={"name": name}
-    )
-    return category
-
-
 def _create_store(request, data):
     """Admin creates a store and its vendor owner account.
 
     Body: name, location_name, category_type ("goods"|"services"|"both"),
-    categories [names], owner_name, owner_phone, owner_email?, owner_password?
+    categories [names], new_categories [{"name", "type"}] (typed when nothing
+    fits), owner_name, owner_phone, owner_email?, owner_password?
     (generated when blank and returned once).
     """
     name = (data.get("name") or "").strip()
@@ -101,9 +89,10 @@ def _create_store(request, data):
         return JsonResponse({"error": "Enter the store name."}, status=400)
     if len(location_name) > 255:
         return JsonResponse({"error": "Location name is too long."}, status=400)
+    new_categories = data.get("new_categories") or []
     if category_type not in ("goods", "services", "both"):
         return JsonResponse({"error": "Choose what the store sells: goods, services or both."}, status=400)
-    if not isinstance(selected, list) or not selected:
+    if not isinstance(selected, list) or not (selected or new_categories):
         return JsonResponse({"error": "Select at least one category."}, status=400)
     if not owner_name or not owner_phone:
         return JsonResponse({"error": "Enter the owner's name and phone number."}, status=400)
@@ -135,24 +124,12 @@ def _create_store(request, data):
             owner_password = _generate_password()
             generated = True
 
-    if category_type == "both":
-        main_category = _root_category(BOTH_ROOT)
-        parents = [_root_category(GOODS_ROOT), _root_category(SERVICES_ROOT)]
-    else:
-        main_category = _root_category(GOODS_ROOT if category_type == "goods" else SERVICES_ROOT)
-        parents = [main_category]
-    selected_categories = list(
-        StoreCategory.objects.filter(parent__in=parents, name__in=selected).select_related("parent")
-    )
-    if not selected_categories:
-        return JsonResponse({"error": "Select at least one valid category."}, status=400)
-    if category_type == "both" and {listing_type_for_category(c) for c in selected_categories} != {
-        "product",
-        "service",
-    }:
-        return JsonResponse(
-            {"error": "Select at least one goods category and one services category."}, status=400
+    try:
+        main_category, selected_categories = resolve_store_categories(
+            category_type, selected, new_categories, request.user
         )
+    except CategoryError as exc:
+        return JsonResponse({"error": str(exc)}, status=400)
 
     with transaction.atomic():
         if owner is None:
@@ -289,3 +266,34 @@ def admin_store_update_view(request, store_id):
     return JsonResponse(
         {"success": True, "store": _admin_store_payload(store)}
     )
+
+
+def public_categories_view(request):
+    """Public: every goods and service category, built-in ones first.
+
+    Each has "count" = listings customers can buy in it now, so pages can show
+    the busy categories first. Registration uses the full list.
+    """
+    if request.method != "GET":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    from catalog.views import purchasable_listings
+
+    counts = Counter(
+        (name or "").lower()
+        for name in purchasable_listings().values_list("category__name", flat=True)
+    )
+    roots = {GOODS_ROOT.lower(): "goods", SERVICES_ROOT.lower(): "services"}
+    order = {name.lower(): i for i, name in enumerate(GOODS_CATEGORIES + SERVICE_CATEGORIES)}
+    result = {"goods": [], "services": []}
+    seen = set()
+    for category in StoreCategory.objects.filter(parent__isnull=False).select_related("parent"):
+        kind = roots.get(category.parent.name.lower())
+        key = (kind, category.name.lower())
+        # Skip children of other roots, and a legacy "Services" entry under Goods.
+        if kind is None or category.name.lower() in roots or key in seen:
+            continue
+        seen.add(key)
+        result[kind].append({"name": category.name, "count": counts.get(category.name.lower(), 0)})
+    for kind in result:
+        result[kind].sort(key=lambda c: (order.get(c["name"].lower(), 10_000), c["name"].lower()))
+    return JsonResponse({"success": True, **result})

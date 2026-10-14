@@ -157,3 +157,12 @@ export async function cancelOrder(orderId: string): Promise<{ status: OrderStatu
     body: JSON.stringify({ status: "cancelled" }),
   });
 }
+
+export type CategoryOption = { name: string; count: number };
+export type CategoryLists = { goods: CategoryOption[]; services: CategoryOption[] };
+
+/** Every goods and service category (built-in + ones stores added); count = listings now. */
+export async function fetchCategories(): Promise<CategoryLists> {
+  const data = await request<Partial<CategoryLists>>("/api/categories/");
+  return { goods: data.goods ?? [], services: data.services ?? [] };
+}

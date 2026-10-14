@@ -44,6 +44,7 @@ function AppShell() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="listing/[id]" options={{ title: "" }} />
         <Stack.Screen name="category/[index]" options={{ title: "" }} />
+        <Stack.Screen name="categories" options={{ title: "" }} />
         <Stack.Screen name="search" options={{ title: "" }} />
         <Stack.Screen
           name="track/[id]"
