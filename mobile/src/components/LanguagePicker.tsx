@@ -165,7 +165,6 @@ export function LanguagePicker() {
         </Animated.View>
 
         <Animated.Text style={[styles.heading, { opacity: headingFade }]}>{HEADINGS[heading]}</Animated.Text>
-        <Text style={styles.sub}>Anything you need, fast & affordable{"\n"}Chochote unachohitaji, haraka na kwa bei nafuu</Text>
 
         <View style={styles.cards}>
           {OPTIONS.map((option, i) => {
@@ -211,8 +210,6 @@ export function LanguagePicker() {
             );
           })}
         </View>
-
-        <Text style={styles.footer}>You can change it later · Unaweza kubadilisha baadaye</Text>
       </View>
     </Animated.View>
   );

@@ -180,17 +180,6 @@ export function LanguageGate() {
             ))}
           </div>
 
-          <p
-            className="lang-rise mt-2 text-sm leading-relaxed text-white/65"
-            style={{ animationDelay: "240ms" }}
-          >
-            Get anything you need, any time — fast and affordable.
-            <br />
-            <span className="text-white/45">
-              Pata chochote unachohitaji, wakati wowote — haraka na kwa bei nafuu.
-            </span>
-          </p>
-
           <div className="mt-7 space-y-3">
             {OPTIONS.map((option, i) => {
               const isPicked = picked === option.lang;
@@ -241,13 +230,6 @@ export function LanguageGate() {
               );
             })}
           </div>
-
-          <p
-            className="lang-rise mt-6 text-[11px] text-white/40"
-            style={{ animationDelay: "600ms" }}
-          >
-            You can change it any time from the top bar · Unaweza kubadilisha wakati wowote
-          </p>
         </div>
       </div>
     </div>
