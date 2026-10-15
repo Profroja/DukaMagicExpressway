@@ -2,7 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useState } from "react";
-import { Animated, Easing, Pressable, StyleSheet, Text, View } from "react-native";
+import { Animated, Easing, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Colors, Radius } from "@/constants/theme";
@@ -22,6 +22,7 @@ const OPTIONS: { lang: Language; flag: string; name: string; hint: string }[] = 
 export function LanguagePicker() {
   const { chosen, choose } = useLanguage();
   const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
   const [visible, setVisible] = useState(true);
   const [picked, setPicked] = useState<Language | null>(null);
   const [heading, setHeading] = useState(0);
@@ -100,18 +101,36 @@ export function LanguagePicker() {
       ]}
     >
       <LinearGradient
-        colors={["#020617", Colors.navy, "#3B1306"]}
-        start={{ x: 0, y: 0 }}
+        colors={["#0A1F5C", "#081A4D", "#2A1206"]}
+        start={{ x: 0, y: 0.3 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
+
+      {/* The picture, slowly zooming in, fading into the panel below. */}
       <Animated.View
         style={[
-          styles.glow,
-          { top: -120, left: -100 },
-          { transform: [{ translateX: glow.interpolate({ inputRange: [0, 1], outputRange: [0, 50] }) }] },
+          styles.hero,
+          {
+            height: Math.round(height * 0.44),
+            opacity: logo,
+            transform: [{ scale: glow.interpolate({ inputRange: [0, 1], outputRange: [1, 1.06] }) }],
+          },
         ]}
-      />
+      >
+        <Image
+          source={require("@/assets/images/language-hero.jpg")}
+          style={StyleSheet.absoluteFill}
+          contentFit="cover"
+          contentPosition="left"
+        />
+        <LinearGradient
+          colors={["rgba(10,31,92,0)", "rgba(10,31,92,0.6)", "#0A1F5C"]}
+          locations={[0.45, 0.75, 1]}
+          style={StyleSheet.absoluteFill}
+        />
+      </Animated.View>
+
       <Animated.View
         style={[
           styles.glow,
@@ -121,20 +140,30 @@ export function LanguagePicker() {
         ]}
       />
 
-      <View style={[styles.content, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}>
+      <View
+        style={[
+          styles.content,
+          { marginTop: Math.round(height * 0.44) - 56, paddingBottom: insets.bottom + 20 },
+        ]}
+      >
         <Animated.View
           style={[
-            styles.logoRing,
+            styles.brandRow,
             {
               opacity: logo,
-              transform: [{ scale: logo.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }],
+              transform: [{ translateY: logo.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }],
             },
           ]}
         >
           <Image source={require("@/assets/images/logo.png")} style={styles.logo} contentFit="cover" />
+          <View>
+            <Text style={styles.brandName}>
+              Duka Magic <Text style={{ color: Colors.primary }}>Expressway</Text>
+            </Text>
+            <Text style={styles.brand}>WELCOME · KARIBU</Text>
+          </View>
         </Animated.View>
 
-        <Text style={styles.brand}>DUKA MAGIC EXPRESSWAY</Text>
         <Animated.Text style={[styles.heading, { opacity: headingFade }]}>{HEADINGS[heading]}</Animated.Text>
         <Text style={styles.sub}>Anything you need, fast & affordable{"\n"}Chochote unachohitaji, haraka na kwa bei nafuu</Text>
 
@@ -199,33 +228,26 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(249,115,22,0.28)",
   },
   glowSoft: { width: 420, height: 420, borderRadius: 210, backgroundColor: "rgba(234,88,12,0.18)" },
-  content: { flex: 1, justifyContent: "center", paddingHorizontal: 24 },
-  logoRing: {
-    alignSelf: "center",
-    padding: 8,
-    borderRadius: 32,
-    backgroundColor: "rgba(255,255,255,0.1)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.18)",
-  },
-  logo: { width: 84, height: 84, borderRadius: 24 },
+  hero: { position: "absolute", top: 0, left: 0, right: 0, overflow: "hidden" },
+  content: { flex: 1, justifyContent: "flex-end", paddingHorizontal: 22 },
+  brandRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  logo: { width: 48, height: 48, borderRadius: 14, borderWidth: 2, borderColor: "rgba(255,255,255,0.2)" },
+  brandName: { color: "#FFFFFF", fontSize: 17, fontWeight: "900" },
   brand: {
-    marginTop: 22,
-    textAlign: "center",
-    color: Colors.primary,
-    fontSize: 12,
+    marginTop: 3,
+    color: "rgba(255,255,255,0.55)",
+    fontSize: 10,
     fontWeight: "900",
-    letterSpacing: 3,
+    letterSpacing: 2.5,
   },
-  heading: { marginTop: 10, textAlign: "center", color: "#FFFFFF", fontSize: 30, fontWeight: "900" },
+  heading: { marginTop: 18, color: "#FFFFFF", fontSize: 30, fontWeight: "900", lineHeight: 36 },
   sub: {
-    marginTop: 10,
-    textAlign: "center",
+    marginTop: 8,
     color: "rgba(255,255,255,0.6)",
     fontSize: 13,
     lineHeight: 19,
   },
-  cards: { marginTop: 34, gap: 14 },
+  cards: { marginTop: 22, gap: 12 },
   card: {
     flexDirection: "row",
     alignItems: "center",
@@ -249,5 +271,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  footer: { marginTop: 28, textAlign: "center", color: "rgba(255,255,255,0.4)", fontSize: 11 },
+  footer: { marginTop: 18, textAlign: "center", color: "rgba(255,255,255,0.4)", fontSize: 11 },
 });

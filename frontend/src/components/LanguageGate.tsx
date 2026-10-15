@@ -21,7 +21,7 @@ function Flag({ lang }: { lang: Language }) {
     return (
       <svg
         viewBox="0 0 72 48"
-        className="h-9 w-[3.375rem] rounded-md shadow-md ring-1 ring-white/30 sm:h-12 sm:w-[4.5rem]"
+        className="h-10 w-[3.75rem] rounded-lg shadow-md ring-1 ring-white/30"
         aria-hidden="true"
       >
         <path fill="#1eb53a" d="M0 0h72L0 48z" />
@@ -34,7 +34,7 @@ function Flag({ lang }: { lang: Language }) {
   return (
     <svg
       viewBox="0 0 60 40"
-      className="h-9 w-[3.375rem] rounded-md shadow-md ring-1 ring-white/30 sm:h-12 sm:w-[4.5rem]"
+      className="h-10 w-[3.75rem] rounded-lg shadow-md ring-1 ring-white/30"
       aria-hidden="true"
       preserveAspectRatio="xMidYMid slice"
     >
@@ -118,95 +118,137 @@ export function LanguageGate() {
 
   return (
     <div
-      className={`fixed inset-0 z-[10000] flex items-center justify-center overflow-hidden px-4 transition-all duration-500 ${
-        leaving ? "scale-105 opacity-0" : "opacity-100"
+      className={`fixed inset-0 z-[10000] overflow-y-auto bg-[#0a1f5c] transition-all duration-500 ${
+        leaving ? "scale-[1.03] opacity-0" : "opacity-100"
       }`}
       role="dialog"
       aria-modal="true"
       aria-label="Choose your language"
     >
-      {/* Background: deep navy with drifting orange glows */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-navy to-[#3b1306]" />
-      <div className="lang-blob absolute -left-24 -top-24 size-[26rem] rounded-full bg-primary/30 blur-3xl" />
-      <div
-        className="lang-blob absolute -bottom-32 -right-20 size-[30rem] rounded-full bg-orange-500/20 blur-3xl"
-        style={{ animationDelay: "-6s" }}
-      />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0,rgba(2,6,23,0.55)_75%)]" />
+      {/* The picture: full screen on wide screens (the right side is left free for the
+          panel); on phones it sits on top and fades into the panel below. */}
+      <div className="lang-zoom relative h-[46dvh] min-h-[260px] w-full overflow-hidden lg:fixed lg:inset-0 lg:h-full">
+        <img
+          src="/images/language-hero.jpg"
+          alt="Shopping with Duka Magic Expressway"
+          className="h-full w-full object-cover object-[28%_center] lg:object-left"
+        />
+        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#0a1f5c] to-transparent lg:hidden" />
+        <div className="absolute inset-y-0 right-0 hidden w-2/3 bg-gradient-to-l from-[#081a4d]/80 via-[#081a4d]/30 to-transparent lg:block" />
+      </div>
 
-      <div className="relative w-full max-w-lg text-center">
-        <div className="lang-rise mx-auto mb-6 inline-flex rounded-3xl bg-white/10 p-3 ring-1 ring-white/20 backdrop-blur">
-          <BrandLogo className="size-16 rounded-2xl" />
-        </div>
-        <p
-          className="lang-rise text-xs font-black uppercase tracking-[0.3em] text-primary"
-          style={{ animationDelay: "80ms" }}
-        >
-          Duka Magic Expressway
-        </p>
-        <div className="lang-rise relative mt-3 h-10 sm:h-12" style={{ animationDelay: "160ms" }}>
-          {HEADINGS.map((text, i) => (
-            <h1
-              key={text}
-              className={`absolute inset-0 text-3xl font-black text-white transition-all duration-700 sm:text-4xl ${
-                i === heading ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
-              }`}
-            >
-              {text}
-            </h1>
-          ))}
-        </div>
-        <p className="lang-rise mt-3 text-sm text-white/60" style={{ animationDelay: "240ms" }}>
-          Anything you need, fast &amp; affordable · Chochote unachohitaji, haraka na kwa bei nafuu
-        </p>
+      {/* Language panel */}
+      <div className="relative z-10 flex justify-center px-4 pb-10 lg:absolute lg:inset-y-0 lg:right-0 lg:w-[48%] lg:items-center lg:px-10 lg:pb-0 xl:w-[44%]">
+        <div className="-mt-10 w-full max-w-md lg:mt-0">
+          <div className="lang-rise flex items-center gap-3">
+            <BrandLogo className="size-12 rounded-2xl ring-2 ring-white/20" />
+            <div>
+              <p className="text-lg font-black leading-none text-white">
+                Duka Magic <span className="text-primary">Expressway</span>
+              </p>
+              <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-white/50">
+                Goods &amp; Services
+              </p>
+            </div>
+          </div>
 
-        <div className="mt-8 grid gap-3 sm:grid-cols-2">
-          {OPTIONS.map((option, i) => {
-            const isPicked = picked === option.lang;
-            const isSaved = !picked && saved === option.lang;
-            return (
-              <button
-                key={option.lang}
-                type="button"
-                onClick={() => choose(option.lang)}
-                style={{ animationDelay: `${340 + i * 120}ms` }}
-                className={`lang-rise group relative flex items-center gap-4 overflow-hidden rounded-2xl border p-4 text-left backdrop-blur transition-all duration-300 sm:flex-col sm:items-center sm:gap-3 sm:p-6 sm:text-center ${
-                  isPicked
-                    ? "scale-[1.03] border-primary bg-primary text-white shadow-2xl shadow-primary/40"
-                    : picked
-                      ? "scale-95 border-white/10 bg-white/5 opacity-40"
-                      : "border-white/15 bg-white/10 text-white hover:-translate-y-1 hover:border-primary/70 hover:bg-white/15 hover:shadow-xl hover:shadow-primary/20"
+          <span
+            className="lang-rise mt-8 inline-flex items-center gap-2 rounded-full bg-primary/15 px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-primary ring-1 ring-primary/30"
+            style={{ animationDelay: "80ms" }}
+          >
+            <span className="size-1.5 animate-pulse rounded-full bg-primary" /> Welcome · Karibu
+          </span>
+
+          <div
+            className="lang-rise relative mt-4 h-[5.5rem] sm:h-[7.25rem]"
+            style={{ animationDelay: "160ms" }}
+          >
+            {HEADINGS.map((text, i) => (
+              <h1
+                key={text}
+                className={`absolute inset-0 text-4xl font-black leading-[1.05] text-white transition-all duration-700 sm:text-5xl ${
+                  i === heading
+                    ? "translate-y-0 opacity-100 blur-0"
+                    : "translate-y-4 opacity-0 blur-sm"
                 }`}
               >
-                <span className="transition-transform duration-300 group-hover:scale-110">
-                  <Flag lang={option.lang} />
+                {text.split(" ").slice(0, -1).join(" ")}{" "}
+                <span className="bg-gradient-to-r from-primary to-amber-400 bg-clip-text text-transparent">
+                  {text.split(" ").slice(-1)}
                 </span>
-                <span className="flex-1">
-                  <span className="block text-lg font-black">{option.name}</span>
-                  <span className={`block text-xs ${isPicked ? "text-white/90" : "text-white/55"}`}>
-                    {option.hint}
-                  </span>
-                </span>
-                {isPicked ? (
-                  <span className="grid size-8 place-items-center rounded-full bg-white text-primary sm:absolute sm:right-3 sm:top-3">
-                    <Check className="size-5" />
-                  </span>
-                ) : (
-                  <ChevronRight className="size-5 text-white/40 transition group-hover:translate-x-1 group-hover:text-primary sm:hidden" />
-                )}
-                {isSaved && (
-                  <span className="absolute right-3 top-3 hidden rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-bold text-white/80 sm:block">
-                    Last used
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+              </h1>
+            ))}
+          </div>
 
-        <p className="lang-rise mt-6 text-[11px] text-white/40" style={{ animationDelay: "600ms" }}>
-          You can change it any time from the top bar · Unaweza kubadilisha wakati wowote
-        </p>
+          <p
+            className="lang-rise mt-2 text-sm leading-relaxed text-white/65"
+            style={{ animationDelay: "240ms" }}
+          >
+            Get anything you need, any time — fast and affordable.
+            <br />
+            <span className="text-white/45">
+              Pata chochote unachohitaji, wakati wowote — haraka na kwa bei nafuu.
+            </span>
+          </p>
+
+          <div className="mt-7 space-y-3">
+            {OPTIONS.map((option, i) => {
+              const isPicked = picked === option.lang;
+              const isSaved = !picked && saved === option.lang;
+              return (
+                <button
+                  key={option.lang}
+                  type="button"
+                  onClick={() => choose(option.lang)}
+                  style={{ animationDelay: `${340 + i * 120}ms` }}
+                  className={`lang-rise group relative flex w-full items-center gap-4 overflow-hidden rounded-2xl border p-4 text-left backdrop-blur-md transition-all duration-300 ${
+                    isPicked
+                      ? "scale-[1.02] border-primary bg-gradient-to-r from-primary to-orange-600 text-white shadow-2xl shadow-primary/40"
+                      : picked
+                        ? "scale-[0.98] border-white/10 bg-white/5 opacity-40"
+                        : "border-white/15 bg-white/[0.07] text-white hover:-translate-y-0.5 hover:border-primary/70 hover:bg-white/[0.12] hover:shadow-xl hover:shadow-primary/20"
+                  }`}
+                >
+                  <span className="pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 -skew-x-12 bg-white/10 opacity-0 transition-all duration-700 group-hover:left-full group-hover:opacity-100" />
+                  <span className="transition-transform duration-300 group-hover:scale-110">
+                    <Flag lang={option.lang} />
+                  </span>
+                  <span className="flex-1">
+                    <span className="flex items-center gap-2 text-lg font-black">
+                      {option.name}
+                      {isSaved && (
+                        <span className="rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-bold text-white/80">
+                          Last used
+                        </span>
+                      )}
+                    </span>
+                    <span
+                      className={`block text-xs ${isPicked ? "text-white/90" : "text-white/55"}`}
+                    >
+                      {option.hint}
+                    </span>
+                  </span>
+                  {isPicked ? (
+                    <span className="grid size-9 place-items-center rounded-full bg-white text-primary">
+                      <Check className="size-5" />
+                    </span>
+                  ) : (
+                    <span className="grid size-9 place-items-center rounded-full bg-white/10 transition group-hover:bg-primary">
+                      <ChevronRight className="size-5 text-white/70 transition group-hover:translate-x-0.5 group-hover:text-white" />
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          <p
+            className="lang-rise mt-6 text-[11px] text-white/40"
+            style={{ animationDelay: "600ms" }}
+          >
+            You can change it any time from the top bar · Unaweza kubadilisha wakati wowote
+          </p>
+        </div>
       </div>
     </div>
   );
