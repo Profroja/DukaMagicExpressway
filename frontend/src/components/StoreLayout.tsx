@@ -87,12 +87,12 @@ export function StoreLayout({ children, activeCategory }: StoreLayoutProps) {
           <a
             href="/"
             className="flex shrink-0 items-center gap-2"
-            aria-label="Duka Magic Expressway home"
+            aria-label="DukaHub home"
           >
             <BrandLogo />
             <span className="hidden sm:block">
               <strong className="block text-2xl font-black leading-none text-navy">
-                Duka Magic <em className="not-italic text-primary">Expressway</em>
+                Duka<em className="not-italic text-primary">Hub</em>
               </strong>
               <small className="text-[10px] font-bold text-muted-foreground">
                 {t("goodsServices")}
@@ -112,12 +112,12 @@ export function StoreLayout({ children, activeCategory }: StoreLayoutProps) {
             <a
               href="/"
               className="flex shrink-0 items-center gap-2"
-              aria-label="Duka Magic Expressway home"
+              aria-label="DukaHub home"
             >
               <BrandLogo className="size-9 rounded-lg" />
               <div>
                 <strong className="block text-xl font-black leading-none text-navy">
-                  Duka Magic <em className="not-italic text-primary">Expressway</em>
+                  Duka<em className="not-italic text-primary">Hub</em>
                 </strong>
               </div>
             </a>

@@ -29,19 +29,19 @@ Notifications.setNotificationHandler({
 
 const TEXT: Record<"en" | "sw", Partial<Record<OrderStatus, [string, string]>>> = {
   en: {
-    contacted: ["📞 We're confirming your order", "Duka Magic Expressway will call you shortly."],
+    contacted: ["📞 We're confirming your order", "DukaHub will call you shortly."],
     confirmed: ["✅ Order confirmed", "Your order is confirmed and being prepared."],
     sourcing: ["📦 Preparing your order", "We're getting your items ready."],
-    picked_up: ["🛵 On the way!", "Duka Magic Expressway is bringing your order to you."],
-    delivered: ["🎉 Delivered", "Thank you for shopping with Duka Magic Expressway."],
+    picked_up: ["🛵 On the way!", "DukaHub is bringing your order to you."],
+    delivered: ["🎉 Delivered", "Thank you for shopping with DukaHub."],
     cancelled: ["Order cancelled", "This order is no longer being processed."],
   },
   sw: {
-    contacted: ["📞 Tunathibitisha agizo lako", "Duka Magic Expressway itakupigia hivi punde."],
+    contacted: ["📞 Tunathibitisha agizo lako", "DukaHub itakupigia hivi punde."],
     confirmed: ["✅ Agizo limethibitishwa", "Agizo lako limethibitishwa na linaandaliwa."],
     sourcing: ["📦 Tunaandaa agizo lako", "Tunakusanya bidhaa zako."],
-    picked_up: ["🛵 Liko njiani!", "Duka Magic Expressway inakuletea agizo lako."],
-    delivered: ["🎉 Limefika", "Asante kwa kununua na Duka Magic Expressway."],
+    picked_up: ["🛵 Liko njiani!", "DukaHub inakuletea agizo lako."],
+    delivered: ["🎉 Limefika", "Asante kwa kununua na DukaHub."],
     cancelled: ["Agizo limeghairiwa", "Agizo hili halishughulikiwi tena."],
   },
 };

@@ -85,7 +85,7 @@ function AdminLayout() {
           <div className="flex items-center gap-2">
             <BrandLogo className="size-8 rounded-lg" />
             <span className="font-bold text-lg text-white">
-              Duka Magic <em className="not-italic text-primary">Expressway</em>
+              Duka<em className="not-italic text-primary">Hub</em>
             </span>
           </div>
           <button

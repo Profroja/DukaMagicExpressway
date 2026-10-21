@@ -14,7 +14,7 @@ import { useStore, type CartItem } from "@/lib/store";
 /**
  * Saved items, like the website's cart. Each item is ordered on its own
  * (same order flow as the product page), since every order is handled
- * separately by Duka Magic Expressway.
+ * separately by DukaHub.
  */
 export default function CartScreen() {
   const { t } = useLanguage();

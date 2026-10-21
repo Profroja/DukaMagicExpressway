@@ -22,7 +22,7 @@ export function AppHeader({ title, subtitle }: { title?: string; subtitle?: stri
         ) : (
           <>
             <Text style={styles.brand}>
-              Duka Magic <Text style={{ color: Colors.primary }}>Expressway</Text>
+              Duka<Text style={{ color: Colors.primary }}>Hub</Text>
             </Text>
             <Text style={styles.subtitle}>{t("tagline")}</Text>
           </>

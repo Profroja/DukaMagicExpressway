@@ -154,7 +154,7 @@ export function SmartSearch({ placeholder, compact = false, onSelect }: { placeh
                     </div>
                     <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
                       {item.store && <><Store className="mr-1 inline size-3" />{item.store} · </>}
-                      {item.subcategory || item.category || item.description || "Duka Magic Expressway"}
+                      {item.subcategory || item.category || item.description || "DukaHub"}
                     </p>
                   </div>
                   {item.tag === "service" ? (

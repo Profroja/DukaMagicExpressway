@@ -258,7 +258,7 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
         listingId: product.id,
         title: product.title,
         imageUrl: product.image_url,
-        store: "Duka Magic Expressway",
+        store: "DukaHub",
         quantity,
         total: totalPrice + fee,
         currency,
@@ -290,7 +290,7 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
     }
   };
 
-  // The customer only ever deals with Duka Magic Expressway; which store supplies the goods stays internal.
+  // The customer only ever deals with DukaHub; which store supplies the goods stays internal.
   const trackingSteps: {
     key: string;
     label: string;
@@ -415,14 +415,14 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
                 <p className="mt-3 max-w-sm text-sm leading-relaxed text-slate-300">
                   {isSwahili ? (
                     <>
-                      Asante kwa kununua na <b className="text-white">Duka Magic Expressway</b>.{" "}
+                      Asante kwa kununua na <b className="text-white">DukaHub</b>.{" "}
                       <b className="text-white">{itemLabel}</b>{" "}
                       {isService ? "imekamilika" : "imekufikia"}.
                     </>
                   ) : (
                     <>
                       Thank you for shopping with{" "}
-                      <b className="text-white">Duka Magic Expressway</b>. Your{" "}
+                      <b className="text-white">DukaHub</b>. Your{" "}
                       <b className="text-white">{itemLabel}</b>{" "}
                       {isService ? "is complete" : "has been delivered"}.
                     </>
@@ -462,15 +462,15 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
                 <p className="mt-3 flex items-center justify-center gap-1 text-sm text-slate-300">
                   {orderStatus === "picked_up"
                     ? isSwahili
-                      ? "Duka Magic Expressway inakuletea agizo lako"
-                      : "Duka Magic Expressway is bringing your order to you"
+                      ? "DukaHub inakuletea agizo lako"
+                      : "DukaHub is bringing your order to you"
                     : orderStatus === "confirmed" || orderStatus === "sourcing"
                       ? isSwahili
                         ? "Tunakusanya bidhaa zako"
                         : "We are getting your items ready"
                       : isSwahili
-                        ? `Duka Magic Expressway itakupigia ${phone} kuthibitisha`
-                        : `Duka Magic Expressway will call ${phone} to confirm`}
+                        ? `DukaHub itakupigia ${phone} kuthibitisha`
+                        : `DukaHub will call ${phone} to confirm`}
                   <span className="ml-1 flex gap-1">
                     <span className="size-1.5 rounded-full bg-primary animate-bounce" />
                     <span
@@ -530,8 +530,8 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
                 <p className="text-xs font-bold text-white">{itemLabel}</p>
                 <p className="text-[11px] text-slate-400">
                   {isSwahili
-                    ? "Inaletwa na Duka Magic Expressway"
-                    : "Delivered by Duka Magic Expressway"}
+                    ? "Inaletwa na DukaHub"
+                    : "Delivered by DukaHub"}
                 </p>
               </div>
               {isService ? (
@@ -861,8 +861,8 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
                       </h2>
                       <p className="mt-1 text-xs text-muted-foreground">
                         {isSwahili
-                          ? "Weka jina na namba yako ya simu — Duka Magic Expressway itakupigia na kukuletea."
-                          : "Enter your name and phone — Duka Magic Expressway will call you and deliver."}
+                          ? "Weka jina na namba yako ya simu — DukaHub itakupigia na kukuletea."
+                          : "Enter your name and phone — DukaHub will call you and deliver."}
                       </p>
                     </div>
 
@@ -879,8 +879,8 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
                         <p className="truncate text-sm font-extrabold text-navy">{product.title}</p>
                         <p className="text-xs text-muted-foreground">
                           {isService
-                            ? "Duka Magic Expressway"
-                            : `${quantity}x · Duka Magic Expressway`}
+                            ? "DukaHub"
+                            : `${quantity}x · DukaHub`}
                         </p>
                       </div>
                       {isService ? (

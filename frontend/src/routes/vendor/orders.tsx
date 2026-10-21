@@ -22,7 +22,7 @@ export const Route = createFileRoute("/vendor/orders")({
 
 type PurchaseOrderStatus = "sent" | "accepted" | "ready" | "picked_up" | "rejected" | "cancelled";
 
-// Orders placed with this store by Duka Magic Expressway. Customer details are never sent here.
+// Orders placed with this store by DukaHub. Customer details are never sent here.
 type VendorOrder = {
   id: string;
   po_number: string;
@@ -112,17 +112,17 @@ function PriceLines({ order }: { order: VendorOrder }) {
         <p className="text-slate-500">
           Your listed price: {listed > 0 ? money(listed) : "on request"}
         </p>
-        <p className="font-bold text-amber-600">Duka Magic Expressway asks for your price</p>
+        <p className="font-bold text-amber-600">DukaHub asks for your price</p>
       </div>
     );
   if (order.price_status === "vendor_proposed" && order.vendor_quote)
     return (
       <div className="mt-0.5 space-y-0.5 text-[11px]">
         {negotiated > 0 && (
-          <p className="text-slate-500">Duka Magic Expressway offered: {money(order.total)} total</p>
+          <p className="text-slate-500">DukaHub offered: {money(order.total)} total</p>
         )}
         <p className="font-bold text-amber-600">
-          Your price: {money(order.vendor_quote)} total — waiting for Duka Magic Expressway
+          Your price: {money(order.vendor_quote)} total — waiting for DukaHub
         </p>
       </div>
     );
@@ -236,7 +236,7 @@ function VendorOrders() {
     const agreed = Number(order.total);
     const result = await Swal.fire({
       title: "Mark payment received",
-      html: `Agreed total for <b>${order.po_number}</b>: <b>${order.currency} ${agreed.toLocaleString()}</b><br/>Enter the amount you received from Duka Magic Expressway. This cannot be undone.`,
+      html: `Agreed total for <b>${order.po_number}</b>: <b>${order.currency} ${agreed.toLocaleString()}</b><br/>Enter the amount you received from DukaHub. This cannot be undone.`,
       input: "number",
       inputLabel: `Amount received (${order.currency})`,
       inputValue: String(agreed),
@@ -259,7 +259,7 @@ function VendorOrders() {
     if (amount !== agreed) {
       const check = await Swal.fire({
         title: "Amount differs from agreed total",
-        html: `You received <b>${order.currency} ${amount.toLocaleString()}</b> but the agreed total is <b>${order.currency} ${agreed.toLocaleString()}</b>. Duka Magic Expressway will be notified. Continue?`,
+        html: `You received <b>${order.currency} ${amount.toLocaleString()}</b> but the agreed total is <b>${order.currency} ${agreed.toLocaleString()}</b>. DukaHub will be notified. Continue?`,
         icon: "warning",
         showCancelButton: true,
         confirmButtonText: "Yes, confirm",
@@ -280,11 +280,11 @@ function VendorOrders() {
       html:
         `<b>${order.po_number}</b> · ${order.quantity}x ${escapeHtml(order.product_title)}` +
         (offered > 0 && order.price_status !== "awaiting_quote"
-          ? `<br/>Duka Magic Expressway offered <b>${order.currency} ${offered.toLocaleString()}</b> in total.`
+          ? `<br/>DukaHub offered <b>${order.currency} ${offered.toLocaleString()}</b> in total.`
           : "") +
         `<br/><br/>Enter the <b>total</b> price for this ${isService ? "job" : "order"}.` +
         `<textarea id="quote-note" class="swal2-textarea" placeholder="${
-          isService ? "What's included, job size, duration..." : "Optional note for Duka Magic Expressway"
+          isService ? "What's included, job size, duration..." : "Optional note for DukaHub"
         }" style="margin:12px 0 0;width:100%;box-sizing:border-box"></textarea>`,
       input: "number",
       inputLabel: `Total price (${order.currency})`,
@@ -329,7 +329,7 @@ function VendorOrders() {
   };
 
   const renderActions = (order: VendorOrder, mobile = false) => {
-    // A new order can only be accepted once there is a price on the table from Duka Magic Expressway.
+    // A new order can only be accepted once there is a price on the table from DukaHub.
     const priceOpen =
       order.price_status === "awaiting_quote" || order.price_status === "vendor_proposed";
     const action = order.status === "sent" && priceOpen ? undefined : NEXT_ACTION[order.status];
@@ -422,7 +422,7 @@ function VendorOrders() {
         <div>
           <h1 className="text-2xl font-black text-slate-900">Orders</h1>
           <p className="text-sm text-slate-500">
-            Orders from Duka Magic Expressway. Accept, prepare the items, mark them ready and mark the order
+            Orders from DukaHub. Accept, prepare the items, mark them ready and mark the order
             as paid once you receive our payment — our rider collects paid orders from your store.
           </p>
         </div>
@@ -469,7 +469,7 @@ function VendorOrders() {
           <h3 className="text-lg font-bold text-slate-900">No orders yet</h3>
           <p className="mt-1 text-sm text-slate-500">
             {filter === "all"
-              ? "Orders from Duka Magic Expressway will appear here."
+              ? "Orders from DukaHub will appear here."
               : `No ${STATUS_LABEL[filter].toLowerCase()} orders.`}
           </p>
         </div>

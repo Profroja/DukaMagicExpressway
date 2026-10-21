@@ -37,13 +37,13 @@ import serviceHeroImage from "@/assets/service-hero.png";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Duka Magic Expressway | Products & Services at Your Fingertips" },
+      { title: "DukaHub | Products & Services at Your Fingertips" },
       {
         name: "description",
         content:
           "Shop quality products and book trusted services with fast delivery across Tanzania.",
       },
-      { property: "og:title", content: "Duka Magic Expressway | Everything in One Place" },
+      { property: "og:title", content: "DukaHub | Everything in One Place" },
       {
         property: "og:description",
         content:
@@ -168,12 +168,12 @@ function Storefront() {
           <a
             href="#"
             className="flex shrink-0 items-center gap-2"
-            aria-label="Magic Expressway home"
+            aria-label="DukaHub home"
           >
             <BrandLogo />
             <span className="hidden sm:block">
               <strong className="block text-2xl font-black leading-none text-navy">
-                Duka Magic <em className="not-italic text-primary">Expressway</em>
+                Duka<em className="not-italic text-primary">Hub</em>
               </strong>
               <small className="text-[10px] font-bold text-muted-foreground">
                 {t("goodsServices")}
@@ -194,12 +194,12 @@ function Storefront() {
             <a
               href="#"
               className="flex shrink-0 items-center gap-2"
-              aria-label="Duka Magic Expressway home"
+              aria-label="DukaHub home"
             >
               <BrandLogo className="size-9 rounded-lg" />
               <div>
                 <strong className="block text-xl font-black leading-none text-navy">
-                  Duka Magic <em className="not-italic text-primary">Expressway</em>
+                  Duka<em className="not-italic text-primary">Hub</em>
                 </strong>
               </div>
             </a>

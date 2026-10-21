@@ -158,7 +158,7 @@ export function LanguagePicker() {
           <Image source={require("@/assets/images/logo.png")} style={styles.logo} contentFit="cover" />
           <View>
             <Text style={styles.brandName}>
-              Duka Magic <Text style={{ color: Colors.primary }}>Expressway</Text>
+              Duka<Text style={{ color: Colors.primary }}>Hub</Text>
             </Text>
             <Text style={styles.brand}>WELCOME · KARIBU</Text>
           </View>

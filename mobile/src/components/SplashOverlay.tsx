@@ -89,7 +89,7 @@ export function SplashOverlay({ ready }: { ready: boolean }) {
         style={{ alignItems: "center", opacity: textOpacity, transform: [{ translateY: textY }] }}
       >
         <Text style={styles.title}>
-          Duka Magic <Text style={styles.titleAccent}>Expressway</Text>
+          Duka<Text style={styles.titleAccent}>Hub</Text>
         </Text>
         <Text style={styles.tagline}>{t("splashTagline")}</Text>
       </Animated.View>

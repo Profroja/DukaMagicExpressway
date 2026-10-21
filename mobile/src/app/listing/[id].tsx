@@ -400,7 +400,7 @@ export default function ListingScreen() {
                   {listing.title}
                 </Text>
                 <Text style={styles.summaryMeta}>
-                  {isService ? "Duka Magic Expressway" : `${quantity}x · Duka Magic Expressway`}
+                  {isService ? "DukaHub" : `${quantity}x · DukaHub`}
                 </Text>
               </View>
               {isService ? (

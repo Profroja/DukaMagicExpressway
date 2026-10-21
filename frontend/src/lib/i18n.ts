@@ -25,7 +25,7 @@ export const translations = {
     banner3Badge: "Affordable",
     banner4Title: "Any Service You Need",
     banner4Accent: "Booked in a Few Taps",
-    moExpressway: "Duka Magic Expressway",
+    moExpressway: "DukaHub",
     everythingYouNeed: "Everything You Need",
     inOnePlace: "in One Place",
     bookNow: "Book Now!",
@@ -51,7 +51,7 @@ export const translations = {
 
     // App download section
     appEyebrow: "Get the app",
-    appTitle: "Shop faster with the Duka Magic app",
+    appTitle: "Shop faster with the DukaHub app",
     appSubtitle: "Order goods, book services and follow every delivery — right from your phone.",
     appFeature1: "Order in a few taps",
     appFeature2: "Track every delivery live",
@@ -62,7 +62,7 @@ export const translations = {
 
     // Partners section (vendor sign-up + login)
     partnersEyebrow: "For vendors & partners",
-    partnersTitle: "Grow with Duka Magic Expressway",
+    partnersTitle: "Grow with DukaHub",
     partnersSubtitle: "Sell your goods and services to more customers — we buy from you and handle delivery.",
     joinUsTitle: "Jiunge Nasi",
     joinUsDesc: "Register your business and start receiving orders.",
@@ -154,7 +154,7 @@ export const translations = {
     banner3Badge: "Bei Bora",
     banner4Title: "Huduma Yoyote Unayohitaji",
     banner4Accent: "Weka kwa Kubofya Mara Chache",
-    moExpressway: "Duka Magic Expressway",
+    moExpressway: "DukaHub",
     everythingYouNeed: "Kila Kitu Unachohitaji",
     inOnePlace: "Mahali Pamoja",
     bookNow: "Weka Nafasi!",
@@ -180,7 +180,7 @@ export const translations = {
 
     // App download section
     appEyebrow: "Pakua programu",
-    appTitle: "Nunua haraka zaidi kwa programu ya Duka Magic",
+    appTitle: "Nunua haraka zaidi kwa programu ya DukaHub",
     appSubtitle: "Agiza bidhaa, weka huduma na fuatilia kila usafirishaji — moja kwa moja kwenye simu yako.",
     appFeature1: "Agiza kwa kugusa mara chache",
     appFeature2: "Fuatilia kila usafirishaji",
@@ -191,7 +191,7 @@ export const translations = {
 
     // Partners section (vendor sign-up + login)
     partnersEyebrow: "Kwa wauzaji na washirika",
-    partnersTitle: "Kua pamoja na Duka Magic Expressway",
+    partnersTitle: "Kua pamoja na DukaHub",
     partnersSubtitle: "Uza bidhaa na huduma zako kwa wateja wengi zaidi — tunanunua kwako na kushughulikia usafirishaji.",
     joinUsTitle: "Jiunge Nasi",
     joinUsDesc: "Sajili biashara yako na anza kupokea maagizo.",

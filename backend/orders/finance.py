@@ -1,4 +1,4 @@
-"""Monthly revenue for Duka Magic Expressway.
+"""Monthly revenue for DukaHub.
 
 How the money is counted for a month:
 

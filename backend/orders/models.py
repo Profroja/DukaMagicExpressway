@@ -336,8 +336,8 @@ class PurchaseOrderPaymentStatus(models.TextChoices):
 
 
 class PriceStatus(models.TextChoices):
-    """Where the price negotiation between Duka Magic Expressway and the store stands."""
-    OFFERED = 'offered', _('Offered by Duka Magic Expressway - store to accept')
+    """Where the price negotiation between DukaHub and the store stands."""
+    OFFERED = 'offered', _('Offered by DukaHub - store to accept')
     AWAITING_QUOTE = 'awaiting_quote', _('Waiting for the store to quote')
     VENDOR_PROPOSED = 'vendor_proposed', _('Store proposed a price - admin to respond')
     AGREED = 'agreed', _('Agreed')
@@ -352,7 +352,7 @@ ACTIVE_PURCHASE_ORDER_STATUSES = (
 
 class StorePurchaseOrder(models.Model):
     """
-    An order the platform (Duka Magic Expressway) places with a store to fulfil a
+    An order the platform (DukaHub) places with a store to fulfil a
     customer order. The platform is the buyer: the store sees the product,
     quantity and price only, never the end customer's details.
     """
@@ -460,7 +460,7 @@ class DeliverySettings(models.Model):
     """Our main store (where deliveries start). A single row, edited by admins."""
 
     id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
-    hub_name = models.CharField(max_length=120, blank=True, default='Duka Magic Expressway')
+    hub_name = models.CharField(max_length=120, blank=True, default='DukaHub')
     hub_address = models.CharField(max_length=255, blank=True)
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)

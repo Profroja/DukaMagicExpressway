@@ -320,7 +320,7 @@ VENDOR_TRANSITIONS = {
 
 @csrf_exempt
 def vendor_orders_view(request):
-    """List and update the purchase orders Duka Magic Expressway placed with this store."""
+    """List and update the purchase orders DukaHub placed with this store."""
     store, error = _vendor_store(request)
     if error:
         return error
@@ -360,7 +360,7 @@ def vendor_orders_view(request):
                 return JsonResponse({"error": "Order not found."}, status=404)
 
             # The store proposes its own total price (e.g. a service quote, or a
-            # counter-offer). Duka Magic Expressway then accepts it or counter-offers.
+            # counter-offer). DukaHub then accepts it or counter-offers.
             if quote_raw not in (None, ""):
                 if po.status != PurchaseOrderStatus.SENT:
                     return JsonResponse(
@@ -390,7 +390,7 @@ def vendor_orders_view(request):
                 )
                 return JsonResponse({"order": _vendor_po_to_dict(po)})
 
-            # The store confirms it has received Duka Magic Expressway's payment.
+            # The store confirms it has received DukaHub's payment.
             if payment_status:
                 if payment_status != PurchaseOrderPaymentStatus.PAID:
                     return JsonResponse({"error": "Invalid payment status."}, status=400)
@@ -426,7 +426,7 @@ def vendor_orders_view(request):
                 and po.payment_status == PurchaseOrderPaymentStatus.PAID
             ):
                 return JsonResponse(
-                    {"error": "This order is already paid. Contact Duka Magic Expressway to cancel it."},
+                    {"error": "This order is already paid. Contact DukaHub to cancel it."},
                     status=400,
                 )
 
@@ -441,7 +441,7 @@ def vendor_orders_view(request):
                 PriceStatus.VENDOR_PROPOSED,
             ):
                 return JsonResponse(
-                    {"error": "The price is not agreed yet. Send your price or wait for Duka Magic Expressway's reply."},
+                    {"error": "The price is not agreed yet. Send your price or wait for DukaHub's reply."},
                     status=400,
                 )
 

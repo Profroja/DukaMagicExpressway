@@ -992,7 +992,7 @@ function AdminOrdersPage() {
         <h1 className="text-2xl font-black text-slate-900">Orders</h1>
         <p className="mt-1 text-sm text-slate-500">
           Customer orders come only to you. Confirm with the customer, buy the items from a store
-          (the store only sees Duka Magic Expressway as the buyer), collect them and deliver.
+          (the store only sees DukaHub as the buyer), collect them and deliver.
         </p>
       </div>
 
@@ -1475,7 +1475,7 @@ function SourcingDialog({
         title: askQuote ? "Quote requested" : isBooking ? "Booking sent" : "Purchase order sent",
         text: askQuote
           ? `${selected.store} will send its price. You can then accept it or counter-offer.`
-          : `${selected.store} will see an order from Duka Magic Expressway — no customer details.`,
+          : `${selected.store} will see an order from DukaHub — no customer details.`,
         icon: "success",
         timer: 2200,
         showConfirmButton: false,
@@ -1510,7 +1510,7 @@ function SourcingDialog({
                     ? "price not set yet"
                     : money(order.currency, order.total)}
                 </b>
-                . The store will only see Duka Magic Expressway as the buyer.
+                . The store will only see DukaHub as the buyer.
               </>
             )}
           </DialogDescription>

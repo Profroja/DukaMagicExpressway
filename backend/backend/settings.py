@@ -213,7 +213,7 @@ MAILERS = {
 }
 
 DEFAULT_FROM_EMAIL = os.getenv(
-    "DEFAULT_FROM_EMAIL", "Duka Magic Expressway <dukaexpressway@gmail.com>"
+    "DEFAULT_FROM_EMAIL", "DukaHub <dukaexpressway@gmail.com>"
 )
 
 # Frontend base URL used to build verification links.
