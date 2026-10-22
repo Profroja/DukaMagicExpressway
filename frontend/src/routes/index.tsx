@@ -2,7 +2,6 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   ArrowRight,
   ChevronLeft,
-  Flame,
   ChevronRight,
   BadgeCheck,
   Headphones,
@@ -129,35 +128,35 @@ function Storefront() {
     {
       image: riderImage,
       title: t("slideRiderTitle"),
-      sub: t("slideRiderSub"),
+
       tag: t("slideRiderTag"),
       service: false,
     },
     {
       image: shopImage,
       title: t("slideShopTitle"),
-      sub: t("slideShopSub"),
+
       tag: t("slideShopTag"),
       service: false,
     },
     {
       image: groceriesImage,
       title: t("slideGroceriesTitle"),
-      sub: t("slideGroceriesSub"),
+
       tag: t("slideGroceriesTag"),
       service: false,
     },
     {
       image: foodImage,
       title: t("slideFoodTitle"),
-      sub: t("slideFoodSub"),
+
       tag: t("slideFoodTag"),
       service: false,
     },
     {
       image: servicesImage,
       title: t("slideServicesTitle"),
-      sub: t("slideServicesSub"),
+
       tag: t("slideServicesTag"),
       service: true,
     },
@@ -219,33 +218,10 @@ function Storefront() {
                 {current.title.split(" ").slice(0, -1).join(" ")}{" "}
                 <span className="block text-primary">{current.title.split(" ").slice(-1)}</span>
               </h1>
-              <p className="mt-4 text-xl font-bold text-navy sm:text-2xl">{current.sub}</p>
-
-              <div className="mt-7 flex flex-wrap gap-y-3 sm:divide-x sm:divide-slate-300">
-                {(
-                  [
-                    [Flame, t("heroF1")],
-                    [ShieldCheck, t("heroF2")],
-                    [Truck, t("heroF3")],
-                  ] as const
-                ).map(([Icon, label], i) => (
-                  <span
-                    key={label}
-                    className={`flex items-center gap-2.5 pr-5 ${i > 0 ? "sm:pl-5" : ""}`}
-                  >
-                    <span className="grid size-11 shrink-0 place-items-center rounded-full bg-gradient-to-br from-primary to-orange-600 text-white shadow-md shadow-primary/30">
-                      <Icon className="size-5" />
-                    </span>
-                    <span className="max-w-[7rem] text-sm font-bold leading-tight text-navy">
-                      {label}
-                    </span>
-                  </span>
-                ))}
-              </div>
 
               <a
                 href={current.service ? "#services" : "#products"}
-                className="mt-8 inline-flex w-fit items-center gap-3 rounded-full bg-gradient-to-r from-primary to-orange-600 px-8 py-4 text-xl font-black text-white shadow-lg shadow-primary/30 transition hover:brightness-110"
+                className="mt-9 inline-flex w-fit items-center gap-3 rounded-full bg-gradient-to-r from-primary to-orange-600 px-8 py-4 text-xl font-black text-white shadow-lg shadow-primary/30 transition hover:brightness-110"
               >
                 <ShoppingCart className="size-6" /> {current.service ? t("bookNow") : t("shopNow")}
                 <ChevronRight className="size-6" />
