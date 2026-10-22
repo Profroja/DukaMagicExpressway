@@ -1,15 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import {
-  ArrowRight,
-  ChevronLeft,
-  ChevronRight,
-  BadgeCheck,
-  Headphones,
-  ShieldCheck,
-  Truck,
-  ShoppingCart,
-  Wrench,
-} from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight, Truck, ShoppingCart, Wrench } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { TopBar } from "@/components/TopBar";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -265,32 +255,6 @@ function Storefront() {
 
         <div className="mt-6 lg:hidden">
           <CategoryBar />
-        </div>
-
-        {/* Why DukaHub */}
-        <div className="mt-6 grid grid-cols-2 gap-y-5 rounded-2xl bg-slate-50 px-4 py-5 ring-1 ring-slate-100 lg:grid-cols-4 lg:divide-x lg:divide-slate-200 lg:px-6 lg:py-6">
-          {(
-            [
-              [Truck, t("featDeliveryTitle"), t("featDeliverySub")],
-              [ShieldCheck, t("featPayTitle"), t("featPaySub")],
-              [Headphones, t("featCareTitle"), t("featCareSub")],
-              [BadgeCheck, t("featQualityTitle"), t("featQualitySub")],
-            ] as const
-          ).map(([Icon, title, sub], i) => (
-            <Reveal
-              key={title}
-              delay={i * 110}
-              className="flex items-center gap-4 px-2 lg:justify-center lg:px-6"
-            >
-              <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-primary to-orange-600 text-white shadow-md shadow-primary/25">
-                <Icon className="size-7" />
-              </span>
-              <span>
-                <span className="block text-base font-black text-navy sm:text-lg">{title}</span>
-                <span className="block text-sm text-slate-500">{sub}</span>
-              </span>
-            </Reveal>
-          ))}
         </div>
 
         {/* Goods */}
