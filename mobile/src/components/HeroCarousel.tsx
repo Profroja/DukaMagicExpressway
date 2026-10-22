@@ -7,32 +7,34 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { Colors, Radius, Shadow } from "@/constants/theme";
 import { useLanguage, type TranslationKey } from "@/lib/i18n";
 
-/** Same pictures and words as the website's hero banners. */
-const SLIDES: { image: number; title: TranslationKey; accent: TranslationKey; badge: TranslationKey }[] = [
+/** Same pictures and words as the website's hero slides. */
+const SLIDES: {
+  image: number;
+  title: TranslationKey;
+  accent: TranslationKey;
+  text: TranslationKey;
+  badge: TranslationKey;
+}[] = [
   {
-    image: require("@/assets/images/banners/hero-market.jpg"),
-    title: "banner1Title",
-    accent: "banner1Accent",
-    badge: "banner1Badge",
+    image: require("@/assets/images/banners/hero-groceries.jpg"),
+    title: "heroGroceriesTitle",
+    accent: "heroGroceriesAccent",
+    text: "heroGroceriesText",
+    badge: "heroGroceriesBadge",
   },
   {
-    image: require("@/assets/images/banners/hero-home.jpg"),
-    title: "banner2Title",
-    accent: "banner2Accent",
-    badge: "banner2Badge",
-  },
-  {
-    image: require("@/assets/images/banners/hero-fashion.jpg"),
-    title: "banner3Title",
-    accent: "banner3Accent",
-    badge: "banner3Badge",
+    image: require("@/assets/images/banners/hero-takeout.jpg"),
+    title: "heroFoodTitle",
+    accent: "heroFoodAccent",
+    text: "heroFoodText",
+    badge: "heroFoodBadge",
   },
 ];
 
 const INTERVAL_MS = 4500;
 const HEIGHT = 190;
 
-/** Three picture cards that slide by themselves; customers can also swipe them. */
+/** Picture cards that slide by themselves; customers can also swipe them. */
 export function HeroCarousel({ width }: { width: number }) {
   const { t } = useLanguage();
   const scrollRef = useRef<ScrollView>(null);
@@ -71,33 +73,30 @@ export function HeroCarousel({ width }: { width: number }) {
       >
         {SLIDES.map((slide) => (
           <View key={slide.title} style={{ width, height: HEIGHT }}>
-            <Image source={slide.image} style={StyleSheet.absoluteFill} contentFit="cover" />
+            <Image
+              source={slide.image}
+              style={StyleSheet.absoluteFill}
+              contentFit="cover"
+              contentPosition="right"
+            />
+            {/* Cream fade over the empty left side keeps the words easy to read. */}
             <LinearGradient
-              colors={["rgba(15,36,59,0.92)", "rgba(15,36,59,0.55)", "rgba(15,36,59,0.05)"]}
+              colors={["rgba(253,248,238,0.97)", "rgba(253,248,238,0.8)", "rgba(253,248,238,0)"]}
+              locations={[0, 0.45, 0.72]}
               start={{ x: 0, y: 0.5 }}
               end={{ x: 1, y: 0.5 }}
               style={StyleSheet.absoluteFill}
             />
             <View style={styles.text}>
+              <View style={styles.badge}>
+                <Ionicons name="sparkles" size={10} color="#FFFFFF" />
+                <Text style={styles.badgeText}>{t(slide.badge)}</Text>
+              </View>
               <Text style={styles.title}>{t(slide.title)}</Text>
               <Text style={styles.accent}>{t(slide.accent)}</Text>
-              <View style={styles.chips}>
-                {(
-                  [
-                    ["pricetag", t("heroChipAffordable")],
-                    ["flash", t("heroChipFast")],
-                    ["time", t("heroChipAnyTime")],
-                  ] as const
-                ).map(([icon, label]) => (
-                  <View key={label} style={styles.chip}>
-                    <Ionicons name={icon} size={11} color="#FFFFFF" />
-                    <Text style={styles.chipText}>{label}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{t(slide.badge)}</Text>
+              <Text style={styles.body} numberOfLines={2}>
+                {t(slide.text)}
+              </Text>
             </View>
           </View>
         ))}
@@ -118,37 +117,25 @@ const styles = StyleSheet.create({
     height: HEIGHT,
     borderRadius: Radius.xl,
     overflow: "hidden",
-    backgroundColor: Colors.navy,
+    backgroundColor: "#FDF8EE",
     ...Shadow.raised,
   },
-  text: { flex: 1, justifyContent: "center", paddingHorizontal: 18, paddingRight: 96 },
-  title: { color: "#FFFFFF", fontSize: 21, fontWeight: "900", lineHeight: 26 },
-  accent: { marginTop: 4, color: Colors.primary, fontSize: 15, fontWeight: "900", lineHeight: 20 },
-  chips: { marginTop: 12, flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  chip: {
+  text: { flex: 1, justifyContent: "center", paddingLeft: 16, paddingRight: "44%" },
+  badge: {
+    alignSelf: "flex-start",
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
+    marginBottom: 8,
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderRadius: Radius.full,
-    backgroundColor: "rgba(255,255,255,0.16)",
-  },
-  chipText: { color: "#FFFFFF", fontSize: 10, fontWeight: "800" },
-  badge: {
-    position: "absolute",
-    top: 14,
-    right: 14,
-    width: 74,
-    height: 74,
-    borderRadius: 37,
     backgroundColor: Colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 6,
-    transform: [{ rotate: "8deg" }],
   },
-  badgeText: { color: "#FFFFFF", fontSize: 11, fontWeight: "900", textAlign: "center", lineHeight: 14 },
+  badgeText: { color: "#FFFFFF", fontSize: 10, fontWeight: "900" },
+  title: { color: Colors.navy, fontSize: 19, fontWeight: "900", lineHeight: 23 },
+  accent: { marginTop: 2, color: Colors.primary, fontSize: 13, fontWeight: "900", lineHeight: 17 },
+  body: { marginTop: 6, color: "#475569", fontSize: 10.5, lineHeight: 14, fontWeight: "600" },
   dots: {
     position: "absolute",
     bottom: 10,
@@ -158,6 +145,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 6,
   },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.45)" },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "rgba(15,36,59,0.25)" },
   dotActive: { width: 18, backgroundColor: Colors.primary },
 });

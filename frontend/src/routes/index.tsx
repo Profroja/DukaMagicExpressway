@@ -29,10 +29,8 @@ import { CustomerCart } from "@/components/CustomerCart";
 import { SmartSearch, type CatalogItem } from "@/components/SmartSearch";
 import { addToCart } from "@/lib/customerCart";
 import { useLanguage } from "@/lib/LanguageContext";
-import heroImage from "@/assets/market-hero.jpg";
-import homeHeroImage from "@/assets/market-hero-home.jpg";
-import fashionHeroImage from "@/assets/market-hero-fashion.jpg";
-import serviceHeroImage from "@/assets/service-hero.png";
+import groceriesHeroImage from "@/assets/hero-groceries.jpg";
+import foodHeroImage from "@/assets/hero-takeout.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -58,28 +56,18 @@ export const Route = createFileRoute("/")({
 
 const bannerConfigs = [
   {
-    image: heroImage,
-    titleKey: "moExpressway",
-    accentKey: "banner1Accent",
-    badgeKey: "banner1Badge",
+    image: groceriesHeroImage,
+    titleKey: "heroGroceriesTitle",
+    accentKey: "heroGroceriesAccent",
+    textKey: "heroGroceriesText",
+    badgeKey: "heroGroceriesBadge",
   },
   {
-    image: homeHeroImage,
-    titleKey: "banner2Title",
-    accentKey: "banner2Accent",
-    badgeKey: "banner2Badge",
-  },
-  {
-    image: fashionHeroImage,
-    titleKey: "banner3Title",
-    accentKey: "banner3Accent",
-    badgeKey: "banner3Badge",
-  },
-  {
-    image: serviceHeroImage,
-    titleKey: "banner4Title",
-    accentKey: "banner4Accent",
-    badgeKey: "bookNow",
+    image: foodHeroImage,
+    titleKey: "heroFoodTitle",
+    accentKey: "heroFoodAccent",
+    textKey: "heroFoodText",
+    badgeKey: "heroFoodBadge",
   },
 ] as const;
 
@@ -145,9 +133,10 @@ function Storefront() {
 
   const banners = bannerConfigs.map((b) => ({
     image: b.image,
-    title: t(b.titleKey as any),
-    accent: t(b.accentKey as any),
-    badge: t(b.badgeKey as any),
+    title: t(b.titleKey),
+    accent: t(b.accentKey),
+    text: t(b.textKey),
+    badge: t(b.badgeKey),
   }));
 
   useEffect(() => {
@@ -165,11 +154,7 @@ function Storefront() {
       <header className="sticky top-0 z-40 border-b border-border bg-card/95 shadow-nav backdrop-blur">
         {/* Desktop Layout */}
         <div className="mx-auto hidden h-20 max-w-[1500px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 px-4 lg:grid lg:gap-10 lg:px-7">
-          <a
-            href="#"
-            className="flex shrink-0 items-center gap-2"
-            aria-label="DukaHub home"
-          >
+          <a href="#" className="flex shrink-0 items-center gap-2" aria-label="DukaHub home">
             <BrandLogo />
             <span className="hidden sm:block">
               <strong className="block text-2xl font-black leading-none text-navy">
@@ -191,11 +176,7 @@ function Storefront() {
         <div className="mx-auto max-w-[1500px] px-4 py-3 lg:hidden">
           {/* Top Row: Logo + Icons */}
           <div className="flex items-center justify-between mb-3">
-            <a
-              href="#"
-              className="flex shrink-0 items-center gap-2"
-              aria-label="DukaHub home"
-            >
+            <a href="#" className="flex shrink-0 items-center gap-2" aria-label="DukaHub home">
               <BrandLogo className="size-9 rounded-lg" />
               <div>
                 <strong className="block text-xl font-black leading-none text-navy">
@@ -239,14 +220,15 @@ function Storefront() {
                     key={banner}
                     className="relative z-10 flex min-h-[360px] max-w-xl animate-banner-in flex-col justify-center px-7 py-12 sm:px-14 md:min-h-[370px]"
                   >
-                    <h1 className="text-4xl font-black leading-[1.08] text-white drop-shadow-lg sm:text-navy sm:drop-shadow-none">
+                    <h1 className="text-4xl font-black leading-[1.08] text-navy">
                       {banners[banner].title}{" "}
-                      <span className="block text-primary drop-shadow-lg sm:drop-shadow-none">
-                        {banners[banner].accent}
-                      </span>
+                      <span className="block text-primary">{banners[banner].accent}</span>
                     </h1>
+                    <p className="mt-4 max-w-md text-sm font-medium leading-relaxed text-slate-600 sm:text-base">
+                      {banners[banner].text}
+                    </p>
                     <Button
-                      className="mt-7 w-fit rounded-full px-7"
+                      className="mt-6 w-fit rounded-full px-7"
                       onClick={() =>
                         document.getElementById("products")?.scrollIntoView({ behavior: "smooth" })
                       }
