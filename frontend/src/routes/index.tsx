@@ -199,7 +199,7 @@ function Storefront() {
         <section>
           <div className="-mx-4 lg:mx-0">
             <div
-              className="hero relative min-h-[360px] overflow-hidden md:aspect-[2/1] md:max-h-[680px] md:min-h-0 md:w-full lg:rounded-lg lg:border lg:border-border"
+              className="hero relative min-h-[360px] overflow-hidden bg-[#FDF8E9] md:h-[320px] md:min-h-0 lg:h-[360px] lg:rounded-lg lg:border lg:border-border"
               onMouseEnter={() => setBannerPaused(true)}
               onMouseLeave={() => setBannerPaused(false)}
             >
@@ -210,7 +210,7 @@ function Storefront() {
                   width={1600}
                   height={800}
                   alt={item.title}
-                  className={`absolute inset-0 h-full w-full object-cover object-[center_40%] transition-all duration-700 ${index === banner ? "scale-100 opacity-100" : "scale-105 opacity-0"}`}
+                  className={`absolute inset-0 h-full w-full object-cover md:object-contain md:object-right transition-all duration-700 ${index === banner ? "scale-100 opacity-100" : "scale-105 opacity-0"}`}
                 />
               ))}
               <div className="absolute inset-0 bg-hero-fade" />
@@ -218,9 +218,9 @@ function Storefront() {
                 <>
                   <div
                     key={banner}
-                    className="relative z-10 flex min-h-[360px] max-w-xl animate-banner-in flex-col justify-center px-7 py-12 sm:px-14 md:absolute md:inset-y-0 md:left-0 md:min-h-0 md:w-[46%] md:max-w-none md:py-8 lg:px-16"
+                    className="relative z-10 flex min-h-[360px] max-w-xl animate-banner-in flex-col justify-center px-7 py-12 sm:px-14 md:absolute md:inset-y-0 md:left-0 md:min-h-0 md:w-[44%] md:max-w-none md:py-8 lg:px-14"
                   >
-                    <h1 className="text-4xl font-black leading-[1.08] text-navy lg:text-5xl xl:text-6xl">
+                    <h1 className="text-4xl font-black leading-[1.08] text-navy">
                       {banners[banner].title}{" "}
                       <span className="block text-primary">{banners[banner].accent}</span>
                     </h1>
