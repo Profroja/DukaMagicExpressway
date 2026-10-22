@@ -1,14 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  ChevronRight,
-  Headphones,
-  LayoutGrid,
-  MoreHorizontal,
-  Search,
-  Wrench,
-  X,
-} from "lucide-react";
-import { CONTACT_PHONE, telHref } from "@/lib/contact";
+import { ArrowRight, ChevronRight, LayoutGrid, Menu, Search, Wrench, X } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { categoryHref, categoryIcon, fetchCategories, type CategoryLists } from "@/lib/categories";
 
@@ -203,7 +194,7 @@ function AllCategoriesModal({ lists, onClose }: { lists: CategoryLists; onClose:
   );
 }
 
-/** Left column on large screens: product types, "Others" (every category) and a call box. */
+/** Left column on large screens: categories under an orange header, and "View all". */
 export function CategorySidebar({ className = "" }: { className?: string }) {
   const { t } = useLanguage();
   const label = useCategoryLabel();
@@ -215,52 +206,41 @@ export function CategorySidebar({ className = "" }: { className?: string }) {
   }, []);
 
   return (
-    <aside className={`space-y-4 ${className}`}>
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
-        <div className="flex items-center gap-3 bg-navy px-5 py-4 text-white">
-          <LayoutGrid className="size-6" />
-          <span className="text-lg font-black">{t("categoryTypes")}</span>
-        </div>
-        <nav className="px-3 py-1">
-          {topCategories(lists, 7).map((name) => {
-            const Icon = categoryIcon(name);
-            return (
-              <a
-                key={name}
-                href={categoryHref(name)}
-                className="group flex items-center gap-3 border-b border-slate-100 px-2 py-2.5 text-sm font-semibold text-navy transition hover:text-primary"
-              >
-                <Icon className="size-5 shrink-0 text-navy group-hover:text-primary" />
-                <span className="flex-1 truncate">{label(name)}</span>
-                <ChevronRight className="size-4 text-slate-400 group-hover:text-primary" />
-              </a>
-            );
-          })}
-          <button
-            type="button"
-            onClick={() => setShowAll(true)}
-            className="group flex w-full items-center gap-3 px-2 py-2.5 text-left text-sm font-semibold text-navy transition hover:text-primary"
-          >
-            <MoreHorizontal className="size-5 shrink-0" />
-            <span className="flex-1">{t("others")}</span>
-            <ChevronRight className="size-4 text-slate-400 group-hover:text-primary" />
-          </button>
-        </nav>
-      </div>
-
-      <a
-        href={telHref}
-        className="flex items-center gap-3 rounded-2xl bg-orange-50 px-4 py-3.5 ring-1 ring-orange-100 transition hover:bg-orange-100"
+    <aside
+      className={`overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card ${className}`}
+    >
+      <button
+        type="button"
+        onClick={() => setShowAll(true)}
+        className="flex w-full items-center gap-3 bg-gradient-to-r from-primary to-orange-600 px-5 py-4 text-left text-white"
       >
-        <Headphones className="size-9 shrink-0 text-primary" />
-        <span>
-          <span className="block text-sm font-black text-primary">{t("needHelp")}</span>
-          <span className="block text-sm font-bold text-navy">
-            {t("callUsOn")} {CONTACT_PHONE}
-          </span>
-        </span>
-      </a>
-
+        <Menu className="size-6" />
+        <span className="flex-1 text-lg font-black">{t("categoryTypes")}</span>
+        <ChevronRight className="size-5" />
+      </button>
+      <nav className="px-4 py-1">
+        {[...topCategories(lists, 7), "Services"].map((name) => {
+          const Icon = name === "Services" ? Wrench : categoryIcon(name);
+          return (
+            <a
+              key={name}
+              href={categoryHref(name)}
+              className="group flex items-center gap-4 border-b border-slate-100 px-1 py-3 text-[15px] font-semibold text-navy transition hover:text-primary"
+            >
+              <Icon className="size-6 shrink-0 text-navy group-hover:text-primary" />
+              <span className="flex-1 truncate">{label(name)}</span>
+              <ChevronRight className="size-4 text-slate-500 transition group-hover:translate-x-0.5 group-hover:text-primary" />
+            </a>
+          );
+        })}
+      </nav>
+      <button
+        type="button"
+        onClick={() => setShowAll(true)}
+        className="flex items-center gap-2 px-6 pb-5 pt-3 text-[15px] font-black text-primary hover:underline"
+      >
+        {t("viewAll")} <ArrowRight className="size-4" />
+      </button>
       {showAll && <AllCategoriesModal lists={lists} onClose={() => setShowAll(false)} />}
     </aside>
   );

@@ -39,6 +39,8 @@ export function TopBar() {
             <span className="hidden items-center gap-2 sm:flex">
               <Truck className="size-4 text-primary" />
               {t("topFastDelivery")}
+              <span className="text-white/30">|</span>
+              <span className="text-primary">Dar es Salaam</span>
             </span>
             <LanguageSelector />
             <div className="flex items-center gap-3">

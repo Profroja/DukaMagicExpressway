@@ -1,6 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   ArrowRight,
+  ChevronLeft,
+  Flame,
   ChevronRight,
   BadgeCheck,
   Headphones,
@@ -10,7 +12,6 @@ import {
   Wrench,
 } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { Button } from "@/components/ui/button";
 import { TopBar } from "@/components/TopBar";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Footer } from "@/components/Footer";
@@ -22,8 +23,11 @@ import type { CatalogItem } from "@/components/SmartSearch";
 import { addToCart } from "@/lib/customerCart";
 import { categoryHref } from "@/lib/categories";
 import { CategoryBar, CategorySidebar } from "@/components/CategoryBar";
-import goodsBannerImage from "@/assets/banner-groceries.webp";
-import servicesBannerImage from "@/assets/banner-services.webp";
+import riderImage from "@/assets/hero-rider.jpg";
+import shopImage from "@/assets/market-hero.jpg";
+import groceriesImage from "@/assets/hero-groceries.jpg";
+import foodImage from "@/assets/hero-takeout.jpg";
+import servicesImage from "@/assets/hero-services.jpg";
 import { useLanguage } from "@/lib/LanguageContext";
 
 export const Route = createFileRoute("/")({
@@ -88,10 +92,10 @@ function Storefront() {
   const [slide, setSlide] = useState(0);
   const [slidePaused, setSlidePaused] = useState(false);
 
-  // Banner: goods, then services; changes by itself every 6 seconds.
+  // Hero: five pictures (goods, food, services) changing every 6 seconds.
   useEffect(() => {
     if (slidePaused) return;
-    const timer = window.setInterval(() => setSlide((s) => (s + 1) % 2), 6000);
+    const timer = window.setInterval(() => setSlide((s) => (s + 1) % 5), 6000);
     return () => window.clearInterval(timer);
   }, [slidePaused]);
   const [loading, setLoading] = useState(true);
@@ -123,24 +127,39 @@ function Storefront() {
 
   const slides = [
     {
-      image: goodsBannerImage,
-      pre: t("bannerPre"),
-      highlight: t("bannerHighlight"),
-      post: t("bannerPost"),
-      sub: t("bannerSub"),
-      text: t("bannerText"),
-      cta: t("shopNow"),
-      href: "#products",
+      image: riderImage,
+      title: t("slideRiderTitle"),
+      sub: t("slideRiderSub"),
+      tag: t("slideRiderTag"),
+      service: false,
     },
     {
-      image: servicesBannerImage,
-      pre: t("banner2Pre"),
-      highlight: t("banner2Highlight"),
-      post: t("banner2Post"),
-      sub: t("banner2Sub"),
-      text: t("banner2Text"),
-      cta: t("bookNow"),
-      href: "#services",
+      image: shopImage,
+      title: t("slideShopTitle"),
+      sub: t("slideShopSub"),
+      tag: t("slideShopTag"),
+      service: false,
+    },
+    {
+      image: groceriesImage,
+      title: t("slideGroceriesTitle"),
+      sub: t("slideGroceriesSub"),
+      tag: t("slideGroceriesTag"),
+      service: false,
+    },
+    {
+      image: foodImage,
+      title: t("slideFoodTitle"),
+      sub: t("slideFoodSub"),
+      tag: t("slideFoodTag"),
+      service: false,
+    },
+    {
+      image: servicesImage,
+      title: t("slideServicesTitle"),
+      sub: t("slideServicesSub"),
+      tag: t("slideServicesTag"),
+      service: true,
     },
   ];
   const current = slides[slide % slides.length]!;
@@ -151,180 +170,222 @@ function Storefront() {
       <SiteHeader onSearchSelect={handleSearchSelect} />
 
       <main className="mx-auto max-w-[1500px] px-4 py-5 lg:px-7">
-        {/* Banner */}
-        <section
-          className="relative overflow-hidden rounded-3xl bg-navy shadow-card"
-          onMouseEnter={() => setSlidePaused(true)}
-          onMouseLeave={() => setSlidePaused(false)}
-        >
-          {/* orange swooshes */}
-          <div className="pointer-events-none absolute -bottom-24 -left-20 h-56 w-[38rem] -rotate-6 rounded-[100%] border-[18px] border-primary" />
-          <div className="pointer-events-none absolute -right-24 -top-28 h-60 w-[30rem] rotate-12 rounded-[100%] border-[16px] border-primary/90" />
-          <div className="pointer-events-none absolute inset-y-0 left-[38%] hidden w-72 -skew-x-12 bg-gradient-to-r from-transparent via-white/[0.04] to-transparent md:block" />
+        <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+          <Reveal className="hidden lg:block">
+            <CategorySidebar className="h-full" />
+          </Reveal>
 
-          <div className="relative grid items-center gap-4 px-6 py-8 sm:px-10 md:grid-cols-[1.05fr_1fr] md:py-6 lg:grid-cols-[1.1fr_1fr_0.9fr] lg:px-14">
-            <div key={slide} className="relative z-10 animate-banner-in">
-              <h1 className="text-4xl font-black leading-[1.05] text-white sm:text-5xl">
-                {current.pre} <span className="text-primary">{current.highlight}</span>
-                {current.post && <> {current.post}</>}
+          {/* Hero */}
+          <section
+            className="relative min-h-[540px] overflow-hidden rounded-3xl bg-[#FDF8E9] shadow-card"
+            onMouseEnter={() => setSlidePaused(true)}
+            onMouseLeave={() => setSlidePaused(false)}
+          >
+            {slides.map((item, index) => (
+              <img
+                key={item.title}
+                src={item.image}
+                width={1600}
+                height={800}
+                alt={item.title}
+                className={`absolute inset-0 h-full w-full object-cover object-[78%_center] transition-all duration-1000 md:object-right ${
+                  index === slide ? "scale-100 opacity-100" : "scale-105 opacity-0"
+                }`}
+              />
+            ))}
+            {/* light fade under the words */}
+            <div className="absolute inset-0 bg-gradient-to-b from-white/90 via-white/75 to-white/30 md:bg-gradient-to-r md:from-white/85 md:via-white/45 md:via-40% md:to-transparent" />
+            {/* corner swoosh */}
+            <div className="pointer-events-none absolute -bottom-20 -right-16 size-56 rounded-full border-[16px] border-primary" />
+            <div className="pointer-events-none absolute -bottom-28 -right-6 size-56 rounded-full bg-navy" />
+
+            {/* handwritten-style tag, per picture */}
+            <p
+              key={`tag-${slide}`}
+              className="pointer-events-none absolute right-6 top-10 z-10 hidden max-w-[12rem] -rotate-12 animate-banner-in text-right text-3xl font-black italic leading-tight text-primary lg:block xl:right-12 xl:text-4xl"
+            >
+              {current.tag}
+              <span className="ml-auto mt-1 block h-1 w-24 rounded-full bg-primary" />
+            </p>
+
+            <div
+              key={slide}
+              className="relative z-10 flex min-h-[540px] animate-banner-in flex-col justify-center px-6 py-10 sm:px-12 md:max-w-[62%] lg:px-14"
+            >
+              <span className="inline-flex w-fit items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-black text-white shadow-md shadow-primary/30 sm:text-base">
+                <Truck className="size-5" /> {t("heroEyebrow")}
+              </span>
+              <h1 className="mt-6 text-5xl font-black leading-[1.02] tracking-tight text-navy sm:text-6xl xl:text-7xl">
+                {current.title.split(" ").slice(0, -1).join(" ")}{" "}
+                <span className="block text-primary">{current.title.split(" ").slice(-1)}</span>
               </h1>
-              <p className="mt-2 text-xl font-bold text-white sm:text-2xl">{current.sub}</p>
-              <p className="mt-3 max-w-md text-base leading-relaxed text-white/85">
-                {current.text}
-              </p>
+              <p className="mt-4 text-xl font-bold text-navy sm:text-2xl">{current.sub}</p>
+
+              <div className="mt-7 flex flex-wrap gap-y-3 sm:divide-x sm:divide-slate-300">
+                {(
+                  [
+                    [Flame, t("heroF1")],
+                    [ShieldCheck, t("heroF2")],
+                    [Truck, t("heroF3")],
+                  ] as const
+                ).map(([Icon, label], i) => (
+                  <span
+                    key={label}
+                    className={`flex items-center gap-2.5 pr-5 ${i > 0 ? "sm:pl-5" : ""}`}
+                  >
+                    <span className="grid size-11 shrink-0 place-items-center rounded-full bg-gradient-to-br from-primary to-orange-600 text-white shadow-md shadow-primary/30">
+                      <Icon className="size-5" />
+                    </span>
+                    <span className="max-w-[7rem] text-sm font-bold leading-tight text-navy">
+                      {label}
+                    </span>
+                  </span>
+                ))}
+              </div>
+
               <a
-                href={current.href}
-                className="mt-5 inline-flex items-center gap-2 rounded-full bg-primary px-7 py-3 text-lg font-black text-white shadow-lg shadow-black/20 transition hover:bg-orange-600"
+                href={current.service ? "#services" : "#products"}
+                className="mt-8 inline-flex w-fit items-center gap-3 rounded-full bg-gradient-to-r from-primary to-orange-600 px-8 py-4 text-xl font-black text-white shadow-lg shadow-primary/30 transition hover:brightness-110"
               >
-                {current.cta} <ArrowRight className="size-5" />
+                <ShoppingCart className="size-6" /> {current.service ? t("bookNow") : t("shopNow")}
+                <ChevronRight className="size-6" />
               </a>
             </div>
 
-            <div className="relative z-10 hidden h-64 md:block lg:h-72">
+            {/* arrows and dots */}
+            <button
+              type="button"
+              onClick={() => setSlide((slide - 1 + slides.length) % slides.length)}
+              className="absolute left-3 top-1/2 z-20 hidden size-12 -translate-y-1/2 place-items-center rounded-full bg-white text-navy shadow-lg transition hover:text-primary md:grid"
+              aria-label="Previous"
+            >
+              <ChevronLeft className="size-6" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setSlide((slide + 1) % slides.length)}
+              className="absolute right-3 top-1/2 z-20 hidden size-12 -translate-y-1/2 place-items-center rounded-full bg-white text-navy shadow-lg transition hover:text-primary md:grid"
+              aria-label="Next"
+            >
+              <ChevronRight className="size-6" />
+            </button>
+            <div className="absolute bottom-5 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2">
               {slides.map((item, index) => (
-                <img
-                  key={item.highlight}
-                  src={item.image}
-                  alt=""
-                  width={760}
-                  height={580}
-                  className={`absolute inset-0 m-auto max-h-full w-auto object-contain drop-shadow-2xl transition-all duration-700 [mask-image:linear-gradient(to_bottom,black_80%,transparent)] ${
+                <button
+                  key={item.title}
+                  type="button"
+                  onClick={() => setSlide(index)}
+                  className={`h-3 rounded-full border-2 transition-all ${
                     index === slide
-                      ? "translate-x-0 scale-100 opacity-100"
-                      : "translate-x-10 scale-95 opacity-0"
+                      ? "w-8 border-primary bg-primary"
+                      : "w-3 border-slate-300 bg-white hover:border-primary"
                   }`}
+                  aria-label={`Show picture ${index + 1}`}
                 />
               ))}
             </div>
-
-            <p className="relative z-10 hidden -rotate-6 text-center font-black italic leading-tight text-white lg:block">
-              <span className="block text-5xl">
-                Duka<span className="text-primary">Hub</span>
-              </span>
-              <span className="block text-4xl">{t("bannerScript")}</span>
-              <span className="mx-auto mt-2 block h-1.5 w-40 rounded-full bg-primary" />
-            </p>
-          </div>
-          <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 gap-2">
-            {slides.map((item, index) => (
-              <button
-                key={item.highlight}
-                type="button"
-                onClick={() => setSlide(index)}
-                className={`h-2.5 rounded-full transition-all ${index === slide ? "w-8 bg-primary" : "w-2.5 bg-white/40 hover:bg-white/70"}`}
-                aria-label={`Show slide ${index + 1}`}
-              />
-            ))}
-          </div>
-        </section>
+          </section>
+        </div>
 
         <div className="mt-6 lg:hidden">
           <CategoryBar />
         </div>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
-          <Reveal className="hidden self-start lg:block">
-            <CategorySidebar />
-          </Reveal>
+        {/* Why DukaHub */}
+        <div className="mt-6 grid grid-cols-2 gap-y-5 rounded-2xl bg-slate-50 px-4 py-5 ring-1 ring-slate-100 lg:grid-cols-4 lg:divide-x lg:divide-slate-200 lg:px-6 lg:py-6">
+          {(
+            [
+              [Truck, t("featDeliveryTitle"), t("featDeliverySub")],
+              [ShieldCheck, t("featPayTitle"), t("featPaySub")],
+              [Headphones, t("featCareTitle"), t("featCareSub")],
+              [BadgeCheck, t("featQualityTitle"), t("featQualitySub")],
+            ] as const
+          ).map(([Icon, title, sub], i) => (
+            <Reveal
+              key={title}
+              delay={i * 110}
+              className="flex items-center gap-4 px-2 lg:justify-center lg:px-6"
+            >
+              <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-primary to-orange-600 text-white shadow-md shadow-primary/25">
+                <Icon className="size-7" />
+              </span>
+              <span>
+                <span className="block text-base font-black text-navy sm:text-lg">{title}</span>
+                <span className="block text-sm text-slate-500">{sub}</span>
+              </span>
+            </Reveal>
+          ))}
+        </div>
 
-          <div className="min-w-0">
-            {/* Why DukaHub */}
-            <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-              {(
-                [
-                  [Truck, t("featDeliveryTitle"), t("featDeliverySub")],
-                  [ShieldCheck, t("featPayTitle"), t("featPaySub")],
-                  [Headphones, t("featCareTitle"), t("featCareSub")],
-                  [BadgeCheck, t("featQualityTitle"), t("featQualitySub")],
-                ] as const
-              ).map(([Icon, title, sub], i) => (
-                <Reveal
-                  key={title}
-                  delay={i * 110}
-                  className="flex items-center gap-3 rounded-2xl bg-slate-50 px-4 py-4 ring-1 ring-slate-100 sm:gap-4 sm:px-5"
-                >
-                  <span className="grid size-12 shrink-0 place-items-center rounded-full bg-white text-primary shadow-sm sm:size-14">
-                    <Icon className="size-7 sm:size-8" />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block text-sm font-black text-navy sm:text-base">{title}</span>
-                    <span className="block text-xs text-slate-600 sm:text-sm">{sub}</span>
-                  </span>
-                </Reveal>
+        {/* Goods */}
+        <section id="products" className="py-10">
+          <div className="flex items-end justify-between gap-3">
+            <h2 className="relative pb-2 text-3xl font-black text-navy">
+              {t("popularProducts")}
+              <span className="absolute bottom-0 left-0 h-1.5 w-24 rounded-full bg-primary" />
+            </h2>
+            {products.length > 6 && (
+              <button
+                type="button"
+                onClick={() => setShowAllProducts((v) => !v)}
+                className="flex items-center gap-1.5 text-sm font-black text-primary hover:underline"
+              >
+                {t("viewAll")} <ArrowRight className="size-4" />
+              </button>
+            )}
+          </div>
+
+          {loading ? (
+            <div className="py-20 text-center text-sm text-muted-foreground">
+              Loading products...
+            </div>
+          ) : products.length === 0 ? (
+            <div className="py-20 text-center text-sm text-muted-foreground">
+              No products available yet.
+            </div>
+          ) : showAllProducts ? (
+            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-6">
+              {products.map((p) => (
+                <ProductCard key={p.id} p={p} onOpen={openOrder} addLabel={t("addButton")} />
               ))}
             </div>
-
-            {/* Popular products */}
-            <section id="products" className="mt-8">
-              <div className="flex items-end justify-between gap-3">
-                <h2 className="relative pb-2 text-3xl font-black text-navy">
-                  {t("popularProducts")}
-                  <span className="absolute bottom-0 left-0 h-1.5 w-24 rounded-full bg-primary" />
-                </h2>
-                {products.length > 6 && (
-                  <button
-                    type="button"
-                    onClick={() => setShowAllProducts((v) => !v)}
-                    className="flex items-center gap-1.5 text-sm font-black text-primary hover:underline"
-                  >
-                    {t("viewAll")} <ArrowRight className="size-4" />
-                  </button>
-                )}
-              </div>
-
-              {loading ? (
-                <div className="py-20 text-center text-sm text-muted-foreground">
-                  Loading products...
-                </div>
-              ) : products.length === 0 ? (
-                <div className="py-20 text-center text-sm text-muted-foreground">
-                  No products available yet.
-                </div>
-              ) : showAllProducts ? (
-                <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-                  {products.map((p) => (
-                    <ProductCard key={p.id} p={p} onOpen={openOrder} addLabel={t("addButton")} />
-                  ))}
-                </div>
-              ) : (
-                // Two rows sliding past each other: the first right-to-left, the second left-to-right.
-                <div className="mt-5 space-y-3">
-                  {[products.filter((_, i) => i % 2 === 0), products.filter((_, i) => i % 2 === 1)]
-                    .filter((row) => row.length > 0)
-                    .map((row, r) => (
-                      <Reveal key={r} delay={r * 150}>
-                        <div className="marquee">
-                          <div
-                            className={`marquee-track ${r === 1 ? "reverse" : ""}`}
-                            style={
-                              {
-                                "--marquee-duration": `${Math.max(row.length, 3) * 7}s`,
-                              } as CSSProperties
-                            }
-                          >
-                            {[...row, ...row].map((p, i) => (
-                              <ProductCard
-                                key={`${p.id}-${i}`}
-                                p={p}
-                                onOpen={openOrder}
-                                addLabel={t("addButton")}
-                                className="w-44 shrink-0 sm:w-52"
-                                copy={i >= row.length}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      </Reveal>
-                    ))}
-                </div>
-              )}
-            </section>
-          </div>
-        </div>
+          ) : (
+            // Two rows sliding past each other: the first right-to-left, the second left-to-right.
+            <div className="mt-5 space-y-3">
+              {[products.filter((_, i) => i % 2 === 0), products.filter((_, i) => i % 2 === 1)]
+                .filter((row) => row.length > 0)
+                .map((row, r) => (
+                  <Reveal key={r} delay={r * 150}>
+                    <div className="marquee">
+                      <div
+                        className={`marquee-track ${r === 1 ? "reverse" : ""}`}
+                        style={
+                          {
+                            "--marquee-duration": `${Math.max(row.length, 3) * 7}s`,
+                          } as CSSProperties
+                        }
+                      >
+                        {[...row, ...row].map((p, i) => (
+                          <ProductCard
+                            key={`${p.id}-${i}`}
+                            p={p}
+                            onOpen={openOrder}
+                            addLabel={t("addButton")}
+                            className="w-44 shrink-0 sm:w-52"
+                            copy={i >= row.length}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </Reveal>
+                ))}
+            </div>
+          )}
+        </section>
 
         <section
           id="services"
-          className="mt-10 grid gap-6 rounded-3xl bg-gradient-to-br from-slate-50 to-orange-50/40 p-5 ring-1 ring-slate-100 sm:p-8 lg:grid-cols-[minmax(0,320px)_1fr]"
+          className="grid gap-6 rounded-3xl bg-gradient-to-br from-slate-50 to-orange-50/40 p-5 ring-1 ring-slate-100 sm:p-8 lg:grid-cols-[minmax(0,320px)_1fr]"
         >
           <div className="flex flex-col justify-center">
             <p className="flex items-center gap-2 text-sm font-black uppercase tracking-wider text-primary">
