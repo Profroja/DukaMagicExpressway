@@ -1,33 +1,30 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
-  Bike,
-  BookOpen,
+  ArrowRight,
   ChevronLeft,
   ChevronRight,
   Flame,
-  Heart,
-  Home,
-  Laptop,
+  Headphones,
+  ShieldCheck,
+  Truck,
   Store,
   ShoppingCart,
-  Sparkles,
   Wrench,
   Zap,
 } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { TopBar } from "@/components/TopBar";
-import { CategoryBar } from "@/components/CategoryBar";
+import { SiteHeader } from "@/components/SiteHeader";
 import { Footer } from "@/components/Footer";
 import { OrderModal } from "@/components/OrderModal";
-import { BrandLogo } from "@/components/BrandLogo";
 import { PartnersSection } from "@/components/PartnersSection";
 import { AppDownloadSection } from "@/components/AppDownloadSection";
 import { ServicePrice } from "@/components/ServicePrice";
-import { CustomerOrders } from "@/components/CustomerOrders";
-import { CustomerCart } from "@/components/CustomerCart";
-import { SmartSearch, type CatalogItem } from "@/components/SmartSearch";
+import type { CatalogItem } from "@/components/SmartSearch";
 import { addToCart } from "@/lib/customerCart";
+import { categoryHref, categoryIcon, fetchCategories, type CategoryLists } from "@/lib/categories";
+import { inCategory } from "@/components/StoreLayout";
 import { useLanguage } from "@/lib/LanguageContext";
 import riderHeroImage from "@/assets/hero-rider.jpg";
 import shopHeroImage from "@/assets/market-hero.jpg";
@@ -117,6 +114,11 @@ function Storefront() {
   const [bannerPaused, setBannerPaused] = useState(false);
   const [products, setProducts] = useState<ApiProduct[]>([]);
   const [services, setServices] = useState<ApiService[]>([]);
+  const [categoryLists, setCategoryLists] = useState<CategoryLists>({ goods: [], services: [] });
+
+  useEffect(() => {
+    fetchCategories().then(setCategoryLists);
+  }, []);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -131,6 +133,9 @@ function Storefront() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  // Goods categories with things to buy first (busiest first), then the rest.
+  const goodsCategories = [...categoryLists.goods].sort((a, b) => b.count - a.count);
 
   const handleSearchSelect = (item: CatalogItem) => {
     if (item.tag === "service") return false;
@@ -157,139 +162,167 @@ function Storefront() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <TopBar />
-      <header className="sticky top-0 z-40 border-b border-border bg-card/95 shadow-nav backdrop-blur">
-        {/* Desktop Layout */}
-        <div className="mx-auto hidden h-20 max-w-[1500px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 px-4 lg:grid lg:gap-10 lg:px-7">
-          <a href="#" className="flex shrink-0 items-center gap-2" aria-label="DukaHub home">
-            <BrandLogo />
-            <span className="hidden sm:block">
-              <strong className="block text-2xl font-black leading-none text-navy">
-                Duka<em className="not-italic text-primary">Hub</em>
-              </strong>
-              <small className="text-[10px] font-bold text-muted-foreground">
-                {t("goodsServices")}
-              </small>
-            </span>
-          </a>
-          <SmartSearch placeholder={t("searchPlaceholder")} onSelect={handleSearchSelect} />
-          <div className="flex items-center gap-1 md:gap-3">
-            <CustomerCart />
-            <CustomerOrders />
-          </div>
-        </div>
-
-        {/* Mobile Layout */}
-        <div className="mx-auto max-w-[1500px] px-4 py-3 lg:hidden">
-          {/* Top Row: Logo + Icons */}
-          <div className="flex items-center justify-between mb-3">
-            <a href="#" className="flex shrink-0 items-center gap-2" aria-label="DukaHub home">
-              <BrandLogo className="size-9 rounded-lg" />
-              <div>
-                <strong className="block text-xl font-black leading-none text-navy">
-                  Duka<em className="not-italic text-primary">Hub</em>
-                </strong>
-              </div>
-            </a>
-            <div className="flex items-center gap-2">
-              <CustomerCart />
-              <CustomerOrders />
-            </div>
-          </div>
-
-          {/* Bottom Row: Search Bar */}
-          <SmartSearch placeholder={t("searchPlaceholder")} compact onSelect={handleSearchSelect} />
-        </div>
-      </header>
+      <SiteHeader onSearchSelect={handleSearchSelect} />
 
       <main className="mx-auto max-w-[1500px] px-4 py-5 lg:px-7">
-        <section>
-          <div>
-            {/* Hero section: words on the left, the picture in a card on the right. */}
-            <div
-              className="relative overflow-hidden rounded-3xl border border-orange-100 bg-gradient-to-br from-[#FFF7EA] via-[#FDF8E9] to-orange-50/70 shadow-card"
-              onMouseEnter={() => setBannerPaused(true)}
-              onMouseLeave={() => setBannerPaused(false)}
-            >
-              {/* soft decoration */}
-              <div className="pointer-events-none absolute -left-24 -top-24 size-72 rounded-full bg-primary/15 blur-3xl" />
-              <div className="pointer-events-none absolute -bottom-28 right-1/3 size-72 rounded-full bg-amber-300/20 blur-3xl" />
-              <div
-                className="pointer-events-none absolute inset-0 opacity-[0.35]"
-                style={{
-                  backgroundImage: "radial-gradient(rgba(15,36,59,0.12) 1px, transparent 1px)",
-                  backgroundSize: "22px 22px",
-                }}
+        {/* Hero: fixed words on the left, the pictures rotate on the right */}
+        <section
+          className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#FFF4E6] via-[#FDF3E3] to-[#FDF8E9] shadow-card"
+          onMouseEnter={() => setBannerPaused(true)}
+          onMouseLeave={() => setBannerPaused(false)}
+        >
+          <div className="absolute inset-y-0 right-0 w-full md:w-[62%]">
+            {banners.map((item, index) => (
+              <img
+                key={item.title}
+                src={item.image}
+                width={1600}
+                height={800}
+                alt={item.title}
+                className={`absolute inset-0 h-full w-full object-cover object-right transition-all duration-1000 ${index === banner ? "scale-100 opacity-100" : "scale-105 opacity-0"}`}
               />
+            ))}
+            <div className="absolute inset-0 bg-gradient-to-r from-[#FDF3E3] via-[#FDF3E3]/70 to-transparent md:via-[#FDF3E3]/20 md:via-25%" />
+            <div className="absolute inset-0 bg-[#FDF3E3]/80 md:hidden" />
+          </div>
 
-              <div className="relative grid items-center gap-6 p-5 sm:p-8 md:grid-cols-[1fr_1.2fr] md:gap-10 lg:p-12">
-                {/* Words */}
-                {banners[banner] && (
-                  <div key={banner} className="animate-banner-in">
-                    <span className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-primary shadow-sm ring-1 ring-orange-100">
-                      <span className="size-1.5 rounded-full bg-primary" />
-                      DukaHub
-                      <span className="text-slate-400">
-                        {String(banner + 1).padStart(2, "0")} /{" "}
-                        {String(banners.length).padStart(2, "0")}
-                      </span>
-                    </span>
-                    <h1 className="mt-4 text-[2.5rem] font-black leading-[1.05] text-navy sm:text-5xl lg:text-6xl">
-                      {banners[banner].title}
-                      <span className="mt-2 block bg-gradient-to-r from-primary to-orange-600 bg-clip-text text-transparent">
-                        {banners[banner].accent}
-                      </span>
-                    </h1>
-                    <div className="mt-7 flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setBanner((banner - 1 + banners.length) % banners.length)}
-                        className="grid size-11 place-items-center rounded-full border border-slate-200 bg-white text-navy shadow-sm transition hover:border-primary hover:text-primary"
-                        aria-label="Previous"
-                      >
-                        <ChevronLeft className="size-5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setBanner((banner + 1) % banners.length)}
-                        className="grid size-11 place-items-center rounded-full bg-primary text-white shadow-md shadow-primary/30 transition hover:bg-orange-600"
-                        aria-label="Next"
-                      >
-                        <ChevronRight className="size-5" />
-                      </button>
-                      <div className="ml-2 flex items-center gap-2">
-                        {banners.map((item, index) => (
-                          <button
-                            key={item.title}
-                            type="button"
-                            onClick={() => setBanner(index)}
-                            className={`h-2.5 rounded-full transition-all ${index === banner ? "w-8 bg-primary" : "w-2.5 bg-navy/20 hover:bg-navy/40"}`}
-                            aria-label={`Show slide ${index + 1}`}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
+          {/* handwritten-style tagline */}
+          <div className="pointer-events-none absolute right-6 top-5 z-10 hidden -rotate-12 text-right font-black italic leading-[1.05] text-navy lg:block xl:right-10">
+            <span className="block text-2xl xl:text-3xl">{t("heroScript1")}</span>
+            <span className="block pl-6 text-2xl xl:text-3xl">{t("heroScript2")}</span>
+            <span className="block pl-10 text-2xl xl:text-3xl">{t("heroScript3")}</span>
+            <span className="ml-auto mt-1 block h-1.5 w-28 rounded-full bg-primary" />
+          </div>
 
-                {/* Picture card: shows the right part of each picture, where the items are */}
-                <div className="relative">
-                  <div className="pointer-events-none absolute -inset-2 rounded-[1.75rem] border-2 border-dashed border-primary/25 sm:-inset-3" />
-                  <div className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-[#FDF8E9] shadow-xl ring-1 ring-orange-100">
-                    {banners.map((item, index) => (
-                      <img
-                        key={item.title}
-                        src={item.image}
-                        width={1600}
-                        height={800}
-                        alt={item.title}
-                        className={`absolute inset-0 h-full w-full object-cover object-right transition-all duration-700 ${index === banner ? "scale-100 opacity-100" : "scale-105 opacity-0"}`}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
+          <div className="relative z-10 px-6 py-8 sm:px-10 lg:px-12 lg:py-10 md:max-w-[58%] xl:max-w-[52%]">
+            <span className="inline-block rounded-md bg-primary px-3 py-1 text-sm font-black text-white shadow-sm">
+              {t("heroTag")}
+            </span>
+            <h1 className="mt-4 text-4xl font-black leading-[1.05] tracking-tight sm:text-5xl xl:text-[3.4rem]">
+              <span className="block text-navy">{t("heroLine1")}</span>
+              <span className="block text-primary">{t("heroLine2")}</span>
+            </h1>
+            <p className="mt-4 max-w-xl text-base leading-relaxed text-slate-700 sm:text-lg">
+              {t("heroIntro")}
+            </p>
+            <div className="mt-6 grid grid-cols-2 gap-4 sm:flex sm:flex-wrap sm:gap-0 sm:divide-x sm:divide-orange-200">
+              {(
+                [
+                  [ShieldCheck, t("heroFeatGenuine")],
+                  [Truck, t("heroFeatFast")],
+                  [ShieldCheck, t("heroFeatPay")],
+                  [Headphones, t("heroFeatCare")],
+                ] as const
+              ).map(([Icon, label], i) => (
+                <span
+                  key={label}
+                  className={`flex items-center gap-2.5 ${i > 0 ? "sm:pl-4" : ""} sm:pr-4`}
+                >
+                  <span className="grid size-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-primary to-orange-600 text-white shadow-md shadow-primary/30">
+                    <Icon className="size-5" />
+                  </span>
+                  <span className="max-w-[7.5rem] text-[13px] font-bold leading-tight text-navy">
+                    {label}
+                  </span>
+                </span>
+              ))}
             </div>
-            <CategoryBar className="mt-4" />
+            <div className="mt-6 flex items-center gap-2">
+              {banners.map((item, index) => (
+                <button
+                  key={item.title}
+                  type="button"
+                  onClick={() => setBanner(index)}
+                  className={`h-2.5 rounded-full transition-all ${index === banner ? "w-8 bg-primary" : "w-2.5 bg-navy/20 hover:bg-navy/40"}`}
+                  aria-label={`Show picture ${index + 1}`}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Goods categories */}
+        <section className="pt-10">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="flex items-center gap-2 text-sm font-black uppercase tracking-wider text-navy">
+                <span className="h-1 w-5 rounded-full bg-primary" /> {t("goodsKicker")}
+              </p>
+              <h2 className="mt-1 text-4xl font-black text-navy">
+                {t("goodsTitle")} <span className="text-primary">{t("goodsTitleAlt")}</span>
+              </h2>
+            </div>
+            <div
+              id="goods-tabs"
+              className="flex max-w-full items-center gap-1 overflow-x-auto rounded-full border border-slate-200 bg-white p-1 shadow-sm [scrollbar-width:none] lg:max-w-[60%]"
+            >
+              <a
+                href="#products"
+                className="shrink-0 rounded-full bg-primary px-5 py-2 text-sm font-black text-white shadow-sm"
+              >
+                {t("allGoods")}
+              </a>
+              {goodsCategories.slice(0, 12).map((c) => (
+                <a
+                  key={c.name}
+                  href={categoryHref(c.name)}
+                  className="shrink-0 rounded-full px-4 py-2 text-sm font-bold text-navy transition hover:bg-orange-50 hover:text-primary"
+                >
+                  {c.name}
+                </a>
+              ))}
+              <button
+                type="button"
+                onClick={() =>
+                  document.getElementById("goods-tabs")?.scrollBy({ left: 220, behavior: "smooth" })
+                }
+                className="sticky right-0 grid size-9 shrink-0 place-items-center rounded-full bg-white text-navy shadow-sm hover:bg-orange-50"
+                aria-label="More categories"
+              >
+                <ChevronRight className="size-5" />
+              </button>
+            </div>
+          </div>
+
+          <div
+            id="goods-grid"
+            className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8"
+          >
+            {goodsCategories.slice(0, 8).map((c) => {
+              const sample = products.find((p) => inCategory(p, c.name) && p.image_url);
+              const Icon = categoryIcon(c.name);
+              return (
+                <a
+                  key={c.name}
+                  href={categoryHref(c.name)}
+                  className="group overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:border-primary/40 hover:shadow-card-hover"
+                >
+                  <div className="grid aspect-[4/3] place-items-center overflow-hidden bg-gradient-to-br from-orange-50 to-slate-50">
+                    {sample ? (
+                      <img
+                        src={sample.image_url}
+                        alt={c.name}
+                        loading="lazy"
+                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                      />
+                    ) : (
+                      <Icon className="size-14 text-primary/70 transition group-hover:scale-110" />
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 p-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-bold text-navy">{c.name}</p>
+                      <p className="text-xs text-slate-500">
+                        {c.count} {t("itemsWord")}
+                      </p>
+                    </div>
+                    <span className="grid size-8 shrink-0 place-items-center rounded-full bg-slate-50 text-navy shadow-sm transition group-hover:bg-primary group-hover:text-white">
+                      <ChevronRight className="size-4" />
+                    </span>
+                  </div>
+                </a>
+              );
+            })}
           </div>
         </section>
 
@@ -395,53 +428,70 @@ function Storefront() {
           </div>
         </section>
 
-        <section id="services" className="rounded-lg bg-services px-4 py-6 sm:px-6">
-          <SectionHead icon={<Wrench />} title={t("ourServices")} />
-          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+        <section
+          id="services"
+          className="grid gap-6 rounded-3xl bg-gradient-to-br from-slate-50 to-orange-50/40 p-5 ring-1 ring-slate-100 sm:p-8 lg:grid-cols-[minmax(0,320px)_1fr]"
+        >
+          <div className="flex flex-col justify-center">
+            <p className="flex items-center gap-2 text-sm font-black uppercase tracking-wider text-primary">
+              <span className="h-1 w-5 rounded-full bg-primary" /> {t("servicesKicker")}
+            </p>
+            <h2 className="mt-1 text-4xl font-black text-navy">
+              {t("servicesTitle")} <span className="text-primary">{t("servicesTitleAlt")}</span>
+            </h2>
+            <p className="mt-4 leading-relaxed text-slate-600">{t("servicesIntro")}</p>
+            <a
+              href={categoryHref("Services")}
+              className="mt-6 inline-flex w-fit items-center gap-2 rounded-full bg-primary px-6 py-3 font-black text-white shadow-lg shadow-primary/30 transition hover:bg-orange-600"
+            >
+              {t("viewAllServices")} <ChevronRight className="size-5" />
+            </a>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
             {loading ? (
-              <div className="col-span-full py-20 text-center text-sm text-muted-foreground">
+              <div className="col-span-full py-16 text-center text-sm text-muted-foreground">
                 Loading services...
               </div>
             ) : services.length === 0 ? (
-              <div className="col-span-full py-20 text-center text-sm text-muted-foreground">
+              <div className="col-span-full py-16 text-center text-sm text-muted-foreground">
                 No services available yet.
               </div>
             ) : (
-              services.slice(0, 10).map((s) => (
+              services.slice(0, 5).map((s) => (
                 <article
                   key={s.id}
-                  className="group overflow-hidden rounded-md border border-border bg-card shadow-card transition hover:-translate-y-1 hover:shadow-card-hover"
+                  className="group flex flex-col overflow-hidden rounded-2xl bg-white p-2.5 shadow-sm ring-1 ring-slate-100 transition hover:-translate-y-1 hover:shadow-card-hover"
                 >
-                  <div className="aspect-square overflow-hidden bg-muted">
+                  <div className="aspect-[16/10] overflow-hidden rounded-xl bg-muted">
                     <img
                       src={s.image_url}
-                      alt={`${s.title} professional`}
+                      alt={s.title}
                       loading="lazy"
                       className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                     />
                   </div>
-                  <div className="p-3">
-                    {s.store && (
-                      <div className="mb-2 flex items-center gap-1.5 rounded-md bg-slate-50 px-2 py-1">
-                        <Store className="size-3 text-primary" />
-                        <span className="truncate text-[10px] font-bold text-navy">{s.store}</span>
-                      </div>
-                    )}
-                    <h3 className="truncate text-sm font-extrabold text-navy">{s.title}</h3>
-                    <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                  <div className="flex flex-1 flex-col px-1 pb-1 pt-3">
+                    <div className="flex items-start gap-2">
+                      <span className="grid size-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-primary to-orange-600 text-white">
+                        <Wrench className="size-4" />
+                      </span>
+                      <h3 className="text-sm font-black leading-snug text-navy">{s.title}</h3>
+                    </div>
+                    <p className="mt-2 line-clamp-2 flex-1 text-xs leading-relaxed text-slate-500">
                       {s.description || ""}
                     </p>
                     <ServicePrice price={s.price} currency={s.currency} />
-                    <Button
-                      className="mt-4 h-9 w-full px-2 text-xs"
+                    <button
                       type="button"
                       onClick={() => {
                         setSelectedProduct(s as ApiProduct);
                         setOrderModalOpen(true);
                       }}
+                      className="mt-2 inline-flex w-fit items-center gap-1 text-xs font-black text-primary hover:underline"
                     >
-                      <Wrench className="size-4" /> {t("bookNow")}
-                    </Button>
+                      {t("learnMore")} <ArrowRight className="size-3.5" />
+                    </button>
                   </div>
                 </article>
               ))

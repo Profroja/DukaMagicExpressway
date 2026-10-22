@@ -1,12 +1,9 @@
 import { useState } from "react";
 import { TopBar } from "@/components/TopBar";
+import { SiteHeader } from "@/components/SiteHeader";
 import { CategoryBar } from "@/components/CategoryBar";
 import { OrderModal } from "@/components/OrderModal";
-import { BrandLogo } from "@/components/BrandLogo";
-import { CustomerOrders } from "@/components/CustomerOrders";
-import { CustomerCart } from "@/components/CustomerCart";
-import { SmartSearch, type CatalogItem } from "@/components/SmartSearch";
-import { useLanguage } from "@/lib/LanguageContext";
+import type { CatalogItem } from "@/components/SmartSearch";
 
 export type ApiProduct = {
   id: string;
@@ -67,7 +64,6 @@ interface StoreLayoutProps {
 }
 
 export function StoreLayout({ children, activeCategory }: StoreLayoutProps) {
-  const { t } = useLanguage();
   const [orderModalOpen, setOrderModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<ApiProduct | null>(null);
 
@@ -81,54 +77,7 @@ export function StoreLayout({ children, activeCategory }: StoreLayoutProps) {
   return (
     <>
       <TopBar />
-      <header className="sticky top-0 z-40 border-b border-border bg-card/95 shadow-nav backdrop-blur">
-        {/* Desktop Layout */}
-        <div className="mx-auto hidden h-20 max-w-[1500px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 px-4 lg:grid lg:gap-10 lg:px-7">
-          <a
-            href="/"
-            className="flex shrink-0 items-center gap-2"
-            aria-label="DukaHub home"
-          >
-            <BrandLogo />
-            <span className="hidden sm:block">
-              <strong className="block text-2xl font-black leading-none text-navy">
-                Duka<em className="not-italic text-primary">Hub</em>
-              </strong>
-              <small className="text-[10px] font-bold text-muted-foreground">
-                {t("goodsServices")}
-              </small>
-            </span>
-          </a>
-          <SmartSearch placeholder={t("searchPlaceholder")} onSelect={handleSearchSelect} />
-          <div className="flex items-center gap-1 md:gap-3">
-            <CustomerCart />
-            <CustomerOrders />
-          </div>
-        </div>
-
-        {/* Mobile Layout */}
-        <div className="mx-auto max-w-[1500px] px-4 py-3 lg:hidden">
-          <div className="flex items-center justify-between mb-3">
-            <a
-              href="/"
-              className="flex shrink-0 items-center gap-2"
-              aria-label="DukaHub home"
-            >
-              <BrandLogo className="size-9 rounded-lg" />
-              <div>
-                <strong className="block text-xl font-black leading-none text-navy">
-                  Duka<em className="not-italic text-primary">Hub</em>
-                </strong>
-              </div>
-            </a>
-            <div className="flex items-center gap-2">
-              <CustomerCart />
-              <CustomerOrders />
-            </div>
-          </div>
-          <SmartSearch placeholder={t("searchPlaceholder")} compact onSelect={handleSearchSelect} />
-        </div>
-      </header>
+      <SiteHeader onSearchSelect={handleSearchSelect} />
 
       {/* Sidebar + Content */}
       <div className="mx-auto w-full max-w-[1500px] px-4 py-5 lg:px-7">

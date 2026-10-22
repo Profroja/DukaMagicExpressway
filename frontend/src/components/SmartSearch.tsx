@@ -36,7 +36,15 @@ function resultHref(item: CatalogItem) {
   return index === undefined ? "/#products" : `/category/${index}`;
 }
 
-export function SmartSearch({ placeholder, compact = false, onSelect }: { placeholder: string; compact?: boolean; onSelect?: (item: CatalogItem) => boolean | void }) {
+export function SmartSearch({
+  placeholder,
+  compact = false,
+  onSelect,
+}: {
+  placeholder: string;
+  compact?: boolean;
+  onSelect?: (item: CatalogItem) => boolean | void;
+}) {
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<CatalogItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -55,14 +63,20 @@ export function SmartSearch({ placeholder, compact = false, onSelect }: { placeh
     setLoading(true);
     const timer = window.setTimeout(() => {
       fetch("/api/catalog/")
-        .then((response) => response.ok ? response.json() : null)
+        .then((response) => (response.ok ? response.json() : null))
         .then((data) => {
           if (currentRequest !== requestId.current || !data) return;
           const products = Array.isArray(data.products)
-            ? data.products.map((item: Omit<CatalogItem, "tag">) => ({ ...item, tag: "product" as const }))
+            ? data.products.map((item: Omit<CatalogItem, "tag">) => ({
+                ...item,
+                tag: "product" as const,
+              }))
             : [];
           const services = Array.isArray(data.services)
-            ? data.services.map((item: Omit<CatalogItem, "tag">) => ({ ...item, tag: "service" as const }))
+            ? data.services.map((item: Omit<CatalogItem, "tag">) => ({
+                ...item,
+                tag: "service" as const,
+              }))
             : [];
           setItems([...products, ...services]);
         })
@@ -80,14 +94,13 @@ export function SmartSearch({ placeholder, compact = false, onSelect }: { placeh
   const results = useMemo(() => {
     const term = query.trim().toLowerCase();
     if (term.length < 3) return [];
-    return items.filter((item) => [
-      item.title,
-      item.description,
-      item.category,
-      item.subcategory,
-      item.store,
-      item.tag,
-    ].some((value) => value?.toLowerCase().includes(term))).slice(0, 8);
+    return items
+      .filter((item) =>
+        [item.title, item.description, item.category, item.subcategory, item.store, item.tag].some(
+          (value) => value?.toLowerCase().includes(term),
+        ),
+      )
+      .slice(0, 8);
   }, [items, query]);
 
   const showResults = open && query.trim().length >= 3;
@@ -95,7 +108,9 @@ export function SmartSearch({ placeholder, compact = false, onSelect }: { placeh
   return (
     <div className="relative min-w-0">
       <form onSubmit={(event) => event.preventDefault()}>
-        <Search className={`absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground ${compact ? "size-4" : "left-4 size-5"}`} />
+        <Search
+          className={`absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground ${compact ? "size-4" : "left-4 size-5"}`}
+        />
         <input
           value={query}
           onChange={(event) => {
@@ -104,11 +119,22 @@ export function SmartSearch({ placeholder, compact = false, onSelect }: { placeh
           }}
           onFocus={() => setOpen(true)}
           onBlur={() => window.setTimeout(() => setOpen(false), 150)}
-          className={`${compact ? "h-10 pl-10" : "h-11 pl-12"} w-full rounded-full border border-border bg-muted/50 pr-4 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-ring/20`}
+          className={`${compact ? "h-10 bg-muted/50 pl-10 pr-4" : "h-14 border-slate-200 bg-white pl-12 pr-16 text-base shadow-sm"} w-full rounded-full border border-border text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-ring/20`}
           placeholder={placeholder}
           aria-label="Search products and services"
           autoComplete="off"
         />
+        {!compact && (
+          <button
+            type="submit"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => setOpen(true)}
+            className="absolute right-1.5 top-1/2 grid h-11 w-14 -translate-y-1/2 place-items-center rounded-full bg-primary text-white shadow-md shadow-primary/30 transition hover:bg-orange-600"
+            aria-label="Search"
+          >
+            <Search className="size-5" />
+          </button>
+        )}
       </form>
 
       {showResults && (
@@ -149,11 +175,20 @@ export function SmartSearch({ placeholder, compact = false, onSelect }: { placeh
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="truncate text-sm font-extrabold text-navy group-hover:text-primary">{item.title}</p>
-                      <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[9px] font-black uppercase text-primary">{item.tag}</span>
+                      <p className="truncate text-sm font-extrabold text-navy group-hover:text-primary">
+                        {item.title}
+                      </p>
+                      <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[9px] font-black uppercase text-primary">
+                        {item.tag}
+                      </span>
                     </div>
                     <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
-                      {item.store && <><Store className="mr-1 inline size-3" />{item.store} · </>}
+                      {item.store && (
+                        <>
+                          <Store className="mr-1 inline size-3" />
+                          {item.store} ·{" "}
+                        </>
+                      )}
                       {item.subcategory || item.category || item.description || "DukaHub"}
                     </p>
                   </div>
@@ -177,7 +212,9 @@ export function SmartSearch({ placeholder, compact = false, onSelect }: { placeh
             <div className="px-4 py-8 text-center">
               <Search className="mx-auto mb-2 size-7 text-muted-foreground/50" />
               <p className="text-sm font-bold text-navy">No matching products or services</p>
-              <p className="mt-1 text-xs text-muted-foreground">Try another name, category, or store.</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Try another name, category, or store.
+              </p>
             </div>
           )}
         </div>
