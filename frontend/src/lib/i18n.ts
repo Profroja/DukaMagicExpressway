@@ -17,6 +17,8 @@ export const translations = {
     // Hero slides (match the pictures)
     heroRiderTitle: "Anything You Need",
     heroRiderAccent: "Delivered by DukaHub",
+    heroShopTitle: "Shop Everything",
+    heroShopAccent: "Phones, Fashion & Gifts",
     heroGroceriesTitle: "Fresh Groceries",
     heroGroceriesAccent: "Delivered to Your Door",
     heroFoodTitle: "Hungry? Order Food",
@@ -142,6 +144,8 @@ export const translations = {
     // Hero slides
     heroRiderTitle: "Chochote Unachohitaji",
     heroRiderAccent: "Kinaletwa na DukaHub",
+    heroShopTitle: "Nunua Kila Kitu",
+    heroShopAccent: "Simu, Mavazi na Zawadi",
     heroGroceriesTitle: "Mahitaji ya Nyumbani",
     heroGroceriesAccent: "Tunakuletea Mlangoni",
     heroFoodTitle: "Una Njaa? Agiza Chakula",

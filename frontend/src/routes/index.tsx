@@ -30,6 +30,7 @@ import { SmartSearch, type CatalogItem } from "@/components/SmartSearch";
 import { addToCart } from "@/lib/customerCart";
 import { useLanguage } from "@/lib/LanguageContext";
 import riderHeroImage from "@/assets/hero-rider.jpg";
+import shopHeroImage from "@/assets/market-hero.jpg";
 import groceriesHeroImage from "@/assets/hero-groceries.jpg";
 import foodHeroImage from "@/assets/hero-takeout.jpg";
 
@@ -60,6 +61,11 @@ const bannerConfigs = [
     image: riderHeroImage,
     titleKey: "heroRiderTitle",
     accentKey: "heroRiderAccent",
+  },
+  {
+    image: shopHeroImage,
+    titleKey: "heroShopTitle",
+    accentKey: "heroShopAccent",
   },
   {
     image: groceriesHeroImage,
@@ -220,7 +226,7 @@ function Storefront() {
                     key={banner}
                     className="relative z-10 flex min-h-[360px] max-w-xl animate-banner-in flex-col justify-center px-7 py-12 sm:px-14 md:absolute md:inset-y-0 md:left-0 md:min-h-0 md:w-[44%] md:max-w-none md:py-8 lg:px-14"
                   >
-                    <h1 className="text-4xl font-black leading-[1.08] text-navy">
+                    <h1 className="text-[2.6rem] font-black leading-[1.05] text-navy sm:text-5xl lg:text-6xl">
                       {banners[banner].title}{" "}
                       <span className="block text-primary">{banners[banner].accent}</span>
                     </h1>

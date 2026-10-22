@@ -18,6 +18,11 @@ const SLIDES: {
     accent: "heroRiderAccent",
   },
   {
+    image: require("@/assets/images/banners/hero-shop.jpg"),
+    title: "heroShopTitle",
+    accent: "heroShopAccent",
+  },
+  {
     image: require("@/assets/images/banners/hero-groceries.jpg"),
     title: "heroGroceriesTitle",
     accent: "heroGroceriesAccent",
@@ -112,8 +117,8 @@ const styles = StyleSheet.create({
     ...Shadow.raised,
   },
   text: { flex: 1, justifyContent: "center", paddingLeft: 16, paddingRight: "44%" },
-  title: { color: Colors.navy, fontSize: 19, fontWeight: "900", lineHeight: 23 },
-  accent: { marginTop: 2, color: Colors.primary, fontSize: 13, fontWeight: "900", lineHeight: 17 },
+  title: { color: Colors.navy, fontSize: 24, fontWeight: "900", lineHeight: 28 },
+  accent: { marginTop: 4, color: Colors.primary, fontSize: 16, fontWeight: "900", lineHeight: 20 },
   dots: {
     position: "absolute",
     bottom: 10,
