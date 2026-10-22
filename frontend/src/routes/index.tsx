@@ -29,6 +29,7 @@ import { CustomerCart } from "@/components/CustomerCart";
 import { SmartSearch, type CatalogItem } from "@/components/SmartSearch";
 import { addToCart } from "@/lib/customerCart";
 import { useLanguage } from "@/lib/LanguageContext";
+import riderHeroImage from "@/assets/hero-rider.jpg";
 import groceriesHeroImage from "@/assets/hero-groceries.jpg";
 import foodHeroImage from "@/assets/hero-takeout.jpg";
 
@@ -55,6 +56,13 @@ export const Route = createFileRoute("/")({
 });
 
 const bannerConfigs = [
+  {
+    image: riderHeroImage,
+    titleKey: "heroRiderTitle",
+    accentKey: "heroRiderAccent",
+    textKey: "heroRiderText",
+    badgeKey: "heroRiderBadge",
+  },
   {
     image: groceriesHeroImage,
     titleKey: "heroGroceriesTitle",

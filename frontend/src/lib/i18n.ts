@@ -15,6 +15,10 @@ export const translations = {
     allCategories: "All Categories",
 
     // Hero slides (match the pictures)
+    heroRiderTitle: "Anything You Need",
+    heroRiderAccent: "Delivered by DukaHub",
+    heroRiderText: "Products and services from stores near you, brought to your door by our riders. Fast, safe and affordable.",
+    heroRiderBadge: "Fast Delivery",
     heroGroceriesTitle: "Fresh Groceries",
     heroGroceriesAccent: "Delivered to Your Door",
     heroGroceriesText: "Fruits, vegetables, milk, bread and all your household needs. Order now, we bring them to you.",
@@ -142,6 +146,10 @@ export const translations = {
     allCategories: "Kategoria Zote",
 
     // Hero slides
+    heroRiderTitle: "Chochote Unachohitaji",
+    heroRiderAccent: "Kinaletwa na DukaHub",
+    heroRiderText: "Bidhaa na huduma kutoka maduka ya karibu, zinaletwa mlangoni kwako na wasafirishaji wetu. Haraka, salama na kwa bei nafuu.",
+    heroRiderBadge: "Uletewaji wa Haraka",
     heroGroceriesTitle: "Mahitaji ya Nyumbani",
     heroGroceriesAccent: "Tunakuletea Mlangoni",
     heroGroceriesText: "Matunda, mboga, maziwa, mkate na mahitaji yote ya nyumbani. Agiza sasa, tunakuletea.",

@@ -16,6 +16,13 @@ const SLIDES: {
   badge: TranslationKey;
 }[] = [
   {
+    image: require("@/assets/images/banners/hero-rider.jpg"),
+    title: "heroRiderTitle",
+    accent: "heroRiderAccent",
+    text: "heroRiderText",
+    badge: "heroRiderBadge",
+  },
+  {
     image: require("@/assets/images/banners/hero-groceries.jpg"),
     title: "heroGroceriesTitle",
     accent: "heroGroceriesAccent",
