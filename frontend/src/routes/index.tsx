@@ -203,46 +203,90 @@ function Storefront() {
 
       <main className="mx-auto max-w-[1500px] px-4 py-5 lg:px-7">
         <section>
-          <div className="-mx-4 lg:mx-0">
+          <div>
+            {/* Hero section: words on the left, the picture in a card on the right. */}
             <div
-              className="hero relative min-h-[360px] overflow-hidden bg-[#FDF8E9] md:h-[320px] md:min-h-0 lg:h-[360px] lg:rounded-lg lg:border lg:border-border"
+              className="relative overflow-hidden rounded-3xl border border-orange-100 bg-gradient-to-br from-[#FFF7EA] via-[#FDF8E9] to-orange-50/70 shadow-card"
               onMouseEnter={() => setBannerPaused(true)}
               onMouseLeave={() => setBannerPaused(false)}
             >
-              {banners.map((item, index) => (
-                <img
-                  key={item.title}
-                  src={item.image}
-                  width={1600}
-                  height={800}
-                  alt={item.title}
-                  className={`absolute inset-0 h-full w-full object-cover md:object-contain md:object-right transition-all duration-700 ${index === banner ? "scale-100 opacity-100" : "scale-105 opacity-0"}`}
-                />
-              ))}
-              <div className="absolute inset-0 bg-hero-fade" />
-              {banners[banner] && (
-                <>
-                  <div
-                    key={banner}
-                    className="relative z-10 flex min-h-[360px] max-w-xl animate-banner-in flex-col justify-center px-7 py-12 sm:px-14 md:absolute md:inset-y-0 md:left-0 md:min-h-0 md:w-[44%] md:max-w-none md:py-8 lg:px-14"
-                  >
-                    <h1 className="text-[2.6rem] font-black leading-[1.05] text-navy sm:text-5xl lg:text-6xl">
-                      {banners[banner].title}{" "}
-                      <span className="block text-primary">{banners[banner].accent}</span>
+              {/* soft decoration */}
+              <div className="pointer-events-none absolute -left-24 -top-24 size-72 rounded-full bg-primary/15 blur-3xl" />
+              <div className="pointer-events-none absolute -bottom-28 right-1/3 size-72 rounded-full bg-amber-300/20 blur-3xl" />
+              <div
+                className="pointer-events-none absolute inset-0 opacity-[0.35]"
+                style={{
+                  backgroundImage: "radial-gradient(rgba(15,36,59,0.12) 1px, transparent 1px)",
+                  backgroundSize: "22px 22px",
+                }}
+              />
+
+              <div className="relative grid items-center gap-6 p-5 sm:p-8 md:grid-cols-[1fr_1.2fr] md:gap-10 lg:p-12">
+                {/* Words */}
+                {banners[banner] && (
+                  <div key={banner} className="animate-banner-in">
+                    <span className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-primary shadow-sm ring-1 ring-orange-100">
+                      <span className="size-1.5 rounded-full bg-primary" />
+                      DukaHub
+                      <span className="text-slate-400">
+                        {String(banner + 1).padStart(2, "0")} /{" "}
+                        {String(banners.length).padStart(2, "0")}
+                      </span>
+                    </span>
+                    <h1 className="mt-4 text-[2.5rem] font-black leading-[1.05] text-navy sm:text-5xl lg:text-6xl">
+                      {banners[banner].title}
+                      <span className="mt-2 block bg-gradient-to-r from-primary to-orange-600 bg-clip-text text-transparent">
+                        {banners[banner].accent}
+                      </span>
                     </h1>
+                    <div className="mt-7 flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setBanner((banner - 1 + banners.length) % banners.length)}
+                        className="grid size-11 place-items-center rounded-full border border-slate-200 bg-white text-navy shadow-sm transition hover:border-primary hover:text-primary"
+                        aria-label="Previous"
+                      >
+                        <ChevronLeft className="size-5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setBanner((banner + 1) % banners.length)}
+                        className="grid size-11 place-items-center rounded-full bg-primary text-white shadow-md shadow-primary/30 transition hover:bg-orange-600"
+                        aria-label="Next"
+                      >
+                        <ChevronRight className="size-5" />
+                      </button>
+                      <div className="ml-2 flex items-center gap-2">
+                        {banners.map((item, index) => (
+                          <button
+                            key={item.title}
+                            type="button"
+                            onClick={() => setBanner(index)}
+                            className={`h-2.5 rounded-full transition-all ${index === banner ? "w-8 bg-primary" : "w-2.5 bg-navy/20 hover:bg-navy/40"}`}
+                            aria-label={`Show slide ${index + 1}`}
+                          />
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                </>
-              )}
-              <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2">
-                {banners.map((item, index) => (
-                  <button
-                    key={item.title}
-                    type="button"
-                    onClick={() => setBanner(index)}
-                    className={`h-2.5 rounded-full transition-all ${index === banner ? "w-8 bg-primary" : "w-2.5 bg-navy/25 hover:bg-navy/50"}`}
-                    aria-label={`Show banner ${index + 1}`}
-                  />
-                ))}
+                )}
+
+                {/* Picture card: shows the right part of each picture, where the items are */}
+                <div className="relative">
+                  <div className="pointer-events-none absolute -inset-2 rounded-[1.75rem] border-2 border-dashed border-primary/25 sm:-inset-3" />
+                  <div className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-[#FDF8E9] shadow-xl ring-1 ring-orange-100">
+                    {banners.map((item, index) => (
+                      <img
+                        key={item.title}
+                        src={item.image}
+                        width={1600}
+                        height={800}
+                        alt={item.title}
+                        className={`absolute inset-0 h-full w-full object-cover object-right transition-all duration-700 ${index === banner ? "scale-100 opacity-100" : "scale-105 opacity-0"}`}
+                      />
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
             <CategoryBar className="mt-4" />
