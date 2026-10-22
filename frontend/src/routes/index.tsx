@@ -60,22 +60,16 @@ const bannerConfigs = [
     image: riderHeroImage,
     titleKey: "heroRiderTitle",
     accentKey: "heroRiderAccent",
-    textKey: "heroRiderText",
-    badgeKey: "heroRiderBadge",
   },
   {
     image: groceriesHeroImage,
     titleKey: "heroGroceriesTitle",
     accentKey: "heroGroceriesAccent",
-    textKey: "heroGroceriesText",
-    badgeKey: "heroGroceriesBadge",
   },
   {
     image: foodHeroImage,
     titleKey: "heroFoodTitle",
     accentKey: "heroFoodAccent",
-    textKey: "heroFoodText",
-    badgeKey: "heroFoodBadge",
   },
 ] as const;
 
@@ -143,8 +137,6 @@ function Storefront() {
     image: b.image,
     title: t(b.titleKey),
     accent: t(b.accentKey),
-    text: t(b.textKey),
-    badge: t(b.badgeKey),
   }));
 
   useEffect(() => {
@@ -232,21 +224,7 @@ function Storefront() {
                       {banners[banner].title}{" "}
                       <span className="block text-primary">{banners[banner].accent}</span>
                     </h1>
-                    <p className="mt-4 max-w-md text-sm font-medium leading-relaxed text-slate-600 sm:text-base xl:text-lg">
-                      {banners[banner].text}
-                    </p>
-                    <Button
-                      className="mt-6 w-fit rounded-full px-7"
-                      onClick={() =>
-                        document.getElementById("products")?.scrollIntoView({ behavior: "smooth" })
-                      }
-                    >
-                      {t("shopNow")} <ChevronRight />
-                    </Button>
                   </div>
-                  <span className="absolute right-6 top-6 grid size-20 rotate-6 place-items-center rounded-full bg-primary px-2 text-center text-sm font-black leading-tight text-primary-foreground shadow-card animate-float">
-                    {banners[banner].badge}
-                  </span>
                 </>
               )}
               <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2">

@@ -1,4 +1,3 @@
-import Ionicons from "@expo/vector-icons/Ionicons";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useRef, useState } from "react";
@@ -12,29 +11,21 @@ const SLIDES: {
   image: number;
   title: TranslationKey;
   accent: TranslationKey;
-  text: TranslationKey;
-  badge: TranslationKey;
 }[] = [
   {
     image: require("@/assets/images/banners/hero-rider.jpg"),
     title: "heroRiderTitle",
     accent: "heroRiderAccent",
-    text: "heroRiderText",
-    badge: "heroRiderBadge",
   },
   {
     image: require("@/assets/images/banners/hero-groceries.jpg"),
     title: "heroGroceriesTitle",
     accent: "heroGroceriesAccent",
-    text: "heroGroceriesText",
-    badge: "heroGroceriesBadge",
   },
   {
     image: require("@/assets/images/banners/hero-takeout.jpg"),
     title: "heroFoodTitle",
     accent: "heroFoodAccent",
-    text: "heroFoodText",
-    badge: "heroFoodBadge",
   },
 ];
 
@@ -95,15 +86,8 @@ export function HeroCarousel({ width }: { width: number }) {
               style={StyleSheet.absoluteFill}
             />
             <View style={styles.text}>
-              <View style={styles.badge}>
-                <Ionicons name="sparkles" size={10} color="#FFFFFF" />
-                <Text style={styles.badgeText}>{t(slide.badge)}</Text>
-              </View>
               <Text style={styles.title}>{t(slide.title)}</Text>
               <Text style={styles.accent}>{t(slide.accent)}</Text>
-              <Text style={styles.body} numberOfLines={2}>
-                {t(slide.text)}
-              </Text>
             </View>
           </View>
         ))}
@@ -128,21 +112,8 @@ const styles = StyleSheet.create({
     ...Shadow.raised,
   },
   text: { flex: 1, justifyContent: "center", paddingLeft: 16, paddingRight: "44%" },
-  badge: {
-    alignSelf: "flex-start",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginBottom: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.primary,
-  },
-  badgeText: { color: "#FFFFFF", fontSize: 10, fontWeight: "900" },
   title: { color: Colors.navy, fontSize: 19, fontWeight: "900", lineHeight: 23 },
   accent: { marginTop: 2, color: Colors.primary, fontSize: 13, fontWeight: "900", lineHeight: 17 },
-  body: { marginTop: 6, color: "#475569", fontSize: 10.5, lineHeight: 14, fontWeight: "600" },
   dots: {
     position: "absolute",
     bottom: 10,
