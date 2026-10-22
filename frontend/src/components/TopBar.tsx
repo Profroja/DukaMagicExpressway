@@ -1,9 +1,7 @@
 import { Facebook, Instagram, Mail, MapPin, MessageCircle, Phone, Truck } from "lucide-react";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { useLanguage } from "@/lib/LanguageContext";
-
-const PHONE = "+255 123 456 789";
-const EMAIL = "dukaexpressway@gmail.com";
+import { CONTACT_EMAIL, CONTACT_PHONE, telHref, whatsappHref } from "@/lib/contact";
 
 export function TopBar() {
   const { t } = useLanguage();
@@ -15,20 +13,20 @@ export function TopBar() {
           {/* Contact */}
           <div className="flex flex-wrap items-center gap-5">
             <a
-              href={`tel:${PHONE.replace(/\s/g, "")}`}
+              href={telHref}
               className="flex items-center gap-2 transition hover:text-primary"
               aria-label={t("callUs")}
             >
               <Phone className="size-4 text-primary" />
-              <span className="hidden sm:inline">{PHONE}</span>
+              <span className="hidden sm:inline">{CONTACT_PHONE}</span>
             </a>
             <a
-              href={`mailto:${EMAIL}`}
+              href={`mailto:${CONTACT_EMAIL}`}
               className="flex items-center gap-2 transition hover:text-primary"
               aria-label={t("emailUs")}
             >
               <Mail className="size-4 text-primary" />
-              <span className="hidden md:inline">{EMAIL}</span>
+              <span className="hidden md:inline">{CONTACT_EMAIL}</span>
             </a>
             <span className="hidden items-center gap-2 lg:flex">
               <MapPin className="size-4 text-primary" />
@@ -41,8 +39,6 @@ export function TopBar() {
             <span className="hidden items-center gap-2 sm:flex">
               <Truck className="size-4 text-primary" />
               {t("topFastDelivery")}
-              <span className="text-white/30">|</span>
-              <span className="text-primary">Dar es Salaam</span>
             </span>
             <LanguageSelector />
             <div className="flex items-center gap-3">
@@ -65,7 +61,7 @@ export function TopBar() {
                 <Instagram className="size-4" />
               </a>
               <a
-                href={`https://wa.me/${PHONE.replace(/\D/g, "")}`}
+                href={whatsappHref}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="transition hover:scale-110 hover:text-primary"

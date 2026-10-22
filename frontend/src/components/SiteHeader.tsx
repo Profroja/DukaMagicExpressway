@@ -2,7 +2,20 @@ import { BrandLogo } from "@/components/BrandLogo";
 import { CustomerCart } from "@/components/CustomerCart";
 import { CustomerOrders } from "@/components/CustomerOrders";
 import { SmartSearch, type CatalogItem } from "@/components/SmartSearch";
+import { useLocation } from "@tanstack/react-router";
+import { ChevronDown, Home, type LucideIcon } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
+
+type MenuKey = "navHome" | "navGoodsServices" | "navAbout" | "navHelp" | "navContact";
+
+// About / Help / Contact live in the footer for now.
+const MENU: { key: MenuKey; href: string; icon?: LucideIcon; dropdown?: boolean }[] = [
+  { key: "navHome", href: "/", icon: Home },
+  { key: "navGoodsServices", href: "/#products", dropdown: true },
+  { key: "navAbout", href: "#contact" },
+  { key: "navHelp", href: "#contact" },
+  { key: "navContact", href: "#contact" },
+];
 
 /** Logo + tagline, the big search box, and the cart / my orders buttons. */
 export function SiteHeader({
@@ -11,6 +24,7 @@ export function SiteHeader({
   onSearchSelect: (item: CatalogItem) => boolean | void;
 }) {
   const { t } = useLanguage();
+  const { pathname } = useLocation();
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-white/95 shadow-nav backdrop-blur">
       {/* Desktop */}
@@ -56,6 +70,31 @@ export function SiteHeader({
         </div>
         <SmartSearch placeholder={t("searchPlaceholder")} compact onSelect={onSearchSelect} />
       </div>
+      {/* Menu */}
+      <nav className="border-t border-slate-100 bg-white">
+        <div className="mx-auto flex max-w-[1500px] items-center gap-1 overflow-x-auto px-4 [scrollbar-width:none] lg:justify-center lg:px-7">
+          {MENU.map(({ key, href, icon: Icon, dropdown }) => {
+            const active =
+              key === "navGoodsServices" && (pathname === "/" || pathname.startsWith("/category"));
+            return (
+              <a
+                key={key}
+                href={href}
+                className={`relative flex shrink-0 items-center gap-2 px-4 py-3.5 text-sm font-bold transition lg:text-[15px] ${
+                  active ? "bg-orange-50/70 text-primary" : "text-navy hover:text-primary"
+                }`}
+              >
+                {Icon && <Icon className="size-5" />}
+                {t(key)}
+                {dropdown && <ChevronDown className="size-4" />}
+                {active && (
+                  <span className="absolute inset-x-1/3 bottom-1 h-1 rounded-full bg-primary" />
+                )}
+              </a>
+            );
+          })}
+        </div>
+      </nav>
     </header>
   );
 }
