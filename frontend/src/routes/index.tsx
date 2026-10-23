@@ -296,14 +296,20 @@ function Storefront() {
           )}
         </section>
 
-        {/* Services: same cards and sliding rows as the products */}
+        {/* Services: one sliding row of the same cards as the products */}
         <section id="services" className="pb-10">
+          <h2 className="relative pb-2 text-3xl font-black text-navy">
+            {t("servicesHeading")}{" "}
+            <span className="text-primary">{t("servicesHeadingAccent")}</span>
+            <span className="absolute bottom-0 left-0 h-1.5 w-24 rounded-full bg-primary" />
+          </h2>
           {loading ? (
             <div className="py-16 text-center text-sm text-muted-foreground">
               Loading services...
             </div>
           ) : services.length === 0 ? null : (
             <SlidingRows
+              rows={1}
               items={services as ApiProduct[]}
               render={(svc, i, copy) => (
                 <ProductCard
@@ -441,13 +447,18 @@ function ProductCard({
 function SlidingRows<T>({
   items,
   render,
+  rows: rowCount = 2,
 }: {
   items: T[];
   render: (item: T, index: number, copy: boolean) => ReactNode;
+  /** 1 = a single row sliding right-to-left. */
+  rows?: 1 | 2;
 }) {
-  const rows = [items.filter((_, i) => i % 2 === 0), items.filter((_, i) => i % 2 === 1)].filter(
-    (row) => row.length > 0,
-  );
+  const rows = (
+    rowCount === 1
+      ? [items]
+      : [items.filter((_, i) => i % 2 === 0), items.filter((_, i) => i % 2 === 1)]
+  ).filter((row) => row.length > 0);
   return (
     <div className="mt-5 space-y-3">
       {rows.map((row, r) => (
