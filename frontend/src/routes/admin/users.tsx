@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
+  UserPlus,
   Activity,
   Copy,
   Eye,
@@ -17,6 +18,8 @@ import {
   Users as UsersIcon,
 } from "lucide-react";
 import Swal from "sweetalert2";
+import { AddStaffDialog } from "@/components/admin/AddStaffDialog";
+import { useCities } from "@/lib/cities";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +47,7 @@ export const Route = createFileRoute("/admin/users")({
 
 type AdminUser = {
   id: string;
+  city?: string;
   first_name: string;
   last_name: string;
   name: string;
@@ -72,6 +76,7 @@ const ROLE_LABELS: Record<string, string> = {
   vendor_owner: "Vendor Owner",
   admin: "Administrator",
   delivery_agent: "Delivery Agent",
+  staff: "Staff (orders)",
 };
 
 const ROLE_STYLES: Record<string, string> = {
@@ -79,6 +84,7 @@ const ROLE_STYLES: Record<string, string> = {
   vendor_owner: "bg-blue-100 text-blue-700",
   customer: "bg-emerald-100 text-emerald-700",
   delivery_agent: "bg-amber-100 text-amber-700",
+  staff: "bg-teal-100 text-teal-700",
 };
 
 const STORE_STATUS_STYLES: Record<string, string> = {
@@ -92,6 +98,7 @@ const FILTERS = [
   { key: "all", label: "All Users" },
   { key: "vendor_owner", label: "Vendors" },
   { key: "admin", label: "Admins" },
+  { key: "staff", label: "Staff" },
   { key: "customer", label: "Customers" },
   { key: "delivery_agent", label: "Delivery Agents" },
   { key: "inactive", label: "Inactive" },
@@ -106,6 +113,7 @@ function AdminUsersPage() {
   const [editing, setEditing] = useState<AdminUser | null>(null);
   const [saving, setSaving] = useState(false);
   const [resetting, setResetting] = useState<AdminUser | null>(null);
+  const [addingStaff, setAddingStaff] = useState(false);
 
   const loadUsers = async () => {
     setLoading(true);
@@ -217,6 +225,12 @@ function AdminUsersPage() {
             Manage every account on the platform — edit details, activate or deactivate access.
           </p>
         </div>
+        <Button
+          onClick={() => setAddingStaff(true)}
+          className="shrink-0 bg-gradient-to-r from-primary to-orange-600"
+        >
+          <UserPlus className="size-4" /> Add Staff
+        </Button>
       </div>
 
       {/* Stats Grid */}
@@ -319,6 +333,11 @@ function AdminUsersPage() {
                       >
                         {ROLE_LABELS[user.role] || user.role}
                       </Badge>
+                      {user.role === "staff" && (
+                        <p className="mt-1 text-[11px] font-semibold text-slate-500">
+                          {user.city || "All cities"}
+                        </p>
+                      )}
                     </td>
                     <td className="py-3 pr-3">
                       {user.store ? (
@@ -437,6 +456,11 @@ function AdminUsersPage() {
           }
         }}
         onClose={() => setEditing(null)}
+      />
+      <AddStaffDialog
+        open={addingStaff}
+        onClose={() => setAddingStaff(false)}
+        onCreated={(user) => setUsers((prev) => [user as AdminUser, ...prev])}
       />
 
       <ResetPasswordDialog user={resetting} onClose={() => setResetting(null)} />
@@ -655,6 +679,7 @@ type EditPayload = {
   email?: string;
   phone_number?: string;
   role?: string;
+  city?: string;
   is_verified?: boolean;
   email_verified?: boolean;
   is_active?: boolean;
@@ -672,6 +697,7 @@ function EditUserDialog({
   onClose: () => void;
 }) {
   const [form, setForm] = useState<EditPayload>({});
+  const cities = useCities();
 
   useEffect(() => {
     if (user) {
@@ -681,6 +707,7 @@ function EditUserDialog({
         email: user.email || "",
         phone_number: user.phone_number,
         role: user.role,
+        city: user.city || "",
         is_verified: user.is_verified,
         email_verified: user.email_verified,
         is_active: user.is_active,
@@ -763,6 +790,24 @@ function EditUserDialog({
                 </SelectContent>
               </Select>
             </div>
+
+            {form.role === "staff" && (
+              <div className="sm:col-span-2">
+                <Label>City (orders this staff member handles)</Label>
+                <select
+                  value={form.city || ""}
+                  onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
+                  className="mt-1.5 h-10 w-full rounded-md border border-input bg-white px-3 text-sm"
+                >
+                  <option value="">All cities</option>
+                  {cities.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div className="sm:col-span-2 flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-3">
               <div className="space-y-2">

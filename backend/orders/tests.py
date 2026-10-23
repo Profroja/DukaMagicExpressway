@@ -1,7 +1,7 @@
 import json
 
 from django.core import mail
-from django.test import TestCase, override_settings
+from django.test import Client, TestCase, override_settings
 
 from auths.models import User, UserRole
 from catalog.models import Listing, ProductCategory
@@ -626,3 +626,83 @@ class SendToKnownStoreTests(TestCase):
 
         # Store search is admin-only.
         self.assertEqual(self._json("get", "/api/admin/stores/search/?q=a", self.vendor).status_code, 403)
+
+
+class StaffTests(TestCase):
+    """City staff: see their city's orders on the web and in the app; no deleting."""
+
+    SINZA = {"latitude": "-6.780000", "longitude": "39.230000"}      # Dar es Salaam
+    ARUSHA = {"latitude": "-3.370000", "longitude": "36.690000"}     # Arusha
+
+    def setUp(self):
+        self.admin = User.objects.create_user("+255700000201", "pw", role=UserRole.ADMIN)
+        vendor = User.objects.create_user("+255700000202", "pw", role=UserRole.VENDOR_OWNER)
+        store = Store.objects.create(owner=vendor, name="Kariakoo Phones",
+                                     category=StoreCategory.objects.create(name="Electronics"),
+                                     status=StoreStatus.APPROVED)
+        self.listing = Listing.objects.create(store=store, category=ProductCategory.objects.create(name="Phones"),
+                                              title="Tecno Spark", description="Phone", price="300000")
+
+    def _post(self, url, body, client=None, **headers):
+        return (client or self.client).post(url, data=json.dumps(body), content_type="application/json", **headers)
+
+    def _order(self, coords):
+        res = self._post("/api/orders/quick/", {"listing_id": str(self.listing.pk), "quantity": 1,
+                                                "name": "Amina", "phone": "0712345678", **coords})
+        self.assertEqual(res.status_code, 201, res.content)
+        return QuickOrder.objects.get(pk=res.json()["order_id"])
+
+    def _create_staff(self, city="Dar es Salaam"):
+        self.client.force_login(self.admin)
+        res = self._post("/api/admin/users/", {"name": "Neema Staff", "phone_number": "+255711300300",
+                                               "email": "neema@example.com", "city": city})
+        self.assertEqual(res.status_code, 201, res.content)
+        self.client.logout()
+        return res.json()
+
+    def test_orders_get_a_city_and_staff_see_only_theirs(self):
+        dar, arusha = self._order(self.SINZA), self._order(self.ARUSHA)
+        self.assertEqual(dar.city, "Dar es Salaam")
+        self.assertEqual(arusha.city, "Arusha")
+
+        created = self._create_staff()
+        self.assertEqual(created["user"]["role"], "staff")
+        password = created["password"]
+
+        # Web: staff log in, land on Orders, see Dar orders only.
+        login = self._post("/api/login/", {"email": "neema@example.com", "password": password})
+        self.assertEqual(login.json()["redirect"], "/admin/orders")
+        ids = [o["id"] for o in self.client.get("/api/admin/orders/").json()["orders"]]
+        self.assertEqual(ids, [str(dar.pk)])
+        # Can work on their order, not on another city's, and can't delete.
+        ok = self.client.patch(f"/api/admin/orders/{dar.pk}/", data=json.dumps({"status": "contacted"}),
+                               content_type="application/json")
+        self.assertEqual(ok.status_code, 200)
+        other = self.client.patch(f"/api/admin/orders/{arusha.pk}/", data=json.dumps({"status": "contacted"}),
+                                  content_type="application/json")
+        self.assertEqual(other.status_code, 404)
+        self.assertEqual(self.client.delete(f"/api/admin/orders/{dar.pk}/").status_code, 403)
+        # Other admin pages stay admin-only.
+        self.assertEqual(self.client.get("/api/admin/users/").status_code, 403)
+
+    def test_app_login_and_order_list(self):
+        self._order(self.SINZA)
+        self._order(self.ARUSHA)
+        password = self._create_staff()["password"]
+
+        bad = self._post("/api/staff/login/", {"username": "+255711300300", "password": "wrong"})
+        self.assertEqual(bad.status_code, 401)
+        res = self._post("/api/staff/login/", {"username": "+255711300300", "password": password})
+        self.assertEqual(res.status_code, 200, res.content)
+        token = res.json()["token"]
+        self.assertEqual(res.json()["user"]["city"], "Dar es Salaam")
+
+        anon = Client()
+        self.assertEqual(anon.get("/api/staff/orders/").status_code, 401)
+        data = anon.get("/api/staff/orders/", HTTP_AUTHORIZATION=f"Bearer {token}").json()
+        self.assertEqual([o["city"] for o in data["orders"]], ["Dar es Salaam"])
+        self.assertEqual(data["orders"][0]["customer_phone"], "0712345678")
+
+        # Customers and vendors can't use the staff app.
+        vendor_login = self._post("/api/staff/login/", {"username": "+255700000202", "password": "pw"})
+        self.assertEqual(vendor_login.status_code, 403)

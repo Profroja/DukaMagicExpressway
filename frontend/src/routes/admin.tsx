@@ -42,6 +42,7 @@ function AdminLayout() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [adminName, setAdminName] = useState("Admin");
+  const [role, setRole] = useState<string | null>(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const handleLogout = async () => {
@@ -58,9 +59,16 @@ function AdminLayout() {
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (data?.name) setAdminName(data.name);
+        if (data?.role) setRole(data.role);
       })
       .catch(() => {});
   }, []);
+
+  // Staff work on orders only.
+  useEffect(() => {
+    if (role === "staff" && location.pathname !== "/admin/orders")
+      navigate({ to: "/admin/orders" });
+  }, [role, location.pathname, navigate]);
 
   return (
     <div className="flex h-[100dvh] overflow-hidden bg-slate-50">
@@ -99,36 +107,38 @@ function AdminLayout() {
 
         {/* Menu */}
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-          {menuItems.map((item) => {
-            const active = location.pathname === item.href;
-            if (item.href === "#") {
+          {(role === "staff" ? menuItems.filter((i) => i.href === "/admin/orders") : menuItems).map(
+            (item) => {
+              const active = location.pathname === item.href;
+              if (item.href === "#") {
+                return (
+                  <button
+                    key={item.label}
+                    type="button"
+                    className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-700 transition"
+                  >
+                    <item.icon className="size-5 shrink-0" />
+                    <span className="text-sm font-medium">{item.label}</span>
+                  </button>
+                );
+              }
               return (
-                <button
+                <Link
                   key={item.label}
-                  type="button"
-                  className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-700 transition"
+                  to={item.href}
+                  onClick={() => setSidebarOpen(false)}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition ${
+                    active
+                      ? "bg-gradient-to-r from-primary to-orange-600 text-white"
+                      : "text-slate-300 hover:bg-slate-700"
+                  }`}
                 >
                   <item.icon className="size-5 shrink-0" />
                   <span className="text-sm font-medium">{item.label}</span>
-                </button>
+                </Link>
               );
-            }
-            return (
-              <Link
-                key={item.label}
-                to={item.href}
-                onClick={() => setSidebarOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition ${
-                  active
-                    ? "bg-gradient-to-r from-primary to-orange-600 text-white"
-                    : "text-slate-300 hover:bg-slate-700"
-                }`}
-              >
-                <item.icon className="size-5 shrink-0" />
-                <span className="text-sm font-medium">{item.label}</span>
-              </Link>
-            );
-          })}
+            },
+          )}
 
           {/* Logout */}
           <button

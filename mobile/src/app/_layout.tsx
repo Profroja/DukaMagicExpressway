@@ -10,6 +10,7 @@ import { SplashOverlay } from "@/components/SplashOverlay";
 import { Colors } from "@/constants/theme";
 import { LanguageProvider } from "@/lib/i18n";
 import { setupNotifications } from "@/lib/notifications";
+import { StaffProvider, useStaff } from "@/lib/staff";
 import { StoreProvider, useStore } from "@/lib/store";
 
 // Keep the native splash up until the animated one is drawn.
@@ -18,18 +19,28 @@ SplashScreen.setOptions({ duration: 300, fade: true });
 
 function AppShell() {
   const { ready } = useStore();
+  const { session } = useStaff();
 
   // Permission + channel + background checks, and open an order when its alert is tapped.
   useEffect(() => {
     setupNotifications().catch(() => {});
     const open = (response: Notifications.NotificationResponse | null) => {
-      const orderId = response?.notification.request.content.data?.orderId;
-      if (typeof orderId === "string") router.push({ pathname: "/track/[id]", params: { id: orderId } });
+      const data = response?.notification.request.content.data;
+      if (typeof data?.staffOrderId === "string")
+        router.push({ pathname: "/staff/[id]", params: { id: data.staffOrderId } });
+      else if (typeof data?.orderId === "string")
+        router.push({ pathname: "/track/[id]", params: { id: data.orderId } });
     };
     open(Notifications.getLastNotificationResponse());
     const sub = Notifications.addNotificationResponseReceivedListener(open);
     return () => sub.remove();
   }, []);
+
+  // Signed in as staff: the app opens on the staff screens.
+  const signedIn = !!session;
+  useEffect(() => {
+    if (signedIn) router.replace("/staff");
+  }, [signedIn]);
   return (
     <>
       <StatusBar style="dark" />
@@ -47,6 +58,9 @@ function AppShell() {
         <Stack.Screen name="category/[index]" options={{ title: "" }} />
         <Stack.Screen name="categories" options={{ title: "" }} />
         <Stack.Screen name="search" options={{ title: "" }} />
+        <Stack.Screen name="staff/login" options={{ title: "" }} />
+        <Stack.Screen name="staff/index" options={{ headerShown: false, gestureEnabled: false }} />
+        <Stack.Screen name="staff/[id]" options={{ title: "" }} />
         <Stack.Screen
           name="track/[id]"
           options={{ headerShown: false, presentation: "fullScreenModal", gestureEnabled: false }}
@@ -64,7 +78,9 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <LanguageProvider>
         <StoreProvider>
-          <AppShell />
+          <StaffProvider>
+            <AppShell />
+          </StaffProvider>
         </StoreProvider>
       </LanguageProvider>
     </SafeAreaProvider>

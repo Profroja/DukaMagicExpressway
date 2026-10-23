@@ -9,6 +9,8 @@ class UserRole(models.TextChoices):
     VENDOR_OWNER = 'vendor_owner', _('Vendor Owner')
     ADMIN = 'admin', _('Admin')
     DELIVERY_AGENT = 'delivery_agent', _('Delivery Agent')
+    # Takes customer orders in one city: notified in the app, processes them on the web.
+    STAFF = 'staff', _('Staff (orders)')
 
 
 class UserManager(BaseUserManager):
@@ -53,6 +55,11 @@ class User(AbstractUser):
         max_length=20,
         choices=UserRole.choices,
         default=UserRole.CUSTOMER
+    )
+    city = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text=_('For staff: the city whose orders they handle')
     )
     is_verified = models.BooleanField(
         _('verified'),

@@ -255,6 +255,8 @@ class QuickOrder(models.Model):
     customer_name = models.CharField(max_length=120)
     customer_phone = models.CharField(max_length=30)
     delivery_address = models.CharField(max_length=255, blank=True)
+    # Nearest city to the customer's pin; decides which staff handle the order.
+    city = models.CharField(max_length=100, blank=True, db_index=True)
     # Where the customer wants it delivered (their shared GPS / map pin).
     delivery_latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     delivery_longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)

@@ -15,7 +15,6 @@ import { CategoryBar, CategorySidebar } from "@/components/CategoryBar";
 import riderImage from "@/assets/hero-rider.jpg";
 import shopImage from "@/assets/market-hero.jpg";
 import groceriesImage from "@/assets/hero-groceries.jpg";
-import foodImage from "@/assets/hero-takeout.jpg";
 import servicesImage from "@/assets/hero-services.jpg";
 import { useLanguage } from "@/lib/LanguageContext";
 
@@ -81,10 +80,10 @@ function Storefront() {
   const [slide, setSlide] = useState(0);
   const [slidePaused, setSlidePaused] = useState(false);
 
-  // Hero: five pictures (goods, food, services) changing every 6 seconds.
+  // Hero: four pictures (delivery, shopping, groceries, services) changing every 6 seconds.
   useEffect(() => {
     if (slidePaused) return;
-    const timer = window.setInterval(() => setSlide((s) => (s + 1) % 5), 6000);
+    const timer = window.setInterval(() => setSlide((s) => (s + 1) % 4), 6000);
     return () => window.clearInterval(timer);
   }, [slidePaused]);
   const [loading, setLoading] = useState(true);
@@ -118,35 +117,24 @@ function Storefront() {
     {
       image: riderImage,
       title: t("slideRiderTitle"),
-
       tag: t("slideRiderTag"),
       service: false,
     },
     {
       image: shopImage,
       title: t("slideShopTitle"),
-
       tag: t("slideShopTag"),
       service: false,
     },
     {
       image: groceriesImage,
       title: t("slideGroceriesTitle"),
-
       tag: t("slideGroceriesTag"),
-      service: false,
-    },
-    {
-      image: foodImage,
-      title: t("slideFoodTitle"),
-
-      tag: t("slideFoodTag"),
       service: false,
     },
     {
       image: servicesImage,
       title: t("slideServicesTitle"),
-
       tag: t("slideServicesTag"),
       service: true,
     },
@@ -176,7 +164,7 @@ function Storefront() {
                 src={item.image}
                 width={1600}
                 height={800}
-                alt={item.title}
+                alt={item.title.replace("|", " ")}
                 className={`absolute inset-0 h-full w-full object-cover object-[78%_center] transition-all duration-1000 md:object-right ${
                   index === slide ? "scale-100 opacity-100" : "scale-105 opacity-0"
                 }`}
@@ -204,9 +192,11 @@ function Storefront() {
               <span className="inline-flex w-fit items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-black text-white shadow-md shadow-primary/30 sm:text-base">
                 <Truck className="size-5" /> {t("heroEyebrow")}
               </span>
-              <h1 className="mt-6 text-5xl font-black leading-[1.02] tracking-tight text-navy sm:text-6xl xl:text-7xl">
-                {current.title.split(" ").slice(0, -1).join(" ")}{" "}
-                <span className="block text-primary">{current.title.split(" ").slice(-1)}</span>
+              <h1 className="mt-6 text-4xl font-black leading-[1.05] tracking-tight text-navy sm:text-5xl xl:text-6xl">
+                {current.title.split("|")[0]}
+                {current.title.includes("|") && (
+                  <span className="block text-primary">{current.title.split("|")[1]}</span>
+                )}
               </h1>
 
               <a

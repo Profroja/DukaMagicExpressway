@@ -15,7 +15,7 @@ from catalog.views import BLOCKED_STORE_STATUSES, purchasable_listings
 from stores.models import Store, StoreStatus
 from subscriptions.models import SubscriptionInvoice, SubscriptionStatus
 from subscriptions.views import _current_month, store_plan_payload, unpaid_store_ids_for_month
-from auths.views import _is_admin
+from auths.views import _handles_orders, _is_admin
 from .models import (
     ACTIVE_PURCHASE_ORDER_STATUSES,
     PriceStatus,
@@ -26,6 +26,7 @@ from .models import (
     StorePurchaseOrder,
 )
 from . import delivery, notifications
+from .cities import nearest_city
 from .notifications import PLATFORM_BUYER_NAME
 
 
@@ -129,6 +130,7 @@ def quick_order_view(request):
         customer_name=name,
         customer_phone=phone,
         delivery_address=address,
+        city=nearest_city(*coords) if coords else "",
         delivery_latitude=coords[0] if coords else None,
         delivery_longitude=coords[1] if coords else None,
         delivery_distance_km=distance_km,
@@ -532,6 +534,7 @@ def _admin_order_to_dict(order):
         "customer_name": order.customer_name,
         "customer_phone": order.customer_phone,
         "delivery_address": order.delivery_address,
+        "city": order.city,
         "delivery_latitude": str(order.delivery_latitude) if order.delivery_latitude is not None else None,
         "delivery_longitude": str(order.delivery_longitude) if order.delivery_longitude is not None else None,
         "delivery_distance_km": (
@@ -558,6 +561,21 @@ def _admin_order_to_dict(order):
     }
 
 
+def _can_see(user, order):
+    """Admins see every order; staff see their city's orders and ones with no city."""
+    if _is_admin(user):
+        return True
+    city = (getattr(user, "city", "") or "").strip().lower()
+    return not city or not order.city or order.city.lower() == city
+
+
+def _visible_orders(user, queryset):
+    city = (getattr(user, "city", "") or "").strip()
+    if _is_admin(user) or not city:
+        return queryset
+    return queryset.filter(Q(city__iexact=city) | Q(city=""))
+
+
 def _admin_order_queryset():
     return QuickOrder.objects.select_related("store", "listing").prefetch_related(
         "listing__images",
@@ -569,12 +587,12 @@ def _admin_order_queryset():
 @csrf_exempt
 def admin_orders_view(request):
     """Admin: list every customer order with its store purchase orders."""
-    if not _is_admin(request.user):
+    if not _handles_orders(request.user):
         return JsonResponse({"error": "Forbidden"}, status=403)
     if request.method != "GET":
         return JsonResponse({"error": "Method not allowed"}, status=405)
 
-    orders = _admin_order_queryset().order_by("-created_at")
+    orders = _visible_orders(request.user, _admin_order_queryset()).order_by("-created_at")
     items = [_admin_order_to_dict(order) for order in orders]
     counts = {"total": len(items)}
     for choice in QuickOrderStatus:
@@ -597,15 +615,17 @@ ADMIN_SETTABLE_STATUSES = {
 @csrf_exempt
 def admin_order_detail_view(request, order_id):
     """Admin: PATCH status / address / note, DELETE to permanently remove."""
-    if not _is_admin(request.user):
+    if not _handles_orders(request.user):
         return JsonResponse({"error": "Forbidden"}, status=403)
 
     if request.method == "DELETE":
+        if not _is_admin(request.user):
+            return JsonResponse({"error": "Only admins can delete orders."}, status=403)
         # Permanently removes the customer order and every purchase order made
         # for it. Stores still working on one are told it was cancelled.
         with transaction.atomic():
             order = QuickOrder.objects.select_for_update().filter(pk=order_id).first()
-            if order is None:
+            if order is None or not _can_see(request.user, order):
                 return JsonResponse({"error": "Order not found."}, status=404)
             purchase_orders = list(order.purchase_orders.select_related("store__owner"))
             for po in purchase_orders:
@@ -622,7 +642,7 @@ def admin_order_detail_view(request, order_id):
 
         with transaction.atomic():
             order = QuickOrder.objects.select_for_update().filter(pk=order_id).first()
-            if order is None:
+            if order is None or not _can_see(request.user, order):
                 return JsonResponse({"error": "Order not found."}, status=404)
 
             update_fields = ["updated_by", "updated_at"]
@@ -746,13 +766,13 @@ def admin_order_sourcing_view(request, order_id):
     ranked: the exact listing the customer ordered, then title-word matches,
     then same-category listings; cheaper first within a rank.
     """
-    if not _is_admin(request.user):
+    if not _handles_orders(request.user):
         return JsonResponse({"error": "Forbidden"}, status=403)
     if request.method != "GET":
         return JsonResponse({"error": "Method not allowed"}, status=405)
 
     order = QuickOrder.objects.select_related("listing").filter(pk=order_id).first()
-    if order is None:
+    if order is None or not _can_see(request.user, order):
         return JsonResponse({"error": "Order not found."}, status=404)
 
     # Same rule as the public catalog, so the customer's own choice is always
@@ -839,7 +859,7 @@ def admin_create_purchase_order_view(request, order_id):
     or {"store_id", ...}: send the customer's product to a store the admin knows,
     even if that store hasn't listed it (the order's own product is used).
     """
-    if not _is_admin(request.user):
+    if not _handles_orders(request.user):
         return JsonResponse({"error": "Forbidden"}, status=403)
     if request.method != "POST":
         return JsonResponse({"error": "Method not allowed"}, status=405)
@@ -850,7 +870,7 @@ def admin_create_purchase_order_view(request, order_id):
 
     with transaction.atomic():
         order = QuickOrder.objects.select_for_update().filter(pk=order_id).first()
-        if order is None:
+        if order is None or not _can_see(request.user, order):
             return JsonResponse({"error": "Order not found."}, status=404)
         if order.status in (
             QuickOrderStatus.CANCELLED,
@@ -955,7 +975,7 @@ def admin_purchase_order_detail_view(request, po_id):
     {"accept_quote": true} agrees to the price the store proposed.
     Price changes are only possible before the store confirms payment.
     """
-    if not _is_admin(request.user):
+    if not _handles_orders(request.user):
         return JsonResponse({"error": "Forbidden"}, status=403)
     if request.method != "PATCH":
         return JsonResponse({"error": "Method not allowed"}, status=405)
@@ -972,7 +992,7 @@ def admin_purchase_order_detail_view(request, po_id):
             .filter(pk=po_id)
             .first()
         )
-        if po is None:
+        if po is None or not _can_see(request.user, po.customer_order):
             return JsonResponse({"error": "Purchase order not found."}, status=404)
         if po.status not in ACTIVE_PURCHASE_ORDER_STATUSES:
             return JsonResponse({"error": "This purchase order is already closed."}, status=400)

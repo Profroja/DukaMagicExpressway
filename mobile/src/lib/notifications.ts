@@ -6,6 +6,7 @@ import { Platform } from "react-native";
 
 import { fetchOrderStatus, type OrderStatus } from "@/lib/api";
 import { loadOrders, updateOrderStatus } from "@/lib/ordersDb";
+import { fetchStaffOrders, loadSession, SessionExpired, takeNewOrders, type StaffOrder } from "@/lib/staff";
 import type { CustomerOrder } from "@/lib/store";
 
 /**
@@ -15,6 +16,7 @@ import type { CustomerOrder } from "@/lib/store";
  */
 
 const CHANNEL_ID = "orders";
+const STAFF_CHANNEL_ID = "staff-orders";
 export const BACKGROUND_TASK = "duka-order-status-check";
 
 // Show alerts even while the app is open.
@@ -55,6 +57,13 @@ export async function setupNotifications() {
       vibrationPattern: [0, 250, 150, 250],
       lightColor: "#FF5A14",
     });
+    await Notifications.setNotificationChannelAsync(STAFF_CHANNEL_ID, {
+      name: "New orders (staff)",
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 400, 200, 400, 200, 400],
+      lightColor: "#FF5A14",
+      sound: "default",
+    });
   }
   const current = await Notifications.getPermissionsAsync();
   if (!current.granted && current.canAskAgain) await Notifications.requestPermissionsAsync();
@@ -82,6 +91,41 @@ export async function notifyStatusChange(order: CustomerOrder, status: OrderStat
   });
 }
 
+/** Staff: alert for an order they haven't seen yet. */
+export async function notifyNewStaffOrder(order: StaffOrder) {
+  const saved = await AsyncStorage.getItem("duka-language").catch(() => null);
+  const sw = saved === "sw";
+  const item = order.listing_type === "service" ? order.product_title : `${order.quantity}x ${order.product_title}`;
+  const where = order.delivery_address || order.city;
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: sw ? "🛒 Oda mpya" : "🛒 New order",
+      body: `${item} — ${order.customer_name}${where ? ` (${where})` : ""}`,
+      data: { staffOrderId: order.id },
+      sound: true,
+    },
+    trigger: Platform.OS === "android" ? { channelId: STAFF_CHANNEL_ID } : null,
+  });
+}
+
+/**
+ * Staff: fetch their city's orders and alert for new ones. Returns the list,
+ * or null when nobody is signed in as staff (or the session expired).
+ */
+export async function checkStaffOrders(): Promise<StaffOrder[] | null> {
+  const session = await loadSession();
+  if (!session) return null;
+  try {
+    const { orders } = await fetchStaffOrders(session.token);
+    const fresh = await takeNewOrders(orders);
+    for (const order of fresh.slice(0, 5)) await notifyNewStaffOrder(order);
+    return orders;
+  } catch (e) {
+    if (e instanceof SessionExpired) return null;
+    throw e;
+  }
+}
+
 /** Background check: same as the in-app refresh, then alerts for changes. */
 TaskManager.defineTask(BACKGROUND_TASK, async () => {
   try {
@@ -96,6 +140,7 @@ TaskManager.defineTask(BACKGROUND_TASK, async () => {
         }
       } catch {}
     }
+    await checkStaffOrders().catch(() => null);
     return BackgroundTask.BackgroundTaskResult.Success;
   } catch {
     return BackgroundTask.BackgroundTaskResult.Failed;

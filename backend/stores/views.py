@@ -12,7 +12,7 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 
 from auths.models import UserRole
-from auths.views import _generate_password, _is_admin
+from auths.views import _generate_password, _handles_orders, _is_admin
 from catalog.models import ListingType
 from .categories import GOODS_CATEGORIES, SERVICE_CATEGORIES, CategoryError, resolve_store_categories
 from .models import GOODS_ROOT, SERVICES_ROOT, Store, StoreCategory, StoreStatus
@@ -305,7 +305,7 @@ def admin_store_search_view(request):
 
     For sending an order straight to a store or provider the admin knows.
     """
-    if not _is_admin(request.user):
+    if not _handles_orders(request.user):
         return JsonResponse({"error": "Forbidden"}, status=403)
     if request.method != "GET":
         return JsonResponse({"error": "Method not allowed"}, status=405)

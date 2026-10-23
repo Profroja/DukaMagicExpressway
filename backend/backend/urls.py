@@ -23,6 +23,7 @@ from auths import views as auths_views
 from catalog import views as catalog_views
 from orders import delivery as orders_delivery
 from orders import finance as orders_finance
+from orders import staff_api as orders_staff
 from orders import views as orders_views
 from stores import views as stores_views
 from subscriptions import views as subscriptions_views
@@ -43,6 +44,10 @@ urlpatterns = [
     path('api/delivery/quote/', orders_delivery.delivery_quote_view),
     path('api/delivery/map/', orders_delivery.delivery_map_view),
     path('api/orders/quick/', orders_views.quick_order_view),
+    path('api/staff/login/', orders_staff.staff_login_view),
+    path('api/staff/me/', orders_staff.staff_me_view),
+    path('api/staff/orders/', orders_staff.staff_orders_view),
+    path('api/cities/', orders_staff.cities_view),
     path('api/orders/quick/<uuid:order_id>/', orders_views.quick_order_status_view),
     path('api/vendor/orders/', orders_views.vendor_orders_view),
     path('api/vendor/dashboard/', orders_views.vendor_dashboard_view),

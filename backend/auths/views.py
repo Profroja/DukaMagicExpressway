@@ -37,6 +37,7 @@ def _user_payload(user):
         "is_superuser": user.is_superuser,
         "is_staff": user.is_staff,
         "role": getattr(user, "role", None),
+        "city": getattr(user, "city", ""),
         "store": (
             {
                 "name": store.name,
@@ -49,6 +50,8 @@ def _user_payload(user):
 
 
 def _default_redirect(user):
+    if getattr(user, "role", None) == UserRole.STAFF:
+        return "/admin/orders"
     if user.is_superuser or user.is_staff:
         return "/admin"
     if getattr(user, "role", None) == UserRole.VENDOR_OWNER:
@@ -437,6 +440,16 @@ def _is_admin(user):
     )
 
 
+def _is_order_staff(user):
+    """True for active staff accounts (they handle the orders of one city)."""
+    return bool(user.is_authenticated and user.is_active and getattr(user, "role", None) == UserRole.STAFF)
+
+
+def _handles_orders(user):
+    """Admins and staff can work on customer orders."""
+    return _is_admin(user) or _is_order_staff(user)
+
+
 def _admin_user_payload(user):
     store = user.owned_stores.first()
     return {
@@ -447,6 +460,7 @@ def _admin_user_payload(user):
         "phone_number": user.phone_number,
         "email": user.email or "",
         "role": getattr(user, "role", "") or "",
+        "city": getattr(user, "city", "") or "",
         "is_active": user.is_active,
         "is_verified": user.is_verified,
         "email_verified": user.email_verified,
@@ -465,11 +479,69 @@ def _admin_user_payload(user):
     }
 
 
+def _create_staff(request):
+    """POST {"name", "phone_number", "email"?, "city", "password"?}: a staff account.
+
+    The password is generated (and returned once) when left blank.
+    """
+    try:
+        data = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON body"}, status=400)
+    name = (data.get("name") or "").strip()
+    phone = (data.get("phone_number") or "").strip()
+    email = (data.get("email") or "").strip().lower() or None
+    city = (data.get("city") or "").strip()[:100]
+    password = data.get("password") or ""
+    if not name or not phone:
+        return JsonResponse({"error": "Enter the staff member's name and phone number."}, status=400)
+    if len(phone) > 15:
+        return JsonResponse({"error": "Phone number is too long."}, status=400)
+    if not city:
+        return JsonResponse({"error": "Choose the city this staff member handles."}, status=400)
+    if User.objects.filter(phone_number=phone).exists():
+        return JsonResponse({"error": "An account with this phone number already exists."}, status=409)
+    if email:
+        try:
+            validate_email(email)
+        except ValidationError:
+            return JsonResponse({"error": "Enter a valid email."}, status=400)
+        if User.objects.filter(email__iexact=email).exists():
+            return JsonResponse({"error": "An account with this email already exists."}, status=409)
+    generated = not password
+    if generated:
+        password = _generate_password()
+    else:
+        try:
+            validate_password(password)
+        except ValidationError as exc:
+            return JsonResponse({"error": " ".join(exc.messages)}, status=400)
+    names = name.split(maxsplit=1)
+    user = User.objects.create_user(
+        phone_number=phone,
+        password=password,
+        email=email,
+        role=UserRole.STAFF,
+        city=city,
+        first_name=names[0],
+        last_name=names[1] if len(names) > 1 else "",
+        is_active=True,
+        is_verified=True,
+        created_by=request.user,
+    )
+    return JsonResponse(
+        {"success": True, "user": _admin_user_payload(user), "password": password if generated else None},
+        status=201,
+    )
+
+
 @csrf_exempt
 def admin_users_view(request):
-    """Admin: list every user (admins + vendors) with account status."""
+    """Admin: list every user with account status; POST creates a staff account."""
     if not _is_admin(request.user):
         return JsonResponse({"error": "Forbidden"}, status=403)
+    if request.method == "POST":
+        return _create_staff(request)
     if request.method != "GET":
         return JsonResponse({"error": "Method not allowed"}, status=405)
 
@@ -489,6 +561,7 @@ def admin_users_view(request):
                     1 for u in items if u["role"] == UserRole.VENDOR_OWNER
                 ),
                 "admins": sum(1 for u in items if u["role"] == UserRole.ADMIN),
+                "staff": sum(1 for u in items if u["role"] == UserRole.STAFF),
             },
         }
     )
@@ -525,6 +598,9 @@ def admin_user_update_view(request, user_id):
                 {"error": "You cannot demote your own admin role."}, status=400
             )
         user.role = role
+
+    if "city" in data:
+        user.city = (data.get("city") or "").strip()[:100]
 
     if "first_name" in data:
         user.first_name = (data.get("first_name") or "").strip()
