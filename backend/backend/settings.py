@@ -222,7 +222,7 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
 # Public brand details used in email templates (logo must be a public URL so
 # it shows in inboxes even when testing locally).
 SITE_URL = os.getenv("SITE_URL", "https://dukaexpressway.co.tz").rstrip("/")
-SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "dukaexpressway@gmail.com")
+SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "info@dukaexpressway.co.tz")
 
 # Google Routes API key for driving distances (delivery fees). Without it the
 # straight-line distance from the main store is used.

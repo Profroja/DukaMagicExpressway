@@ -13,6 +13,7 @@ import {
   Heart,
   Star,
 } from "lucide-react";
+import { CONTACT_EMAIL, CONTACT_PHONE, telHref } from "@/lib/contact";
 import marketHeroImage from "@/assets/market-hero.jpg";
 import { useLanguage } from "@/lib/LanguageContext";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -101,7 +102,7 @@ export function Footer() {
             <ul className="space-y-4">
               <li>
                 <a
-                  href="tel:+255123456789"
+                  href={telHref}
                   className="flex items-center gap-3 text-sm text-white/80 transition hover:text-primary"
                 >
                   <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/80 to-amber-600/80 text-white">
@@ -111,13 +112,13 @@ export function Footer() {
                     <span className="block text-[10px] font-semibold uppercase tracking-wider text-white/50">
                       Phone
                     </span>
-                    +255 123 456 789
+                    {CONTACT_PHONE}
                   </span>
                 </a>
               </li>
               <li>
                 <a
-                  href="mailto:info@moexpressway.co.tz"
+                  href={`mailto:${CONTACT_EMAIL}`}
                   className="flex items-center gap-3 text-sm text-white/80 transition hover:text-primary"
                 >
                   <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/80 to-amber-600/80 text-white">
@@ -127,7 +128,7 @@ export function Footer() {
                     <span className="block text-[10px] font-semibold uppercase tracking-wider text-white/50">
                       Email
                     </span>
-                    info@moexpressway.co.tz
+                    {CONTACT_EMAIL}
                   </span>
                 </a>
               </li>
