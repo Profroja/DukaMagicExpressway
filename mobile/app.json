@@ -5,14 +5,14 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "dukamagic",
+    "scheme": "sokolink",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.dukamagic.expressway"
+      "bundleIdentifier": "com.sokolink.app"
     },
     "android": {
-      "package": "com.dukamagic.expressway",
+      "package": "com.sokolink.app",
       "adaptiveIcon": {
         "backgroundColor": "#FF5A14",
         "foregroundImage": "./assets/images/adaptive-icon.png"

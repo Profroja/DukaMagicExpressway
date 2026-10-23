@@ -57,7 +57,7 @@ npx eas-cli@latest build --platform ios       # App Store (needs an Apple develo
 ```
 
 Set `EXPO_PUBLIC_API_URL` to your live server before building a release.
-App id: `com.dukamagic.expressway` (in `app.json`).
+App id: `com.sokolink.app` (in `app.json`).
 
 > The splash screen in Expo Go is a preview; Android shows the final splash only in a real build.
 

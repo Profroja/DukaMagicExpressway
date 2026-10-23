@@ -10,7 +10,6 @@ import { AppDownloadSection } from "@/components/AppDownloadSection";
 import { ServicePrice } from "@/components/ServicePrice";
 import type { CatalogItem } from "@/components/SmartSearch";
 import { addToCart } from "@/lib/customerCart";
-import { categoryHref } from "@/lib/categories";
 import { CategoryBar, CategorySidebar } from "@/components/CategoryBar";
 import riderImage from "@/assets/hero-rider.jpg";
 import shopImage from "@/assets/market-hero.jpg";
@@ -281,99 +280,44 @@ function Storefront() {
               ))}
             </div>
           ) : (
-            // Two rows sliding past each other: the first right-to-left, the second left-to-right.
-            <div className="mt-5 space-y-3">
-              {[products.filter((_, i) => i % 2 === 0), products.filter((_, i) => i % 2 === 1)]
-                .filter((row) => row.length > 0)
-                .map((row, r) => (
-                  <Reveal key={r} delay={r * 150}>
-                    <div className="marquee">
-                      <div
-                        className={`marquee-track ${r === 1 ? "reverse" : ""}`}
-                        style={
-                          {
-                            "--marquee-duration": `${Math.max(row.length, 3) * 7}s`,
-                          } as CSSProperties
-                        }
-                      >
-                        {[...row, ...row].map((p, i) => (
-                          <ProductCard
-                            key={`${p.id}-${i}`}
-                            p={p}
-                            onOpen={openOrder}
-                            addLabel={t("addButton")}
-                            className="w-44 shrink-0 sm:w-52"
-                            copy={i >= row.length}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  </Reveal>
-                ))}
-            </div>
+            <SlidingRows
+              items={products}
+              render={(p, i, copy) => (
+                <ProductCard
+                  key={`${p.id}-${i}`}
+                  p={p}
+                  onOpen={openOrder}
+                  addLabel={t("addButton")}
+                  className="w-44 shrink-0 sm:w-52"
+                  copy={copy}
+                />
+              )}
+            />
           )}
         </section>
 
-        <section
-          id="services"
-          className="grid gap-6 rounded-3xl bg-gradient-to-br from-slate-50 to-orange-50/40 p-5 ring-1 ring-slate-100 sm:p-8 lg:grid-cols-[minmax(0,320px)_1fr]"
-        >
-          <div className="flex flex-col justify-center">
-            <p className="flex items-center gap-2 text-sm font-black uppercase tracking-wider text-primary">
-              <span className="h-1 w-5 rounded-full bg-primary" /> {t("servicesKicker")}
-            </p>
-            <h2 className="mt-1 text-4xl font-black text-navy">
-              {t("servicesTitle")} <span className="text-primary">{t("servicesTitleAlt")}</span>
-            </h2>
-            <p className="mt-4 leading-relaxed text-slate-600">{t("servicesIntro")}</p>
-            <a
-              href={categoryHref("Services")}
-              className="mt-6 inline-flex w-fit items-center gap-2 rounded-full bg-primary px-6 py-3 font-black text-white shadow-lg shadow-primary/30 transition hover:bg-orange-600"
-            >
-              {t("viewAllServices")} <ChevronRight className="size-5" />
-            </a>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
-            {loading ? (
-              <div className="col-span-full py-16 text-center text-sm text-muted-foreground">
-                Loading services...
-              </div>
-            ) : services.length === 0 ? (
-              <div className="col-span-full py-16 text-center text-sm text-muted-foreground">
-                No services available yet.
-              </div>
-            ) : (
-              services.slice(0, 5).map((s) => (
-                <article
-                  key={s.id}
-                  onClick={() => openOrder(s as ApiProduct)}
-                  className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl bg-white p-2.5 shadow-sm ring-1 ring-slate-100 transition hover:-translate-y-1 hover:shadow-card-hover"
-                >
-                  <div className="aspect-[16/10] overflow-hidden rounded-xl bg-muted">
-                    <img
-                      src={s.image_url}
-                      alt={s.title}
-                      loading="lazy"
-                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                    />
-                  </div>
-                  <div className="flex flex-1 flex-col px-1 pb-1 pt-3">
-                    <div className="flex items-start gap-2">
-                      <span className="grid size-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-primary to-orange-600 text-white">
-                        <Wrench className="size-4" />
-                      </span>
-                      <h3 className="text-sm font-black leading-snug text-navy">{s.title}</h3>
-                    </div>
-                    <p className="mt-2 line-clamp-2 flex-1 text-xs leading-relaxed text-slate-500">
-                      {s.description || ""}
-                    </p>
-                    <ServicePrice price={s.price} currency={s.currency} />
-                  </div>
-                </article>
-              ))
-            )}
-          </div>
+        {/* Services: same cards and sliding rows as the products */}
+        <section id="services" className="pb-10">
+          {loading ? (
+            <div className="py-16 text-center text-sm text-muted-foreground">
+              Loading services...
+            </div>
+          ) : services.length === 0 ? null : (
+            <SlidingRows
+              items={services as ApiProduct[]}
+              render={(svc, i, copy) => (
+                <ProductCard
+                  key={`${svc.id}-${i}`}
+                  p={svc}
+                  onOpen={openOrder}
+                  addLabel={t("bookNow")}
+                  service
+                  className="w-44 shrink-0 sm:w-52"
+                  copy={copy}
+                />
+              )}
+            />
+          )}
         </section>
 
         <PartnersSection />
@@ -437,12 +381,15 @@ function ProductCard({
   addLabel,
   className = "",
   copy = false,
+  service = false,
 }: {
   p: ApiProduct;
   onOpen: (p: ApiProduct) => void;
   addLabel: string;
   className?: string;
   copy?: boolean;
+  /** Services: price shown as "from", and the button books it. */
+  service?: boolean;
 }) {
   return (
     <article
@@ -465,16 +412,56 @@ function ProductCard({
       <h3 className="mt-3 line-clamp-2 min-h-[2.5rem] text-sm font-bold leading-tight text-navy sm:text-[15px]">
         {p.title}
       </h3>
-      <p className="mt-1 text-base font-black text-primary">
-        Tsh {Number(p.price).toLocaleString()}
-      </p>
+      {service ? (
+        <ServicePrice
+          price={p.price}
+          currency={p.currency}
+          className="mt-1 text-base font-black text-primary"
+        />
+      ) : (
+        <p className="mt-1 text-base font-black text-primary">
+          Tsh {Number(p.price).toLocaleString()}
+        </p>
+      )}
       <button
         type="button"
-        onClick={() => addToCart(p)}
+        onClick={() => (service ? onOpen(p) : addToCart(p))}
         className="mx-auto mt-3 inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2 text-sm font-black text-white shadow-md shadow-primary/25 transition hover:bg-orange-600"
       >
-        <ShoppingCart className="size-4" /> {addLabel}
+        {service ? <Wrench className="size-4" /> : <ShoppingCart className="size-4" />} {addLabel}
       </button>
     </article>
+  );
+}
+
+/**
+ * Two rows sliding past each other (first right-to-left, second left-to-right),
+ * each rising into view. Every row holds its items twice so the loop is seamless.
+ */
+function SlidingRows<T>({
+  items,
+  render,
+}: {
+  items: T[];
+  render: (item: T, index: number, copy: boolean) => ReactNode;
+}) {
+  const rows = [items.filter((_, i) => i % 2 === 0), items.filter((_, i) => i % 2 === 1)].filter(
+    (row) => row.length > 0,
+  );
+  return (
+    <div className="mt-5 space-y-3">
+      {rows.map((row, r) => (
+        <Reveal key={r} delay={r * 150}>
+          <div className="marquee">
+            <div
+              className={`marquee-track ${r === 1 ? "reverse" : ""}`}
+              style={{ "--marquee-duration": `${Math.max(row.length, 3) * 7}s` } as CSSProperties}
+            >
+              {[...row, ...row].map((item, i) => render(item, i, i >= row.length))}
+            </div>
+          </div>
+        </Reveal>
+      ))}
+    </div>
   );
 }
