@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   ArrowLeft,
   ArrowRight,
@@ -63,7 +64,13 @@ interface OrderModalProps {
   initialQuantity?: number | undefined;
 }
 
-export function OrderModal({ product, open, onClose, onOrderSuccess, initialQuantity }: OrderModalProps) {
+export function OrderModal({
+  product,
+  open,
+  onClose,
+  onOrderSuccess,
+  initialQuantity,
+}: OrderModalProps) {
   const { t } = useLanguage();
   const [mounted, setMounted] = useState(false);
   const [quantity, setQuantity] = useState(1);
@@ -317,7 +324,9 @@ export function OrderModal({ product, open, onClose, onOrderSuccess, initialQuan
   const itemLabel = isService ? product.title : `${quantity}x ${product.title}`;
   const isDelivered = orderStatus === "delivered";
 
-  return (
+  // Rendered on <body> so it always centres over the whole page, even when opened from the
+  // header's cart (its backdrop blur would otherwise trap a fixed overlay inside the header).
+  return createPortal(
     <div
       className={`fixed inset-0 z-[9999] flex items-end justify-center p-0 transition-all duration-300 sm:items-center sm:p-4 ${
         open ? "opacity-100" : "opacity-0 pointer-events-none"
@@ -423,8 +432,7 @@ export function OrderModal({ product, open, onClose, onOrderSuccess, initialQuan
                     </>
                   ) : (
                     <>
-                      Thank you for shopping with{" "}
-                      <b className="text-white">SokoLink</b>. Your{" "}
+                      Thank you for shopping with <b className="text-white">SokoLink</b>. Your{" "}
                       <b className="text-white">{itemLabel}</b>{" "}
                       {isService ? "is complete" : "has been delivered"}.
                     </>
@@ -531,9 +539,7 @@ export function OrderModal({ product, open, onClose, onOrderSuccess, initialQuan
               <div className="text-left">
                 <p className="text-xs font-bold text-white">{itemLabel}</p>
                 <p className="text-[11px] text-slate-400">
-                  {isSwahili
-                    ? "Inaletwa na SokoLink"
-                    : "Delivered by SokoLink"}
+                  {isSwahili ? "Inaletwa na SokoLink" : "Delivered by SokoLink"}
                 </p>
               </div>
               {isService ? (
@@ -880,9 +886,7 @@ export function OrderModal({ product, open, onClose, onOrderSuccess, initialQuan
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-extrabold text-navy">{product.title}</p>
                         <p className="text-xs text-muted-foreground">
-                          {isService
-                            ? "SokoLink"
-                            : `${quantity}x · SokoLink`}
+                          {isService ? "SokoLink" : `${quantity}x · SokoLink`}
                         </p>
                       </div>
                       {isService ? (
@@ -979,6 +983,7 @@ export function OrderModal({ product, open, onClose, onOrderSuccess, initialQuan
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
