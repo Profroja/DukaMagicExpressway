@@ -356,7 +356,8 @@ function Storefront() {
               services.slice(0, 5).map((s) => (
                 <article
                   key={s.id}
-                  className="group flex flex-col overflow-hidden rounded-2xl bg-white p-2.5 shadow-sm ring-1 ring-slate-100 transition hover:-translate-y-1 hover:shadow-card-hover"
+                  onClick={() => openOrder(s as ApiProduct)}
+                  className="group flex cursor-pointer flex-col overflow-hidden rounded-2xl bg-white p-2.5 shadow-sm ring-1 ring-slate-100 transition hover:-translate-y-1 hover:shadow-card-hover"
                 >
                   <div className="aspect-[16/10] overflow-hidden rounded-xl bg-muted">
                     <img
@@ -377,16 +378,6 @@ function Storefront() {
                       {s.description || ""}
                     </p>
                     <ServicePrice price={s.price} currency={s.currency} />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedProduct(s as ApiProduct);
-                        setOrderModalOpen(true);
-                      }}
-                      className="mt-2 inline-flex w-fit items-center gap-1 text-xs font-black text-primary hover:underline"
-                    >
-                      {t("learnMore")} <ArrowRight className="size-3.5" />
-                    </button>
                   </div>
                 </article>
               ))
