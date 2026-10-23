@@ -170,8 +170,9 @@ function Storefront() {
                 }`}
               />
             ))}
-            {/* light fade under the words */}
-            <div className="absolute inset-0 bg-gradient-to-b from-white/90 via-white/75 to-white/30 md:bg-gradient-to-r md:from-white/85 md:via-white/45 md:via-40% md:to-transparent" />
+            {/* White blur under the words, fading out left to right so the picture on the right stays clear */}
+            <div className="absolute inset-0 backdrop-blur-md [mask-image:linear-gradient(to_bottom,black_55%,transparent_90%)] md:[mask-image:linear-gradient(to_right,black_0%,black_38%,transparent_62%)]" />
+            <div className="absolute inset-0 bg-gradient-to-b from-white/90 via-white/75 to-white/20 md:bg-[linear-gradient(to_right,rgba(255,255,255,0.94)_0%,rgba(255,255,255,0.82)_38%,rgba(255,255,255,0.35)_52%,transparent_64%)]" />
             {/* corner swoosh */}
             <div className="pointer-events-none absolute -bottom-20 -right-16 size-56 rounded-full border-[16px] border-primary" />
             <div className="pointer-events-none absolute -bottom-28 -right-6 size-56 rounded-full bg-navy" />

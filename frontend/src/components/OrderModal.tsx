@@ -59,9 +59,11 @@ interface OrderModalProps {
   open: boolean;
   onClose: () => void;
   onOrderSuccess?: (product: OrderModalProduct, quantity: number) => void;
+  /** From the cart: start with this quantity, straight at the contact step. */
+  initialQuantity?: number | undefined;
 }
 
-export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModalProps) {
+export function OrderModal({ product, open, onClose, onOrderSuccess, initialQuantity }: OrderModalProps) {
   const { t } = useLanguage();
   const [mounted, setMounted] = useState(false);
   const [quantity, setQuantity] = useState(1);
@@ -81,8 +83,8 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
   useEffect(() => {
     if (open) {
       setMounted(true);
-      setQuantity(1);
-      setStep(product?.listing_type === "service" ? "contact" : "details");
+      setQuantity(initialQuantity ?? 1);
+      setStep(product?.listing_type === "service" || initialQuantity ? "contact" : "details");
       setName("");
       setPhone("");
       setAddress("");

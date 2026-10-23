@@ -1,12 +1,17 @@
-import { Minus, Plus, ShoppingBag, ShoppingCart, Store, Trash2, X } from "lucide-react";
+import { Minus, Plus, ShoppingBag, ShoppingCart, Store, Trash2, X, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
+import { OrderModal } from "@/components/OrderModal";
+import { useLanguage } from "@/lib/LanguageContext";
 import { CART_EVENT, getCart, getCartCount, removeFromCart, setCartQuantity, type CartItem } from "@/lib/customerCart";
 
 export function CustomerCart() {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<CartItem[]>([]);
+  // The cart item being ordered (orders are one product each).
+  const [ordering, setOrdering] = useState<CartItem | null>(null);
+  const { t } = useLanguage();
   const load = () => setItems(getCart());
 
   useEffect(() => {
@@ -69,6 +74,7 @@ export function CustomerCart() {
                         <button onClick={() => setCartQuantity(item.id, item.quantity - 1)} className="flex size-8 items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-50"><Minus className="size-3.5" /></button>
                         <span className="min-w-7 text-center text-sm font-black text-navy">{item.quantity}</span>
                         <button onClick={() => setCartQuantity(item.id, item.quantity + 1)} className="flex size-8 items-center justify-center rounded-lg border border-slate-200 hover:bg-slate-50"><Plus className="size-3.5" /></button>
+                        <button onClick={() => setOrdering(item)} className="ml-auto inline-flex h-8 items-center gap-1 rounded-lg bg-primary px-3 text-xs font-black text-white hover:bg-orange-600"><Zap className="size-3.5 fill-current" /> {t("orderNow")}</button>
                       </div>
                     </div>
                   </div>
@@ -79,13 +85,21 @@ export function CustomerCart() {
             {items.length > 0 && (
               <div className="border-t border-slate-200 bg-white p-4 sm:p-5">
                 <div className="mb-4 flex items-center justify-between"><span className="font-bold text-slate-600">Total</span><span className="text-xl font-black text-primary">{currency} {total.toLocaleString()}</span></div>
-                <Button className="h-12 w-full rounded-xl text-base font-black" onClick={() => setOpen(false)}>Continue Shopping</Button>
+                <Button className="h-12 w-full rounded-xl text-base font-black" onClick={() => items[0] && setOrdering(items[0])}><Zap className="size-5 fill-current" /> {t("orderNow")}</Button>
               </div>
             )}
           </aside>
         </div>,
         document.body
       )}
+
+      <OrderModal
+        product={ordering}
+        open={!!ordering}
+        initialQuantity={ordering?.quantity}
+        onClose={() => setOrdering(null)}
+        onOrderSuccess={(product) => removeFromCart(product.id)}
+      />
     </div>
   );
 }
