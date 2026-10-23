@@ -7,7 +7,7 @@ export const Route = createFileRoute("/vendor/")({
   component: VendorDashboard,
 });
 
-// Purchase orders from DukaHub - customer details are never exposed to vendors.
+// Purchase orders from SokoLink - customer details are never exposed to vendors.
 type RecentOrder = {
   id: string;
   po_number: string;

@@ -25,7 +25,7 @@ export function AppHeader({ title, subtitle }: { title?: string; subtitle?: stri
         ) : (
           <>
             <Text style={styles.brand}>
-              Duka<Text style={{ color: Colors.primary }}>Hub</Text>
+              Soko<Text style={{ color: Colors.primary }}>Link</Text>
             </Text>
             <Text style={styles.subtitle}>{t("tagline")}</Text>
           </>

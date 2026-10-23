@@ -135,7 +135,7 @@ export function CustomerOrders() {
                             <p className="truncate text-sm font-black text-navy">{order.title}</p>
                             <span className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-black ${statusStyle[order.status]}`}>{statusLabel[order.status]}</span>
                           </div>
-                          <p className="mt-1 truncate text-xs text-muted-foreground">Delivered by DukaHub</p>
+                          <p className="mt-1 truncate text-xs text-muted-foreground">Delivered by SokoLink</p>
                           <p className="mt-2 text-sm font-black text-primary">{order.currency} {order.total.toLocaleString()} <span className="font-semibold text-slate-400">· x{order.quantity}</span></p>
                         </div>
                       </div>

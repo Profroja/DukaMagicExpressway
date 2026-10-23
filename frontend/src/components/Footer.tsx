@@ -42,7 +42,7 @@ export function Footer() {
               <BrandLogo className="ring-2 ring-white/20" />
               <div>
                 <strong className="block text-xl leading-none text-white">
-                  Duka<em className="not-italic text-primary">Hub</em>
+                  Soko<em className="not-italic text-primary">Link</em>
                 </strong>
                 <small className="text-[9px] font-semibold text-white/80">
                   {t("goodsServices")}
@@ -154,7 +154,7 @@ export function Footer() {
         <div className="mx-auto max-w-[1500px] px-4 py-4 lg:px-7">
           <div className="flex flex-col items-center justify-between gap-3 text-center text-xs text-white md:flex-row md:text-left">
             <p className="font-medium">
-              © {currentYear} DukaHub. {t("rights")}{" "}
+              © {currentYear} SokoLink. {t("rights")}{" "}
               <Heart className="inline size-3.5 fill-current text-primary" /> {t("inTanzania")}
             </p>
             <div className="flex flex-wrap items-center justify-center gap-4 font-medium">

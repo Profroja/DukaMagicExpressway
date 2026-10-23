@@ -130,7 +130,7 @@ export function LanguageGate() {
       <div className="lang-zoom relative h-[46dvh] min-h-[260px] w-full overflow-hidden lg:fixed lg:inset-0 lg:h-full">
         <img
           src="/images/language-hero.jpg"
-          alt="Shopping with DukaHub"
+          alt="Shopping with SokoLink"
           className="h-full w-full object-cover object-[28%_center] lg:object-left"
         />
         <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#0a1f5c] to-transparent lg:hidden" />
@@ -144,7 +144,7 @@ export function LanguageGate() {
             <BrandLogo className="size-12 rounded-2xl ring-2 ring-white/20" />
             <div>
               <p className="text-lg font-black leading-none text-white">
-                Duka<span className="text-primary">Hub</span>
+                Soko<span className="text-primary">Link</span>
               </p>
               <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-white/50">
                 Goods &amp; Services

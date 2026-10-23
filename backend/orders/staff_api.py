@@ -1,6 +1,6 @@
 """API for the mobile app's staff screens.
 
-Staff sign in with their DukaHub account and get a token (the app sends it as
+Staff sign in with their SokoLink account and get a token (the app sends it as
 "Authorization: Bearer <token>"). The app lists the orders of the staff's
 city and alerts them to new ones; they process orders on the website.
 """
@@ -70,7 +70,7 @@ def staff_login_view(request):
     if user is None or not user.is_active:
         return JsonResponse({"error": "Wrong phone/email or password."}, status=401)
     if not _handles_orders(user):
-        return JsonResponse({"error": "This account is not a DukaHub staff account."}, status=403)
+        return JsonResponse({"error": "This account is not a SokoLink staff account."}, status=403)
     return JsonResponse({"token": make_token(user), "user": _profile(user)})
 
 

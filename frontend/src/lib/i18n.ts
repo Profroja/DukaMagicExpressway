@@ -21,7 +21,7 @@ export const translations = {
     servicesKicker: "Our Services",
     servicesTitle: "Services",
     servicesTitleAlt: "(Huduma)",
-    servicesIntro: "Not just goods: we also bring you quality services for your everyday needs. Whatever service you need, DukaHub is ready to help.",
+    servicesIntro: "Not just goods: we also bring you quality services for your everyday needs. Whatever service you need, SokoLink is ready to help.",
     heroEyebrow: "Tanzania's Online Store",
     slideRiderTitle: "The Best Products, Foods, Grocery and Services|Delivery App",
     slideRiderTag: "Fast & Safe",
@@ -77,7 +77,7 @@ export const translations = {
 
     // App download section
     appEyebrow: "Get the app",
-    appTitle: "Shop faster with the DukaHub app",
+    appTitle: "Shop faster with the SokoLink app",
     appSubtitle: "Order goods, book services and follow every delivery — right from your phone.",
     appFeature1: "Order in a few taps",
     appFeature2: "Track every delivery live",
@@ -88,7 +88,7 @@ export const translations = {
 
     // Partners section (vendor sign-up + login)
     partnersEyebrow: "For vendors & partners",
-    partnersTitle: "Grow with DukaHub",
+    partnersTitle: "Grow with SokoLink",
     partnersSubtitle: "Sell your goods and services to more customers — we buy from you and handle delivery.",
     joinUsTitle: "Jiunge Nasi",
     joinUsDesc: "Register your business and start receiving orders.",
@@ -176,7 +176,7 @@ export const translations = {
     servicesKicker: "Huduma Zetu",
     servicesTitle: "Huduma",
     servicesTitleAlt: "(Services)",
-    servicesIntro: "Si tu bidhaa, tunatoa pia huduma bora kukidhi mahitaji yako ya kila siku. Ukihitaji huduma, DukaHub iko tayari kukusaidia.",
+    servicesIntro: "Si tu bidhaa, tunatoa pia huduma bora kukidhi mahitaji yako ya kila siku. Ukihitaji huduma, SokoLink iko tayari kukusaidia.",
     heroEyebrow: "Duka la Mtandao la Tanzania",
     slideRiderTitle: "Bidhaa, Chakula, Mahitaji na Huduma|Bora Zinaletwa Kwako",
     slideRiderTag: "Haraka na Salama",
@@ -232,7 +232,7 @@ export const translations = {
 
     // App download section
     appEyebrow: "Pakua programu",
-    appTitle: "Nunua haraka zaidi kwa programu ya DukaHub",
+    appTitle: "Nunua haraka zaidi kwa programu ya SokoLink",
     appSubtitle: "Agiza bidhaa, weka huduma na fuatilia kila usafirishaji — moja kwa moja kwenye simu yako.",
     appFeature1: "Agiza kwa kugusa mara chache",
     appFeature2: "Fuatilia kila usafirishaji",
@@ -243,7 +243,7 @@ export const translations = {
 
     // Partners section (vendor sign-up + login)
     partnersEyebrow: "Kwa wauzaji na washirika",
-    partnersTitle: "Kua pamoja na DukaHub",
+    partnersTitle: "Kua pamoja na SokoLink",
     partnersSubtitle: "Uza bidhaa na huduma zako kwa wateja wengi zaidi — tunanunua kwako na kushughulikia usafirishaji.",
     joinUsTitle: "Jiunge Nasi",
     joinUsDesc: "Sajili biashara yako na anza kupokea maagizo.",

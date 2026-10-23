@@ -67,7 +67,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
             <div className="relative z-10 mb-3 flex items-center justify-center gap-2">
               <span className="brand-mark text-white">ME</span>
               <strong className="text-2xl font-black text-white">
-                Duka<em className="not-italic text-primary">Hub</em>
+                Soko<em className="not-italic text-primary">Link</em>
               </strong>
             </div>
 
@@ -156,7 +156,7 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
           {/* Footer */}
           <div className="border-t border-slate-100 bg-slate-50 px-8 py-4 text-center">
             <p className="text-xs text-slate-400">
-              By continuing, you agree to DukaHub's{" "}
+              By continuing, you agree to SokoLink's{" "}
               <span className="font-semibold text-slate-500">Terms of Service</span> &{" "}
               <span className="font-semibold text-slate-500">Privacy Policy</span>
             </p>

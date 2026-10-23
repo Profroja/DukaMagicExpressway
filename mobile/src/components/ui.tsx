@@ -16,7 +16,7 @@ export function BrandLogo({ size = 40 }: { size?: number }) {
       source={require("@/assets/images/logo.png")}
       style={{ width: size, height: size, borderRadius: size * 0.28 }}
       contentFit="cover"
-      accessibilityLabel="DukaHub"
+      accessibilityLabel="SokoLink"
     />
   );
 }

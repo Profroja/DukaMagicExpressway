@@ -188,9 +188,9 @@ def register_request_view(request):
 
     link = f"{settings.FRONTEND_URL}/register?token={verification.token}"
     try:
-        subject = "Verify your email to start selling on DukaHub"
+        subject = "Verify your email to start selling on SokoLink"
         text_body = (
-            f"Welcome to DukaHub!\n\n"
+            f"Welcome to SokoLink!\n\n"
             f"Please verify your email address to continue with your vendor "
             f"registration.\n\n{link}\n\n"
             f"(It expires in 24 hours. If you didn't request this, you can "

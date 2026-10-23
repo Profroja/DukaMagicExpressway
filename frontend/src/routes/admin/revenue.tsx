@@ -154,7 +154,7 @@ function AdminRevenuePage() {
         <div>
           <h1 className="text-2xl font-black text-slate-900">Revenue</h1>
           <p className="mt-1 text-sm text-slate-500">
-            What DukaHub earned in {monthLabel(month)}: profit on orders plus subscription
+            What SokoLink earned in {monthLabel(month)}: profit on orders plus subscription
             income.
           </p>
         </div>

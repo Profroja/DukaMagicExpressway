@@ -34,11 +34,11 @@ import {
 export const Route = createFileRoute("/register")({
   head: () => ({
     meta: [
-      { title: "Vendor Registration | DukaHub" },
+      { title: "Vendor Registration | SokoLink" },
       {
         name: "description",
         content:
-          "Register your business on DukaHub and start selling goods and services today.",
+          "Register your business on SokoLink and start selling goods and services today.",
       },
     ],
   }),
@@ -287,7 +287,7 @@ function RegisterPage() {
               <BrandLogo className="size-12 rounded-2xl ring-2 ring-white/20" />
               <div>
                 <strong className="block text-2xl font-black leading-none text-white">
-                  Duka<em className="not-italic text-primary">Hub</em>
+                  Soko<em className="not-italic text-primary">Link</em>
                 </strong>
                 <small className="text-xs font-bold text-white/70">{t("goodsServices")}</small>
               </div>

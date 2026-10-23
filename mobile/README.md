@@ -1,6 +1,6 @@
-# DukaHub — mobile app
+# SokoLink — mobile app
 
-The customer app (Android & iOS) for DukaHub, built with Expo / React Native.
+The customer app (Android & iOS) for SokoLink, built with Expo / React Native.
 It uses **the same API as the website** (`backend/`), so orders placed in the app appear on the
 admin Orders page exactly like website orders.
 

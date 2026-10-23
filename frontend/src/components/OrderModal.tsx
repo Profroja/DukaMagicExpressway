@@ -258,7 +258,7 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
         listingId: product.id,
         title: product.title,
         imageUrl: product.image_url,
-        store: "DukaHub",
+        store: "SokoLink",
         quantity,
         total: totalPrice + fee,
         currency,
@@ -290,7 +290,7 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
     }
   };
 
-  // The customer only ever deals with DukaHub; which store supplies the goods stays internal.
+  // The customer only ever deals with SokoLink; which store supplies the goods stays internal.
   const trackingSteps: {
     key: string;
     label: string;
@@ -415,14 +415,14 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
                 <p className="mt-3 max-w-sm text-sm leading-relaxed text-slate-300">
                   {isSwahili ? (
                     <>
-                      Asante kwa kununua na <b className="text-white">DukaHub</b>.{" "}
+                      Asante kwa kununua na <b className="text-white">SokoLink</b>.{" "}
                       <b className="text-white">{itemLabel}</b>{" "}
                       {isService ? "imekamilika" : "imekufikia"}.
                     </>
                   ) : (
                     <>
                       Thank you for shopping with{" "}
-                      <b className="text-white">DukaHub</b>. Your{" "}
+                      <b className="text-white">SokoLink</b>. Your{" "}
                       <b className="text-white">{itemLabel}</b>{" "}
                       {isService ? "is complete" : "has been delivered"}.
                     </>
@@ -462,15 +462,15 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
                 <p className="mt-3 flex items-center justify-center gap-1 text-sm text-slate-300">
                   {orderStatus === "picked_up"
                     ? isSwahili
-                      ? "DukaHub inakuletea agizo lako"
-                      : "DukaHub is bringing your order to you"
+                      ? "SokoLink inakuletea agizo lako"
+                      : "SokoLink is bringing your order to you"
                     : orderStatus === "confirmed" || orderStatus === "sourcing"
                       ? isSwahili
                         ? "Tunakusanya bidhaa zako"
                         : "We are getting your items ready"
                       : isSwahili
-                        ? `DukaHub itakupigia ${phone} kuthibitisha`
-                        : `DukaHub will call ${phone} to confirm`}
+                        ? `SokoLink itakupigia ${phone} kuthibitisha`
+                        : `SokoLink will call ${phone} to confirm`}
                   <span className="ml-1 flex gap-1">
                     <span className="size-1.5 rounded-full bg-primary animate-bounce" />
                     <span
@@ -530,8 +530,8 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
                 <p className="text-xs font-bold text-white">{itemLabel}</p>
                 <p className="text-[11px] text-slate-400">
                   {isSwahili
-                    ? "Inaletwa na DukaHub"
-                    : "Delivered by DukaHub"}
+                    ? "Inaletwa na SokoLink"
+                    : "Delivered by SokoLink"}
                 </p>
               </div>
               {isService ? (
@@ -861,8 +861,8 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
                       </h2>
                       <p className="mt-1 text-xs text-muted-foreground">
                         {isSwahili
-                          ? "Weka jina na namba yako ya simu — DukaHub itakupigia na kukuletea."
-                          : "Enter your name and phone — DukaHub will call you and deliver."}
+                          ? "Weka jina na namba yako ya simu — SokoLink itakupigia na kukuletea."
+                          : "Enter your name and phone — SokoLink will call you and deliver."}
                       </p>
                     </div>
 
@@ -879,8 +879,8 @@ export function OrderModal({ product, open, onClose, onOrderSuccess }: OrderModa
                         <p className="truncate text-sm font-extrabold text-navy">{product.title}</p>
                         <p className="text-xs text-muted-foreground">
                           {isService
-                            ? "DukaHub"
-                            : `${quantity}x · DukaHub`}
+                            ? "SokoLink"
+                            : `${quantity}x · SokoLink`}
                         </p>
                       </div>
                       {isService ? (

@@ -98,7 +98,7 @@ function PhoneMockup() {
           <div className="bg-gradient-to-br from-primary to-orange-600 px-4 pb-4 pt-9 text-white">
             <div className="flex items-center gap-2">
               <BrandLogo className="size-7 rounded-lg ring-2 ring-white/40" />
-              <span className="text-xs font-black">DukaHub</span>
+              <span className="text-xs font-black">SokoLink</span>
               <MapPin className="ml-auto size-3.5 opacity-80" />
             </div>
             <div className="mt-3 flex items-center gap-2 rounded-full bg-white/95 px-3 py-1.5 text-[10px] text-slate-400">

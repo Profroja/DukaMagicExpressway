@@ -93,7 +93,7 @@ function AdminLayout() {
           <div className="flex items-center gap-2">
             <BrandLogo className="size-8 rounded-lg" />
             <span className="font-bold text-lg text-white">
-              Duka<em className="not-italic text-primary">Hub</em>
+              Soko<em className="not-italic text-primary">Link</em>
             </span>
           </div>
           <button

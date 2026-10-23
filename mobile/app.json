@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "DukaHub",
+    "name": "SokoLink",
     "slug": "duka-magic-expressway",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -31,7 +31,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "DukaHub uses your location to deliver your order and calculate the delivery fee."
+          "locationWhenInUsePermission": "SokoLink uses your location to deliver your order and calculate the delivery fee."
         }
       ],
       [

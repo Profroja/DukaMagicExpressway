@@ -21,13 +21,13 @@ import { useLanguage } from "@/lib/LanguageContext";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "DukaHub | Products & Services at Your Fingertips" },
+      { title: "SokoLink | Products & Services at Your Fingertips" },
       {
         name: "description",
         content:
           "Shop quality products and book trusted services with fast delivery across Tanzania.",
       },
-      { property: "og:title", content: "DukaHub | Everything in One Place" },
+      { property: "og:title", content: "SokoLink | Everything in One Place" },
       {
         property: "og:description",
         content:

@@ -87,7 +87,7 @@ export function AddStaffDialog({
           </DialogTitle>
           <DialogDescription>
             {result
-              ? `${result.name} can sign in on the DukaHub app (person icon at the top) to get order alerts, and at /login on the website to process orders.`
+              ? `${result.name} can sign in on the SokoLink app (person icon at the top) to get order alerts, and at /login on the website to process orders.`
               : "Staff get alerts for new orders in their city on the app and process them on the website."}
           </DialogDescription>
         </DialogHeader>

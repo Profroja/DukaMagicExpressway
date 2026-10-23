@@ -1,4 +1,4 @@
-"""Monthly revenue for DukaHub.
+"""Monthly revenue for SokoLink.
 
 How the money is counted for a month:
 

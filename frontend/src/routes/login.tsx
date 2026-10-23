@@ -11,8 +11,8 @@ import heroImage from "@/assets/market-hero.jpg";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [
-    { title: "Login | DukaHub" },
-    { name: "description", content: "Login to your DukaHub account" },
+    { title: "Login | SokoLink" },
+    { name: "description", content: "Login to your SokoLink account" },
   ]}),
   component: LoginPage,
 });
@@ -135,7 +135,7 @@ function LoginPage() {
               <BrandLogo className="size-14 rounded-2xl ring-2 ring-white/20" />
               <div>
                 <strong className="block text-3xl font-black leading-none text-white">
-                  Duka<em className="not-italic text-primary">Hub</em>
+                  Soko<em className="not-italic text-primary">Link</em>
                 </strong>
                 <small className="text-xs font-bold text-white/70">{t('goodsServices')}</small>
               </div>

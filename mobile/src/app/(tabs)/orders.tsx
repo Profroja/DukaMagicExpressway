@@ -126,7 +126,7 @@ function OrderCard({ order, language }: { order: CustomerOrder; language: string
         <Ionicons name="chevron-forward" size={18} color={Colors.textFaint} />
       </View>
       <View style={styles.footer}>
-        <Text style={styles.footerText}>DukaHub</Text>
+        <Text style={styles.footerText}>SokoLink</Text>
         <Text style={styles.footerText}>
           {new Date(order.createdAt).toLocaleString(language === "sw" ? "sw-TZ" : "en-GB", {
             day: "numeric",

@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { API_URL, ApiError } from "@/lib/api";
 
 /**
- * Staff mode. DukaHub staff sign in from the person icon in the header; the
+ * Staff mode. SokoLink staff sign in from the person icon in the header; the
  * app then shows the orders of their city and alerts them to new ones. They
  * call the customer and process the order on the website.
  */

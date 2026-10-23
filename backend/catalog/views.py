@@ -20,7 +20,7 @@ BLOCKED_STORE_STATUSES = (StoreStatus.SUSPENDED, StoreStatus.REJECTED)
 
 
 def purchasable_listings():
-    """Listings customers can order - and therefore DukaHub can buy.
+    """Listings customers can order - and therefore SokoLink can buy.
 
     The single rule shared by the public catalog, order placement and admin
     sourcing, so a customer can never order something the admin cannot then

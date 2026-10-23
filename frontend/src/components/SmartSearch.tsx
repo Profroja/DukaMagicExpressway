@@ -189,7 +189,7 @@ export function SmartSearch({
                           {item.store} ·{" "}
                         </>
                       )}
-                      {item.subcategory || item.category || item.description || "DukaHub"}
+                      {item.subcategory || item.category || item.description || "SokoLink"}
                     </p>
                   </div>
                   {item.tag === "service" ? (

@@ -82,11 +82,11 @@ class PlatformBuyerFlowTests(TestCase):
         self.assertEqual(order["margin"], "70000.00")
         po_id = res.json()["purchase_order_id"]
 
-        # The chosen vendor sees the PO with DukaHub as buyer - no customer data -
+        # The chosen vendor sees the PO with SokoLink as buyer - no customer data -
         # and the negotiated price next to its usual listing price.
         res = self._json("get", "/api/vendor/orders/", self.other_vendor)
         po = res.json()["orders"][0]
-        self.assertEqual(po["buyer"], "DukaHub")
+        self.assertEqual(po["buyer"], "SokoLink")
         self.assertEqual(po["unit_price"], "415000.00")
         self.assertEqual(po["listing_price"], "420000.00")
         self.assertEqual(po["total"], "830000.00")
@@ -240,7 +240,7 @@ class PlatformBuyerFlowTests(TestCase):
         self.assertEqual([m.to for m in sent], [["gadgets@example.com"]])
         vendor_mail = sent[0]
         content = vendor_mail.body + vendor_mail.alternatives[0].content
-        self.assertIn("DukaHub", content)
+        self.assertIn("SokoLink", content)
         for secret in ("Amina", "0712345678", "Sinza"):
             self.assertNotIn(secret, content)
 

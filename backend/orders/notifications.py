@@ -25,7 +25,7 @@ from auths.models import UserRole
 logger = logging.getLogger(__name__)
 
 # Name shown to vendors as the buyer on every purchase order.
-PLATFORM_BUYER_NAME = "DukaHub"
+PLATFORM_BUYER_NAME = "SokoLink"
 
 
 def _money(currency, amount):

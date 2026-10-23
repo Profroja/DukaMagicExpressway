@@ -202,7 +202,7 @@ function AdminDeliveryPage() {
                   className="mt-1.5"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. DukaHub - Kariakoo"
+                  placeholder="e.g. SokoLink - Kariakoo"
                 />
               </div>
               <div>
