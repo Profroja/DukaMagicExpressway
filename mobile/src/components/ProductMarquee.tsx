@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { Animated, Easing, StyleSheet, View } from "react-native";
 
-import { ListingCard } from "@/components/ListingCard";
+import { ProductTile } from "@/components/ProductTile";
 import type { Listing } from "@/lib/api";
 
-const CARD_WIDTH = 150;
+const CARD_WIDTH = 148;
 const GAP = 12;
 const PX_PER_SECOND = 28;
 
@@ -13,10 +13,13 @@ const PX_PER_SECOND = 28;
  * website's Popular Products. Each row repeats its items so the loop never
  * shows a gap; tapping a card opens it.
  */
-export function ProductMarquee({ items }: { items: Listing[] }) {
+export function ProductMarquee({ items, rows: rowCount = 2 }: { items: Listing[]; rows?: 1 | 2 }) {
   if (items.length === 0) return null;
-  // One row for a handful of products, two once there are enough.
-  const rows = items.length >= 6 ? [items.filter((_, i) => i % 2 === 0), items.filter((_, i) => i % 2 === 1)] : [items];
+  // One row for a handful of items (or when asked), two once there are enough.
+  const rows =
+    rowCount === 2 && items.length >= 6
+      ? [items.filter((_, i) => i % 2 === 0), items.filter((_, i) => i % 2 === 1)]
+      : [items];
   return (
     <View style={{ gap: GAP }}>
       {rows.map((row, i) => (
@@ -51,7 +54,7 @@ function MarqueeRow({ items, reverse }: { items: Listing[]; reverse: boolean }) 
     <View style={styles.viewport}>
       <Animated.View style={[styles.track, { transform: [{ translateX: offset }] }]}>
         {[...base, ...base].map((item, i) => (
-          <ListingCard key={`${item.id}-${i}`} item={item} width={CARD_WIDTH} />
+          <ProductTile key={`${item.id}-${i}`} item={item} width={CARD_WIDTH} />
         ))}
       </Animated.View>
     </View>
@@ -59,6 +62,6 @@ function MarqueeRow({ items, reverse }: { items: Listing[]; reverse: boolean }) 
 }
 
 const styles = StyleSheet.create({
-  viewport: { overflow: "hidden", marginHorizontal: -16, paddingHorizontal: 16 },
+  viewport: { overflow: "hidden", marginHorizontal: -16, paddingHorizontal: 16, paddingVertical: 6 },
   track: { flexDirection: "row", gap: GAP },
 });

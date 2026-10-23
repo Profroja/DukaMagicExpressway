@@ -25,7 +25,7 @@ export function AppHeader({ title, subtitle }: { title?: string; subtitle?: stri
         ) : (
           <>
             <Text style={styles.brand}>
-              Soko<Text style={{ color: Colors.primary }}>Link</Text>
+              SokoLink
             </Text>
             <Text style={styles.subtitle}>{t("tagline")}</Text>
           </>
@@ -39,7 +39,7 @@ export function AppHeader({ title, subtitle }: { title?: string; subtitle?: stri
         accessibilityRole="button"
         accessibilityLabel={t("staffLogin")}
       >
-        <Ionicons name={session ? "person" : "person-circle-outline"} size={20} color={Colors.navy} />
+        <Ionicons name={session ? "person" : "person-outline"} size={18} color="#FFFFFF" />
       </Pressable>
       <Pressable
         onPress={toggle}
@@ -48,7 +48,7 @@ export function AppHeader({ title, subtitle }: { title?: string; subtitle?: stri
         accessibilityRole="button"
         accessibilityLabel={t("language")}
       >
-        <Ionicons name="globe-outline" size={14} color={Colors.navy} />
+        <Ionicons name="globe-outline" size={14} color="#FFFFFF" />
         <Text style={styles.langText}>{language === "en" ? "EN" : "SW"}</Text>
       </Pressable>
     </View>
@@ -61,30 +61,30 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     paddingHorizontal: 16,
-    paddingBottom: 12,
-    backgroundColor: "#FFFFFF",
-    borderBottomWidth: 1,
-    borderBottomColor: "#F1F5F9",
+    paddingBottom: 16,
+    backgroundColor: Colors.primary,
+    borderBottomLeftRadius: 26,
+    borderBottomRightRadius: 26,
   },
-  brand: { fontSize: 17, fontWeight: "900", color: Colors.navy },
-  title: { fontSize: 19, fontWeight: "900", color: Colors.navy },
-  subtitle: { fontSize: 11, fontWeight: "600", color: Colors.textMuted, marginTop: 1 },
+  brand: { fontSize: 20, fontWeight: "900", color: "#FFFFFF" },
+  title: { fontSize: 21, fontWeight: "900", color: "#FFFFFF" },
+  subtitle: { fontSize: 11.5, fontWeight: "600", color: "rgba(255,255,255,0.85)", marginTop: 1 },
   lang: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    paddingHorizontal: 10,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#F1F5F9",
+    paddingHorizontal: 11,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.2)",
   },
-  langText: { fontSize: 12, fontWeight: "900", color: Colors.navy },
+  langText: { fontSize: 12, fontWeight: "900", color: "#FFFFFF" },
   staff: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F1F5F9",
+    backgroundColor: "rgba(255,255,255,0.2)",
   },
 });

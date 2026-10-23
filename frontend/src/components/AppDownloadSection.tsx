@@ -1,7 +1,7 @@
-import { CheckCircle2, MapPin, Search, ShoppingBag, Star, Truck, Wrench } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import type { ReactNode } from "react";
-import { BrandLogo } from "@/components/BrandLogo";
 import { useLanguage } from "@/lib/LanguageContext";
+import appShowcase from "@/assets/app-showcase.jpg";
 
 /**
  * Store links for the mobile apps. Leave a link empty until the app is
@@ -79,65 +79,6 @@ function StoreBadge({
   );
 }
 
-/** Decorative phone showing a preview of the shopping app. */
-function PhoneMockup() {
-  const cards = [
-    { tone: "from-orange-100 to-amber-50", icon: ShoppingBag, w: "w-3/4" },
-    { tone: "from-sky-100 to-blue-50", icon: Wrench, w: "w-2/3" },
-    { tone: "from-emerald-100 to-teal-50", icon: ShoppingBag, w: "w-4/5" },
-    { tone: "from-rose-100 to-pink-50", icon: Wrench, w: "w-1/2" },
-  ];
-  return (
-    <div aria-hidden="true" className="relative mx-auto w-[240px] sm:w-[260px]">
-      <div className="absolute -inset-6 rounded-[3rem] bg-white/20 blur-2xl" />
-      <div className="relative rounded-[2.6rem] bg-slate-950 p-2.5 shadow-2xl ring-1 ring-black/20">
-        <div className="relative overflow-hidden rounded-[2.1rem] bg-slate-50">
-          {/* notch */}
-          <div className="absolute left-1/2 top-2 z-10 h-5 w-24 -translate-x-1/2 rounded-full bg-slate-950" />
-          {/* app header */}
-          <div className="bg-gradient-to-br from-primary to-orange-600 px-4 pb-4 pt-9 text-white">
-            <div className="flex items-center gap-2">
-              <BrandLogo className="size-7 rounded-lg ring-2 ring-white/40" />
-              <span className="text-xs font-black">SokoLink</span>
-              <MapPin className="ml-auto size-3.5 opacity-80" />
-            </div>
-            <div className="mt-3 flex items-center gap-2 rounded-full bg-white/95 px-3 py-1.5 text-[10px] text-slate-400">
-              <Search className="size-3" /> Search products & services
-            </div>
-          </div>
-          {/* product grid */}
-          <div className="grid grid-cols-2 gap-2 p-3">
-            {cards.map((card, i) => (
-              <div key={i} className="rounded-xl bg-white p-1.5 shadow-sm">
-                <div
-                  className={`flex aspect-square items-center justify-center rounded-lg bg-gradient-to-br ${card.tone}`}
-                >
-                  <card.icon className="size-6 text-slate-400/70" />
-                </div>
-                <div className={`mt-1.5 h-1.5 ${card.w} rounded-full bg-slate-200`} />
-                <div className="mt-1 flex items-center justify-between">
-                  <div className="h-1.5 w-8 rounded-full bg-primary/70" />
-                  <Star className="size-2.5 fill-amber-400 text-amber-400" />
-                </div>
-              </div>
-            ))}
-          </div>
-          {/* delivery toast */}
-          <div className="mx-3 mb-4 flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-white shadow-lg">
-            <span className="flex size-6 items-center justify-center rounded-full bg-emerald-500">
-              <Truck className="size-3.5" />
-            </span>
-            <div className="leading-tight">
-              <div className="text-[9px] font-black">On the way</div>
-              <div className="text-[8px] text-white/60">Arriving today</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /** Home page section inviting shoppers to download the mobile app. */
 export function AppDownloadSection() {
   const { t } = useLanguage();
@@ -154,7 +95,7 @@ export function AppDownloadSection() {
       <div className="pointer-events-none absolute -bottom-24 right-1/3 size-80 rounded-full bg-orange-700/30 blur-3xl" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.12)_1px,transparent_0)] [background-size:22px_22px]" />
 
-      <div className="relative mx-auto grid max-w-5xl items-center gap-10 md:grid-cols-[1.2fr_1fr]">
+      <div className="relative mx-auto grid max-w-5xl items-center gap-10 md:grid-cols-[1fr_1.1fr]">
         {/* Copy */}
         <div className="text-center md:text-left">
           <p className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] ring-1 ring-white/25">
@@ -194,9 +135,16 @@ export function AppDownloadSection() {
           </div>
         </div>
 
-        {/* Phone */}
+        {/* The app on two phones */}
         <div className="md:justify-self-end">
-          <PhoneMockup />
+          <img
+            src={appShowcase}
+            alt="SokoLink app: home screen and the Groceries list"
+            width={1000}
+            height={835}
+            loading="lazy"
+            className="w-full max-w-md rounded-3xl drop-shadow-2xl transition duration-500 hover:-translate-y-1 md:max-w-lg"
+          />
         </div>
       </div>
     </section>

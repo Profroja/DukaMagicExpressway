@@ -15,6 +15,11 @@ const en = {
   // home
   searchPlaceholder: "Search products & services",
   // Hero slides (match the pictures)
+  shopNow: "Shop Now",
+  more: "More",
+  all: "All",
+  searchIn: "Search in {name}...",
+  added: "Added",
   heroRiderTitle: "Anything You Need",
   heroRiderAccent: "Delivered by SokoLink",
   heroShopTitle: "Shop Everything",
@@ -190,6 +195,11 @@ const sw: Record<Key, string> = {
   tabOrders: "Maagizo",
   searchPlaceholder: "Tafuta bidhaa na huduma",
   // Hero slides
+  shopNow: "Nunua Sasa",
+  more: "Zaidi",
+  all: "Zote",
+  searchIn: "Tafuta ndani ya {name}...",
+  added: "Imeongezwa",
   heroRiderTitle: "Chochote Unachohitaji",
   heroRiderAccent: "Kinaletwa na SokoLink",
   heroShopTitle: "Nunua Kila Kitu",
