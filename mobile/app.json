@@ -39,7 +39,8 @@
         {
           "icon": "./assets/images/adaptive-icon.png",
           "color": "#FF5A14",
-          "defaultChannel": "orders"
+          "defaultChannel": "orders",
+          "sounds": ["./assets/sounds/new_order.wav"]
         }
       ],
       [

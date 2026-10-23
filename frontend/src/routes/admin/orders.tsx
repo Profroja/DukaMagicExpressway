@@ -67,6 +67,9 @@ type PurchaseOrder = {
   payment_status: "unpaid" | "paid";
   paid_at: string | null;
   amount_received: string | null;
+  payment_method?: string;
+  payment_method_label?: string;
+  payment_reference?: string;
   price_status: PriceStatus;
   vendor_quote: string | null;
   vendor_quote_note: string;
@@ -324,19 +327,15 @@ function AdminOrdersPage() {
   };
 
   const editPrice = async (order: AdminOrder, po: PurchaseOrder) => {
-    const quoteLine =
-      po.price_status === "vendor_proposed" && po.vendor_quote
-        ? `<br/>The store asked for <b>${money(po.currency, po.vendor_quote)}</b> in total.`
-        : "";
     const result = await Swal.fire({
-      title: po.price_status === "vendor_proposed" ? "Counter-offer" : "Offer a new price",
-      html: `${po.po_number} · ${po.quantity}x ${escapeHtml(po.product_title)} at <b>${escapeHtml(po.store)}</b>${quoteLine}<br/>The store gets an email and must accept your offer again.`,
+      title: "Change the price paid to the store",
+      html: `${po.po_number} · ${po.quantity}x ${escapeHtml(po.product_title)} at <b>${escapeHtml(po.store)}</b><br/>Enter the price you agreed with the store.`,
       input: "number",
       inputLabel: `Price per unit we pay (${po.currency})`,
       inputValue: Number(po.unit_price) > 0 ? String(Number(po.unit_price)) : "",
       inputAttributes: { min: "1", step: "any" },
       showCancelButton: true,
-      confirmButtonText: "Send offer",
+      confirmButtonText: "Save price",
       confirmButtonColor: "#ea580c",
       cancelButtonColor: "#64748b",
       inputValidator: (value) =>
@@ -346,28 +345,6 @@ function AdminOrdersPage() {
       send(order.id, `/api/admin/purchase-orders/${po.id}/`, "PATCH", {
         unit_price: result.value,
       });
-  };
-
-  const acceptQuote = async (order: AdminOrder, po: PurchaseOrder) => {
-    if (!po.vendor_quote) return;
-    const margin = Number(order.total) - Number(po.vendor_quote);
-    const confirm = await Swal.fire({
-      title: `Accept ${money(po.currency, po.vendor_quote)}?`,
-      html:
-        `${escapeHtml(po.store)} asks <b>${money(po.currency, po.vendor_quote)}</b> for ${po.quantity}x ${escapeHtml(po.product_title)}.` +
-        (po.vendor_quote_note ? `<br/><i>“${escapeHtml(po.vendor_quote_note)}”</i>` : "") +
-        (order.price_on_request
-          ? "<br/><br/>You haven't set the customer's price yet."
-          : `<br/><br/>Customer pays ${money(order.currency, order.total)} → margin <b>${money(order.currency, margin)}</b>.`) +
-        "<br/>The order will be confirmed with the store.",
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonText: "Accept price",
-      confirmButtonColor: "#059669",
-      cancelButtonColor: "#64748b",
-    });
-    if (confirm.isConfirmed)
-      send(order.id, `/api/admin/purchase-orders/${po.id}/`, "PATCH", { accept_quote: true });
   };
 
   /** Agreed price before closing; on a closed order, corrects the amount actually paid. */
@@ -563,176 +540,181 @@ function AdminOrdersPage() {
     },
   ];
 
-  const renderActions = (order: AdminOrder) => {
-    const busy = busyId === order.id;
-    const po = activePurchaseOrder(order);
-    // Delivered orders can only move on to closed; closed/cancelled are final.
-    const closed = ["delivered", "closed", "cancelled"].includes(order.status);
-    return (
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        {order.status === "new" && (
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={busy}
-            onClick={() => setStatus(order, "contacted")}
-          >
-            <PhoneCall className="size-4" /> Contacted
-          </Button>
-        )}
-        {(order.status === "new" || order.status === "contacted") && (
-          <Button
-            size="sm"
-            disabled={busy}
-            className="bg-cyan-600 text-white hover:bg-cyan-700"
-            onClick={() => setStatus(order, "confirmed")}
-          >
-            <CheckCircle2 className="size-4" /> Confirm
-          </Button>
-        )}
-        {order.status === "confirmed" && (
-          <Button
-            size="sm"
-            disabled={busy}
-            className="bg-gradient-to-r from-primary to-orange-600 text-white"
-            onClick={() => setSourcingOrder(order)}
-          >
-            <ShoppingCart className="size-4" />{" "}
-            {order.listing_type === "service" ? "Book provider" : "Buy from store"}
-          </Button>
-        )}
-        {po && po.price_status === "vendor_proposed" && po.vendor_quote && (
-          <Button
-            size="sm"
-            disabled={busy}
-            className="bg-emerald-600 text-white hover:bg-emerald-700"
-            onClick={() => acceptQuote(order, po)}
-          >
-            <CheckCircle2 className="size-4" /> Accept {money(po.currency, po.vendor_quote)}
-          </Button>
-        )}
-        {po && (po.status === "accepted" || po.status === "ready") && (
-          <Button
-            size="sm"
-            disabled={busy || po.payment_status !== "paid"}
-            className="bg-indigo-600 text-white hover:bg-indigo-700"
-            onClick={() => markPickedUp(order, po)}
-            title={
-              po.payment_status !== "paid"
-                ? "The store must mark this order as paid first"
-                : "Mark as picked up from the store"
-            }
-          >
-            <PackageCheck className="size-4" /> Picked up
-          </Button>
-        )}
-        {po && po.payment_status !== "paid" && (
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={busy}
-            className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
-            onClick={() => editPrice(order, po)}
-          >
-            <Pencil className="size-4" />{" "}
-            {po.price_status === "vendor_proposed"
-              ? "Counter-offer"
-              : po.price_status === "awaiting_quote"
-                ? "Offer a price"
-                : "Edit price"}
-          </Button>
-        )}
-        {po && (
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={busy}
-            className="border-amber-200 text-amber-700 hover:bg-amber-50"
-            onClick={() => cancelPurchaseOrder(order, po)}
-          >
-            <StoreIcon className="size-4" /> Change store
-          </Button>
-        )}
-        {order.status === "picked_up" && (
-          <Button
-            size="sm"
-            disabled={busy}
-            className="bg-emerald-600 text-white hover:bg-emerald-700"
-            onClick={() => markDelivered(order)}
-          >
-            <Truck className="size-4" /> Delivered
-          </Button>
-        )}
-        {order.status === "delivered" && (
-          <Button
-            size="sm"
-            disabled={busy}
-            className="bg-emerald-600 text-white hover:bg-emerald-700"
-            onClick={() => closeOrder(order)}
-          >
-            <Receipt className="size-4" /> Close order
-          </Button>
-        )}
-        {!closed && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-red-200 text-red-600 hover:bg-red-50"
-            disabled={busy}
-            onClick={() => cancelOrder(order)}
-            title="Cancel order"
-          >
-            <XCircle className="size-4" />
-          </Button>
-        )}
-        <Button
-          variant="outline"
-          size="sm"
-          className="border-slate-200 text-slate-500 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
-          disabled={busy}
-          onClick={() => deleteOrder(order)}
-          title="Delete order"
-        >
-          <Trash2 className="size-4" />
-        </Button>
-      </div>
-    );
+  /** What to do now, in plain words. */
+  const nextStep = (order: AdminOrder) => {
+    const step = currentStep(order);
+    const booking = order.listing_type === "service";
+    if (order.status === "cancelled") return "This order was cancelled.";
+    switch (step) {
+      case 0:
+        return `Call ${order.customer_name} on ${order.customer_phone} to confirm the order.`;
+      case 1:
+        return booking
+          ? "Choose the provider who will do the job, at the price you agreed with them."
+          : "Choose the store you are buying from, at the price you agreed with them.";
+      case 2:
+        return "Pay the store, then record the payment here.";
+      case 3:
+        return booking
+          ? "Confirm the provider has started the job."
+          : "Collect the items from the store.";
+      case 4:
+        return booking ? "Mark it done when the job is finished." : "Deliver to the customer.";
+      case 5:
+        return "Record exactly what the customer paid to close the order.";
+      default:
+        return "Done. This order is complete.";
+    }
   };
 
-  /** What the admin should do next for this order, in plain words. */
-  const nextStep = (order: AdminOrder) => {
+  /** The panel under the stepper: the form/buttons for the current step. */
+  const renderStepPanel = (order: AdminOrder) => {
+    const busy = busyId === order.id;
     const po = activePurchaseOrder(order);
+    const step = currentStep(order);
     const booking = order.listing_type === "service";
-    switch (order.status) {
-      case "new":
-        return "Call the customer to confirm the order, then mark it Contacted or Confirm.";
-      case "contacted":
-        return "Confirm the order once the customer agrees.";
-      case "confirmed":
-        return booking
-          ? "Book a provider: choose a store and send the booking."
-          : "Buy it from a store: choose a store and send the purchase order.";
-      case "sourcing":
-        if (!po) return "The store dropped out. Choose another store.";
-        if (po.price_status === "vendor_proposed")
-          return "The store proposed its own price. Accept it or make a counter-offer.";
-        if (po.price_status === "awaiting_quote") return "Waiting for the store to send its price.";
-        if (po.status === "sent")
-          return "Waiting for the store to accept the order. Call them if it takes long.";
-        if (po.payment_status !== "paid")
-          return "Pay the store. It marks the order as paid, then you can collect it.";
-        return "Collect the items from the store, then mark Picked up.";
-      case "picked_up":
-        return "Deliver to the customer, then mark Delivered.";
-      case "delivered":
-        return "Record exactly what the customer paid to close the order.";
-      case "closed":
-        return "Done. This order is closed.";
-      case "cancelled":
-        return "This order was cancelled.";
-      default:
-        return "";
+    const footer = (
+      <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-orange-100 pt-4 text-xs">
+        {po && po.payment_status !== "paid" && (
+          <>
+            <button
+              type="button"
+              onClick={() => editPrice(order, po)}
+              disabled={busy}
+              className="font-bold text-primary hover:underline"
+            >
+              Change price paid to store
+            </button>
+            <span className="text-slate-300">·</span>
+            <button
+              type="button"
+              onClick={() => cancelPurchaseOrder(order, po)}
+              disabled={busy}
+              className="font-bold text-amber-700 hover:underline"
+            >
+              Choose another store
+            </button>
+            <span className="text-slate-300">·</span>
+          </>
+        )}
+        {!["delivered", "closed", "cancelled"].includes(order.status) && (
+          <button
+            type="button"
+            onClick={() => cancelOrder(order)}
+            disabled={busy}
+            className="font-bold text-red-600 hover:underline"
+          >
+            Cancel order
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => deleteOrder(order)}
+          disabled={busy}
+          className="ml-auto inline-flex items-center gap-1 font-bold text-slate-400 hover:text-red-600"
+        >
+          <Trash2 className="size-3.5" /> Delete
+        </button>
+      </div>
+    );
+
+    if (order.status === "cancelled") return footer;
+
+    const big = "h-11 px-5 text-sm font-bold";
+    let body: React.ReactNode = null;
+    if (step === 0) {
+      body = (
+        <div className="flex flex-wrap gap-2">
+          <a
+            href={`tel:${order.customer_phone}`}
+            className="inline-flex h-11 items-center gap-2 rounded-md border border-slate-200 bg-white px-5 text-sm font-bold text-navy hover:border-primary"
+          >
+            <Phone className="size-4 text-primary" /> Call {order.customer_phone}
+          </a>
+          {order.status === "new" && (
+            <Button
+              variant="outline"
+              className={big}
+              disabled={busy}
+              onClick={() => setStatus(order, "contacted")}
+            >
+              <PhoneCall className="size-4" /> Called, waiting
+            </Button>
+          )}
+          <Button
+            className={`${big} bg-gradient-to-r from-primary to-orange-600 text-white`}
+            disabled={busy}
+            onClick={() => setStatus(order, "confirmed")}
+          >
+            <CheckCircle2 className="size-4" /> Customer confirmed
+          </Button>
+        </div>
+      );
+    } else if (step === 1) {
+      body = (
+        <Button
+          className={`${big} bg-gradient-to-r from-primary to-orange-600 text-white`}
+          disabled={busy}
+          onClick={() => setSourcingOrder(order)}
+        >
+          <StoreIcon className="size-4" /> {booking ? "Choose provider" : "Choose store & buy"}
+        </Button>
+      );
+    } else if (step === 2 && po) {
+      body = (
+        <StorePaymentForm
+          po={po}
+          busy={busy}
+          onSubmit={(payment) =>
+            send(order.id, `/api/admin/purchase-orders/${po.id}/`, "PATCH", { payment })
+          }
+        />
+      );
+    } else if (step === 3 && po) {
+      body = (
+        <Button
+          className={`${big} bg-indigo-600 text-white hover:bg-indigo-700`}
+          disabled={busy}
+          onClick={() => markPickedUp(order, po)}
+        >
+          <PackageCheck className="size-4" />{" "}
+          {booking ? "Provider has started" : `Picked up from ${po.store}`}
+        </Button>
+      );
+    } else if (step === 4) {
+      body = (
+        <Button
+          className={`${big} bg-emerald-600 text-white hover:bg-emerald-700`}
+          disabled={busy}
+          onClick={() => markDelivered(order)}
+        >
+          <Truck className="size-4" /> {booking ? "Job done" : "Delivered to customer"}
+        </Button>
+      );
+    } else if (step === 5) {
+      body = (
+        <Button
+          className={`${big} bg-emerald-600 text-white hover:bg-emerald-700`}
+          disabled={busy}
+          onClick={() => closeOrder(order)}
+        >
+          <Receipt className="size-4" /> Record payment & close
+        </Button>
+      );
+    } else {
+      body = (
+        <p className="flex items-center gap-2 text-sm font-bold text-emerald-700">
+          <CheckCircle2 className="size-5" /> Completed
+          {order.amount_paid && ` · customer paid ${money(order.currency, order.amount_paid)}`}
+        </p>
+      );
     }
+    return (
+      <>
+        {body}
+        {footer}
+      </>
+    );
   };
 
   const processingOrder = orders.find((o) => o.id === processingId);
@@ -759,12 +741,13 @@ function AdminOrdersPage() {
           </Badge>
         </div>
 
-        {/* What to do now */}
-        <div className="mb-5 rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-50 to-white p-4 sm:p-5">
+        {/* Stepper: every step is done here by admin/staff */}
+        <OrderStepper order={order} />
+        <div className="mb-5 rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-50 to-white p-4 sm:p-6">
           <p className="flex items-start gap-2 text-sm font-bold text-slate-900 sm:text-base">
             <Lightbulb className="mt-0.5 size-5 shrink-0 text-primary" /> {nextStep(order)}
           </p>
-          <div className="mt-4 [&_button]:h-10 [&_button]:px-4">{renderActions(order)}</div>
+          <div className="mt-4">{renderStepPanel(order)}</div>
         </div>
 
         <div className="grid gap-4 lg:grid-cols-3">
@@ -1244,9 +1227,9 @@ function AdminOrdersPage() {
                               ) : (
                                 <span
                                   className="mt-1 inline-flex rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-600"
-                                  title="Pay the store; it must mark the order as paid before pickup"
+                                  title="Record the payment to the store in Process"
                                 >
-                                  Awaiting payment confirmation
+                                  Store not paid yet
                                 </span>
                               ))}
                             {latestPo.vendor_note && (
@@ -1472,10 +1455,8 @@ function SourcingDialog({
         return;
       }
       Swal.fire({
-        title: askQuote ? "Quote requested" : isBooking ? "Booking sent" : "Purchase order sent",
-        text: askQuote
-          ? `${selected.store} will send its price. You can then accept it or counter-offer.`
-          : `${selected.store} will see an order from SokoLink — no customer details.`,
+        title: isBooking ? "Provider booked" : "Purchase recorded",
+        text: `Next: pay ${selected.store} and record the payment.`,
         icon: "success",
         timer: 2200,
         showConfirmButton: false,
@@ -1688,34 +1669,6 @@ function PurchaseDetails({
         </p>
       </div>
 
-      {/* How the price is settled with the store */}
-      <div className="grid grid-cols-2 gap-2">
-        {(
-          [
-            { quote: false, title: "Offer a price", desc: "Store accepts or proposes its own" },
-            {
-              quote: true,
-              title: isBooking ? "Ask for their quote" : "Ask the store's price",
-              desc: "Store sends its price, you accept or counter",
-            },
-          ] as const
-        ).map((option) => (
-          <button
-            key={option.title}
-            type="button"
-            onClick={() => setAskQuote(option.quote)}
-            className={`rounded-xl border p-3 text-left transition ${
-              askQuote === option.quote
-                ? "border-primary bg-orange-50 ring-2 ring-primary/20"
-                : "border-slate-200 hover:border-slate-300"
-            }`}
-          >
-            <p className="text-sm font-bold text-slate-900">{option.title}</p>
-            <p className="mt-0.5 text-[11px] text-slate-500">{option.desc}</p>
-          </button>
-        ))}
-      </div>
-
       <div className="grid grid-cols-2 gap-3">
         <label className="text-xs font-bold text-slate-600">
           Quantity
@@ -1729,15 +1682,9 @@ function PurchaseDetails({
             autoFocus
           />
         </label>
-        {askQuote ? (
-          <div className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
-            <b>No price yet.</b> {selected.store} will send its price for this
-            {isBooking ? " job" : " order"} — for example based on how big it is. You'll get an
-            email to accept it or counter-offer.
-          </div>
-        ) : (
+        {
           <label className="text-xs font-bold text-slate-600">
-            Price per unit we offer ({selected.currency})
+            Price per unit we pay ({selected.currency})
             <Input
               type="number"
               min={0}
@@ -1749,10 +1696,10 @@ function PurchaseDetails({
               {listed > 0
                 ? `Store's listed price: ${money(selected.currency, selected.price)}. `
                 : "The store has no listed price. "}
-              The store sees this offer and can accept it or propose its own.
+              Enter the price you agreed with the store.
             </span>
           </label>
-        )}
+        }
       </div>
       <label className="block text-xs font-bold text-slate-600">
         Internal note (only you see this)
@@ -1789,13 +1736,172 @@ function PurchaseDetails({
           className="h-11 flex-1 bg-gradient-to-r from-primary to-orange-600 font-bold text-white"
         >
           <ShoppingCart className="size-4" />
-          {submitting
-            ? "Sending..."
-            : askQuote
-              ? `Ask ${selected.store} for a quote`
-              : `Send ${isBooking ? "booking" : "purchase order"} to ${selected.store}`}
+          {submitting ? "Saving..." : `${isBooking ? "Book" : "Buy from"} ${selected.store}`}
         </Button>
       </div>
+    </div>
+  );
+}
+
+const STEPS = ["Confirm", "Store", "Payment", "Pick up", "Deliver", "Close"] as const;
+
+/** Index of the step to do now (6 = all done). */
+function currentStep(order: AdminOrder) {
+  const po = activePurchaseOrder(order);
+  switch (order.status) {
+    case "new":
+    case "contacted":
+      return 0;
+    case "confirmed":
+      return 1;
+    case "sourcing":
+      if (!po) return 1;
+      return po.payment_status === "paid" ? 3 : 2;
+    case "picked_up":
+      return 4;
+    case "delivered":
+      return 5;
+    case "closed":
+      return 6;
+    default:
+      return 0;
+  }
+}
+
+/** Confirm → Store → Payment → Pick up → Deliver → Close. */
+function OrderStepper({ order }: { order: AdminOrder }) {
+  const step = currentStep(order);
+  const cancelled = order.status === "cancelled";
+  const booking = order.listing_type === "service";
+  const labels = booking
+    ? ["Confirm", "Provider", "Payment", "Started", "Job done", "Close"]
+    : [...STEPS];
+  return (
+    <div className="mb-4 overflow-x-auto rounded-2xl border border-slate-200 bg-white px-4 py-5 sm:px-6">
+      <ol className="flex min-w-[560px] items-start">
+        {labels.map((label, i) => {
+          const done = !cancelled && i < step;
+          const active = !cancelled && i === step;
+          return (
+            <li key={label} className="flex flex-1 items-start last:flex-none">
+              <div className="flex w-20 flex-col items-center text-center">
+                <span
+                  className={`grid size-10 place-items-center rounded-full border-2 text-sm font-black transition ${
+                    done
+                      ? "border-emerald-500 bg-emerald-500 text-white"
+                      : active
+                        ? "border-primary bg-primary text-white shadow-lg shadow-primary/30 ring-4 ring-primary/15"
+                        : cancelled
+                          ? "border-slate-200 bg-slate-100 text-slate-300"
+                          : "border-slate-200 bg-white text-slate-400"
+                  }`}
+                >
+                  {done ? <CheckCircle2 className="size-5" /> : i + 1}
+                </span>
+                <span
+                  className={`mt-2 text-xs font-bold ${
+                    active ? "text-primary" : done ? "text-emerald-700" : "text-slate-400"
+                  }`}
+                >
+                  {label}
+                </span>
+              </div>
+              {i < labels.length - 1 && (
+                <span
+                  className={`mt-5 h-1 flex-1 rounded-full ${done ? "bg-emerald-500" : "bg-slate-200"}`}
+                />
+              )}
+            </li>
+          );
+        })}
+      </ol>
+      {cancelled && (
+        <p className="mt-4 text-center text-sm font-bold text-red-600">This order was cancelled.</p>
+      )}
+    </div>
+  );
+}
+
+const STORE_PAYMENT_METHODS = [
+  ["mpesa", "M-Pesa"],
+  ["tigo_pesa", "Mixx by Yas (Tigo Pesa)"],
+  ["airtel_money", "Airtel Money"],
+  ["halopesa", "HaloPesa"],
+  ["cash", "Cash"],
+  ["bank", "Bank transfer"],
+  ["other", "Other"],
+] as const;
+
+/** Record paying the store: amount, how, and the receipt/transaction number. */
+function StorePaymentForm({
+  po,
+  busy,
+  onSubmit,
+}: {
+  po: PurchaseOrder;
+  busy: boolean;
+  onSubmit: (payment: { amount: string; method: string; reference: string }) => void;
+}) {
+  const [amount, setAmount] = useState(po.total);
+  const [method, setMethod] = useState("mpesa");
+  const [reference, setReference] = useState("");
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl bg-white px-4 py-3 text-sm ring-1 ring-orange-100">
+        <span className="flex items-center gap-1.5 font-black text-navy">
+          <StoreIcon className="size-4 text-primary" /> {po.store}
+        </span>
+        {po.store_phone && (
+          <a href={`tel:${po.store_phone}`} className="font-bold text-primary hover:underline">
+            {po.store_phone}
+          </a>
+        )}
+        <span className="text-slate-500">
+          {po.quantity}x · agreed {money(po.currency, po.total)}
+        </span>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <label className="text-xs font-bold text-slate-600">
+          Amount paid ({po.currency})
+          <Input
+            type="number"
+            min={0}
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            className="mt-1 bg-white font-bold"
+          />
+        </label>
+        <label className="text-xs font-bold text-slate-600">
+          Paid with
+          <select
+            value={method}
+            onChange={(e) => setMethod(e.target.value)}
+            className="mt-1 h-10 w-full rounded-md border border-input bg-white px-3 text-sm font-semibold"
+          >
+            {STORE_PAYMENT_METHODS.map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="text-xs font-bold text-slate-600">
+          Transaction / receipt no. (optional)
+          <Input
+            value={reference}
+            onChange={(e) => setReference(e.target.value)}
+            placeholder="e.g. QJ12AB34CD"
+            className="mt-1 bg-white"
+          />
+        </label>
+      </div>
+      <Button
+        className="h-11 bg-gradient-to-r from-primary to-orange-600 px-5 text-sm font-bold text-white"
+        disabled={busy || !(Number(amount) > 0)}
+        onClick={() => onSubmit({ amount, method, reference })}
+      >
+        <CheckCircle2 className="size-4" /> Store paid — record payment
+      </Button>
     </div>
   );
 }

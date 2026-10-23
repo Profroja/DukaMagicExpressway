@@ -1,19 +1,18 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { 
-  Mail, Lock, Eye, EyeOff, ArrowRight,
-  Store
-} from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/lib/LanguageContext";
 import { BrandLogo } from "@/components/BrandLogo";
 import heroImage from "@/assets/market-hero.jpg";
 
 export const Route = createFileRoute("/login")({
-  head: () => ({ meta: [
-    { title: "Login | SokoLink" },
-    { name: "description", content: "Login to your SokoLink account" },
-  ]}),
+  head: () => ({
+    meta: [
+      { title: "Login | SokoLink" },
+      { name: "description", content: "Login to your SokoLink account" },
+    ],
+  }),
   component: LoginPage,
 });
 
@@ -24,6 +23,8 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  // After a successful login: full-screen loader until the dashboard has opened.
+  const [redirecting, setRedirecting] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,6 +47,7 @@ function LoginPage() {
         is_staff?: boolean;
         role?: string;
         redirect?: string;
+        name?: string;
       } | null = null;
       try {
         data = await res.json();
@@ -69,7 +71,6 @@ function LoginPage() {
         return;
       }
 
-      setLoading(false);
       const target =
         data.redirect ||
         (data.is_superuser || data.is_staff
@@ -78,19 +79,8 @@ function LoginPage() {
             ? "/vendor"
             : "/");
 
-      Swal.fire({
-        position: "center",
-        icon: "success",
-        title: "Welcome back!",
-        text: "Login successful. Redirecting...",
-        showConfirmButton: false,
-        timer: 3000,
-        timerProgressBar: true,
-        background: "#ffffff",
-        color: "#0f172a",
-      }).then(() => {
-        navigate({ to: target });
-      });
+      setRedirecting(data.name || "");
+      navigate({ to: target });
     } catch {
       setLoading(false);
       Swal.fire({
@@ -109,6 +99,25 @@ function LoginPage() {
 
   return (
     <div className="auth-autofill relative min-h-screen overflow-hidden">
+      {redirecting !== null && (
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-navy/95 text-white backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative grid size-24 place-items-center">
+            <span className="absolute inset-0 animate-spin rounded-full border-4 border-white/10 border-t-primary" />
+            <BrandLogo className="size-14 rounded-2xl" />
+          </div>
+          <p className="mt-6 text-xl font-black">
+            Welcome back{redirecting ? `, ${redirecting.split(" ")[0]}` : ""}!
+          </p>
+          <p className="mt-1 flex items-center gap-1 text-sm text-white/70">
+            Opening your dashboard
+            <span className="flex gap-1 pl-1">
+              <span className="size-1.5 animate-bounce rounded-full bg-primary" />
+              <span className="size-1.5 animate-bounce rounded-full bg-primary [animation-delay:0.15s]" />
+              <span className="size-1.5 animate-bounce rounded-full bg-primary [animation-delay:0.3s]" />
+            </span>
+          </p>
+        </div>
+      )}
       <style>{`
         .auth-autofill input:-webkit-autofill,
         .auth-autofill input:-webkit-autofill:hover,
@@ -137,7 +146,7 @@ function LoginPage() {
                 <strong className="block text-3xl font-black leading-none text-white">
                   Soko<em className="not-italic text-primary">Link</em>
                 </strong>
-                <small className="text-xs font-bold text-white/70">{t('goodsServices')}</small>
+                <small className="text-xs font-bold text-white/70">{t("goodsServices")}</small>
               </div>
             </div>
           </div>
@@ -153,9 +162,7 @@ function LoginPage() {
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Email */}
               <div>
-                <label className="mb-2 block text-sm font-bold text-white/90">
-                  Email Address
-                </label>
+                <label className="mb-2 block text-sm font-bold text-white/90">Email Address</label>
                 <div className="relative">
                   <Mail className="pointer-events-none absolute left-4 top-1/2 z-10 size-5 -translate-y-1/2 text-white/60" />
                   <input
@@ -172,9 +179,7 @@ function LoginPage() {
 
               {/* Password */}
               <div>
-                <label className="mb-2 block text-sm font-bold text-white/90">
-                  Password
-                </label>
+                <label className="mb-2 block text-sm font-bold text-white/90">Password</label>
                 <div className="relative">
                   <Lock className="pointer-events-none absolute left-4 top-1/2 z-10 size-5 -translate-y-1/2 text-white/60" />
                   <input
@@ -199,7 +204,10 @@ function LoginPage() {
               {/* Remember & Forgot */}
               <div className="flex items-center justify-between text-sm">
                 <label className="flex cursor-pointer items-center gap-2 text-white/70">
-                  <input type="checkbox" className="size-4 rounded border-white/30 bg-white/10 accent-primary" />
+                  <input
+                    type="checkbox"
+                    className="size-4 rounded border-white/30 bg-white/10 accent-primary"
+                  />
                   Remember me
                 </label>
                 <a href="#" className="font-semibold text-primary transition hover:text-orange-400">
@@ -237,7 +245,10 @@ function LoginPage() {
             <div className="flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 p-4 backdrop-blur-xl">
               <Store className="size-5 text-primary" />
               <span className="text-sm text-white/80">Are you a vendor?</span>
-              <a href="/register" className="font-bold text-primary transition hover:text-orange-400">
+              <a
+                href="/register"
+                className="font-bold text-primary transition hover:text-orange-400"
+              >
                 Apply here →
               </a>
             </div>

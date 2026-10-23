@@ -57,6 +57,7 @@ class PlatformBuyerFlowTests(TestCase):
         return res.json()["order_id"]
 
     def test_full_flow_hides_customer_from_vendor(self):
+        """Admin/staff do every step themselves: buy, pay the store, pick up, deliver."""
         order_id = self._place_customer_order()
 
         # Vendor sees nothing until the admin buys from them.
@@ -70,67 +71,50 @@ class PlatformBuyerFlowTests(TestCase):
         options = res.json()["options"]
         self.assertEqual(options[0]["listing_id"], str(self.listing.pk))
         self.assertIn(str(self.cheaper.pk), [o["listing_id"] for o in options])
-        # The admin sees who to call at each store.
         self.assertEqual(options[0]["store_phone"], "+255700000002")
 
-        # Admin buys from the cheaper store at a negotiated price.
+        # Admin buys from the cheaper store at the price agreed with it: no store approval needed.
         res = self._json("post", f"/api/admin/orders/{order_id}/purchase-orders/", self.admin,
                          {"listing_id": str(self.cheaper.pk), "unit_price": "415000"})
         self.assertEqual(res.status_code, 201)
         order = res.json()["order"]
         self.assertEqual(order["status"], QuickOrderStatus.SOURCING)
         self.assertEqual(order["margin"], "70000.00")
+        po = order["purchase_orders"][0]
+        self.assertEqual((po["status"], po["price_status"], po["payment_status"]), ("accepted", "agreed", "unpaid"))
         po_id = res.json()["purchase_order_id"]
 
-        # The chosen vendor sees the PO with SokoLink as buyer - no customer data -
-        # and the negotiated price next to its usual listing price.
-        res = self._json("get", "/api/vendor/orders/", self.other_vendor)
-        po = res.json()["orders"][0]
-        self.assertEqual(po["buyer"], "SokoLink")
-        self.assertEqual(po["unit_price"], "415000.00")
-        self.assertEqual(po["listing_price"], "420000.00")
-        self.assertEqual(po["total"], "830000.00")
-        raw = json.dumps(res.json())
+        # The store's record shows SokoLink as buyer, never the customer.
+        raw = json.dumps(self._json("get", "/api/vendor/orders/", self.other_vendor).json())
+        self.assertIn("SokoLink", raw)
         for secret in ("Amina", "0712345678", "Sinza", order_id):
             self.assertNotIn(secret, raw)
-        # ...and the other vendor sees nothing.
-        self.assertEqual(self._json("get", "/api/vendor/orders/", self.vendor).json()["orders"], [])
 
-        # Vendor cannot skip steps.
-        res = self._json("patch", "/api/vendor/orders/", self.other_vendor, {"order_id": po_id, "status": "picked_up"})
-        self.assertEqual(res.status_code, 400)
-
-        for status in ("accepted", "ready"):
-            res = self._json("patch", "/api/vendor/orders/", self.other_vendor, {"order_id": po_id, "status": status})
-            self.assertEqual(res.status_code, 200, res.content)
-
-        # Pickup is blocked until the store confirms it has been paid.
+        # Pick-up waits for the payment to the store, recorded by the admin.
         res = self._json("patch", f"/api/admin/purchase-orders/{po_id}/", self.admin, {"status": "picked_up"})
         self.assertEqual(res.status_code, 400)
-        # The store must say how much it received.
-        res = self._json("patch", "/api/vendor/orders/", self.other_vendor,
-                         {"order_id": po_id, "payment_status": "paid"})
+        res = self._json("patch", f"/api/admin/purchase-orders/{po_id}/", self.admin,
+                         {"payment": {"amount": "830,000", "method": "bitcoin"}})
         self.assertEqual(res.status_code, 400)
-        res = self._json("patch", "/api/vendor/orders/", self.other_vendor,
-                         {"order_id": po_id, "payment_status": "paid", "amount_received": "800,000"})
-        self.assertEqual(res.json()["order"]["payment_status"], "paid")
-        self.assertEqual(res.json()["order"]["amount_received"], "800000.00")
-        admin_po = self._json("get", "/api/admin/orders/", self.admin).json()["orders"][0]["purchase_orders"][0]
-        self.assertEqual(admin_po["amount_received"], "800000.00")
-        # A paid order can no longer be rejected by the store.
-        res = self._json("patch", "/api/vendor/orders/", self.other_vendor,
-                         {"order_id": po_id, "status": "rejected"})
+        res = self._json("patch", f"/api/admin/purchase-orders/{po_id}/", self.admin,
+                         {"payment": {"amount": "830,000", "method": "mpesa", "reference": "QJ12AB34"}})
+        self.assertEqual(res.status_code, 200, res.content)
+        po = res.json()["order"]["purchase_orders"][0]
+        self.assertEqual((po["payment_status"], po["amount_received"]), ("paid", "830000.00"))
+        self.assertEqual((po["payment_method"], po["payment_reference"]), ("mpesa", "QJ12AB34"))
+        # Paid once only.
+        res = self._json("patch", f"/api/admin/purchase-orders/{po_id}/", self.admin,
+                         {"payment": {"amount": "1", "method": "cash"}})
         self.assertEqual(res.status_code, 400)
 
-        # Admin collects and delivers.
+        # Pick up, deliver, close.
         res = self._json("patch", f"/api/admin/purchase-orders/{po_id}/", self.admin, {"status": "picked_up"})
         self.assertEqual(res.json()["order"]["status"], QuickOrderStatus.PICKED_UP)
         res = self._json("patch", f"/api/admin/orders/{order_id}/", self.admin, {"status": "delivered"})
         self.assertEqual(res.json()["order"]["status"], QuickOrderStatus.DELIVERED)
-
-        dash = self._json("get", "/api/vendor/dashboard/", self.other_vendor).json()
-        self.assertEqual(dash["summary"]["total_sales"], "800000.00")
-
+        res = self._json("patch", f"/api/admin/orders/{order_id}/", self.admin,
+                         {"status": "closed", "amount_paid": "900000"})
+        self.assertEqual(res.json()["order"]["status"], QuickOrderStatus.CLOSED)
         self.assertEqual(self.client.get(f"/api/orders/quick/{order_id}/").json()["status"], "delivered")
 
     def test_rejection_returns_order_to_admin_queue(self):
@@ -215,6 +199,7 @@ class PlatformBuyerFlowTests(TestCase):
 
     @override_settings(ORDER_EMAILS_ASYNC=False, ORDER_NOTIFY_EMAILS=[])
     def test_order_emails(self):
+        """Admins hear about new orders; stores get no emails (staff do the buying)."""
         self.admin.email = "boss@example.com"
         self.admin.save()
         self.other_vendor.email = "gadgets@example.com"
@@ -226,39 +211,23 @@ class PlatformBuyerFlowTests(TestCase):
                 result = fn()
             return result, list(mail.outbox)
 
-        # New customer order -> admin only, with customer details.
         order_id, sent = emails_during(self._place_customer_order)
         self.assertEqual([m.to for m in sent], [["boss@example.com"]])
         self.assertIn("0712345678", sent[0].body)
 
-        # Purchase order -> vendor only, with NO customer details.
         res, sent = emails_during(lambda: self._json(
             "post", f"/api/admin/orders/{order_id}/purchase-orders/", self.admin,
             {"listing_id": str(self.cheaper.pk)},
         ))
         po_id = res.json()["purchase_order_id"]
-        self.assertEqual([m.to for m in sent], [["gadgets@example.com"]])
-        vendor_mail = sent[0]
-        content = vendor_mail.body + vendor_mail.alternatives[0].content
-        self.assertIn("SokoLink", content)
-        for secret in ("Amina", "0712345678", "Sinza"):
-            self.assertNotIn(secret, content)
-
-        # Vendor accepts and confirms payment -> admin is told each time.
+        self.assertEqual(sent, [])
         _, sent = emails_during(lambda: self._json(
-            "patch", "/api/vendor/orders/", self.other_vendor, {"order_id": po_id, "status": "accepted"}))
-        self.assertEqual([m.to for m in sent], [["boss@example.com"]])
-        _, sent = emails_during(lambda: self._json(
-            "patch", "/api/vendor/orders/", self.other_vendor,
-            {"order_id": po_id, "payment_status": "paid", "amount_received": "400000"}))
-        self.assertIn("payment", sent[0].subject.lower() + sent[0].body.lower())
-        self.assertIn("does not match", sent[0].body)
-
-        # Admin cancels the customer order -> vendor learns its PO is cancelled.
+            "patch", f"/api/admin/purchase-orders/{po_id}/", self.admin,
+            {"payment": {"amount": "420000", "method": "cash"}}))
+        self.assertEqual(sent, [])
         _, sent = emails_during(lambda: self._json(
             "patch", f"/api/admin/orders/{order_id}/", self.admin, {"status": "cancelled"}))
-        self.assertEqual([m.to for m in sent], [["gadgets@example.com"]])
-        self.assertIn("cancelled", sent[0].subject.lower())
+        self.assertEqual(sent, [])
 
     @override_settings(ORDER_EMAILS_ASYNC=False, ORDER_NOTIFY_EMAILS=["Owner@Example.com"])
     def test_configured_email_replaces_admin_accounts(self):
@@ -281,10 +250,9 @@ class PlatformBuyerFlowTests(TestCase):
         self.assertEqual((po["unit_price"], po["total"], po["listing_price"]),
                          ("430000.00", "860000.00", "450000.00"))
 
-        # Locked once the store confirms payment.
-        self._json("patch", "/api/vendor/orders/", self.vendor, {"order_id": po_id, "status": "accepted"})
-        self._json("patch", "/api/vendor/orders/", self.vendor,
-                   {"order_id": po_id, "payment_status": "paid", "amount_received": "860000"})
+        # Locked once the store has been paid.
+        self._json("patch", f"/api/admin/purchase-orders/{po_id}/", self.admin,
+                   {"payment": {"amount": "860000", "method": "cash"}})
         res = self._json("patch", f"/api/admin/purchase-orders/{po_id}/", self.admin, {"unit_price": "1"})
         self.assertEqual(res.status_code, 400)
 
@@ -307,47 +275,34 @@ class PlatformBuyerFlowTests(TestCase):
         self.assertFalse(QuickOrder.objects.filter(pk=order_id).exists())
         self.assertFalse(StorePurchaseOrder.objects.filter(pk=po_id).exists())
         self.assertEqual(self._json("get", "/api/vendor/orders/", self.vendor).json()["orders"], [])
-        self.assertEqual([m.to for m in mail.outbox], [["kariakoo@example.com"]])
+        # Stores are not involved in buying, so they get no email.
+        self.assertEqual(mail.outbox, [])
 
     def test_service_booking_price_negotiation(self):
+        """Bookings: the admin sets both prices; the provider's price can be corrected before paying."""
         order_id = self._place_customer_order()
-
-        # Admin sets what the customer pays once the job is understood.
         res = self._json("patch", f"/api/admin/orders/{order_id}/", self.admin, {"customer_total": "1,000,000"})
         self.assertEqual(res.json()["order"]["total"], "1000000.00")
 
-        # Book the provider without a price - ask for a quote. Margin is unknown.
+        # A price is required (no waiting on the provider for a quote).
         res = self._json("post", f"/api/admin/orders/{order_id}/purchase-orders/", self.admin,
-                         {"listing_id": str(self.listing.pk), "request_quote": True})
-        self.assertEqual(res.status_code, 201, res.content)
-        self.assertIsNone(res.json()["order"]["margin"])
-        po_id = res.json()["purchase_order_id"]
-        po = self._json("get", "/api/vendor/orders/", self.vendor).json()["orders"][0]
-        self.assertEqual(po["price_status"], "awaiting_quote")
-
-        # The store cannot accept before a price exists; it sends its quote instead.
-        res = self._json("patch", "/api/vendor/orders/", self.vendor, {"order_id": po_id, "status": "accepted"})
+                         {"listing_id": str(self.listing.pk), "unit_price": "0"})
         self.assertEqual(res.status_code, 400)
-        res = self._json("patch", "/api/vendor/orders/", self.vendor,
-                         {"order_id": po_id, "quote": "950000", "note": "Big job, 2 days"})
-        self.assertEqual(res.json()["order"]["price_status"], "vendor_proposed")
+        res = self._json("post", f"/api/admin/orders/{order_id}/purchase-orders/", self.admin,
+                         {"listing_id": str(self.listing.pk), "unit_price": "450000"})
+        self.assertEqual(res.status_code, 201, res.content)
+        po_id = res.json()["purchase_order_id"]
 
-        # Admin counter-offers; the store must accept the new offer.
-        res = self._json("patch", f"/api/admin/purchase-orders/{po_id}/", self.admin, {"unit_price": "450000"})
-        self.assertEqual(res.status_code, 200)
-        po = self._json("get", "/api/vendor/orders/", self.vendor).json()["orders"][0]
-        self.assertEqual((po["price_status"], po["total"]), ("offered", "900000.00"))
-
-        # Store counters again; admin accepts the store's price -> accepted.
-        self._json("patch", "/api/vendor/orders/", self.vendor, {"order_id": po_id, "quote": "920000"})
-        res = self._json("patch", f"/api/admin/purchase-orders/{po_id}/", self.admin, {"accept_quote": True})
-        self.assertEqual(res.status_code, 200, res.content)
+        # Correcting the price keeps it agreed.
+        res = self._json("patch", f"/api/admin/purchase-orders/{po_id}/", self.admin, {"unit_price": "460000"})
+        po = res.json()["order"]["purchase_orders"][0]
+        self.assertEqual((po["price_status"], po["total"]), ("agreed", "920000.00"))
         self.assertEqual(res.json()["order"]["margin"], "80000.00")
-        po = self._json("get", "/api/vendor/orders/", self.vendor).json()["orders"][0]
-        self.assertEqual((po["status"], po["price_status"], po["total"]), ("accepted", "agreed", "920000.00"))
 
-        # Once agreed and accepted, the store can no longer re-quote.
-        res = self._json("patch", "/api/vendor/orders/", self.vendor, {"order_id": po_id, "quote": "1"})
+        # After paying, the price is locked.
+        self._json("patch", f"/api/admin/purchase-orders/{po_id}/", self.admin,
+                   {"payment": {"amount": "920000", "method": "bank"}})
+        res = self._json("patch", f"/api/admin/purchase-orders/{po_id}/", self.admin, {"unit_price": "1"})
         self.assertEqual(res.status_code, 400)
 
     def test_customer_choice_from_pending_store_can_be_booked(self):

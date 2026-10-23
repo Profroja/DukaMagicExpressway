@@ -16,7 +16,9 @@ import type { CustomerOrder } from "@/lib/store";
  */
 
 const CHANNEL_ID = "orders";
-const STAFF_CHANNEL_ID = "staff-orders";
+// New channel id: Android keeps a channel's sound forever, so the chime needs a fresh one.
+const STAFF_CHANNEL_ID = "staff-new-orders";
+const STAFF_SOUND = "new_order.wav";
 export const BACKGROUND_TASK = "duka-order-status-check";
 
 // Show alerts even while the app is open.
@@ -62,8 +64,13 @@ export async function setupNotifications() {
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 400, 200, 400, 200, 400],
       lightColor: "#FF5A14",
-      sound: "default",
+      sound: STAFF_SOUND,
+      enableVibrate: true,
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+      bypassDnd: false,
     });
+    // The first staff channel had no reliable sound; remove it from phones that have it.
+    await Notifications.deleteNotificationChannelAsync("staff-orders").catch(() => {});
   }
   const current = await Notifications.getPermissionsAsync();
   if (!current.granted && current.canAskAgain) await Notifications.requestPermissionsAsync();
@@ -102,7 +109,8 @@ export async function notifyNewStaffOrder(order: StaffOrder) {
       title: sw ? "🛒 Oda mpya" : "🛒 New order",
       body: `${item} — ${order.customer_name}${where ? ` (${where})` : ""}`,
       data: { staffOrderId: order.id },
-      sound: true,
+      sound: STAFF_SOUND,
+      priority: Notifications.AndroidNotificationPriority.MAX,
     },
     trigger: Platform.OS === "android" ? { channelId: STAFF_CHANNEL_ID } : null,
   });

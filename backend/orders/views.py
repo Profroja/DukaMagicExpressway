@@ -22,6 +22,7 @@ from .models import (
     PurchaseOrderPaymentStatus,
     PurchaseOrderStatus,
     QuickOrder,
+    StorePaymentMethod,
     QuickOrderStatus,
     StorePurchaseOrder,
 )
@@ -503,6 +504,9 @@ def _admin_po_to_dict(po):
     payload["store_phone"] = po.store.owner.phone_number if po.store.owner_id else ""
     payload["listing_id"] = str(po.listing_id)
     payload["admin_note"] = po.admin_note
+    payload["payment_method"] = po.payment_method
+    payload["payment_method_label"] = po.get_payment_method_display() if po.payment_method else ""
+    payload["payment_reference"] = po.payment_reference
     return payload
 
 
@@ -621,16 +625,12 @@ def admin_order_detail_view(request, order_id):
     if request.method == "DELETE":
         if not _is_admin(request.user):
             return JsonResponse({"error": "Only admins can delete orders."}, status=403)
-        # Permanently removes the customer order and every purchase order made
-        # for it. Stores still working on one are told it was cancelled.
+        # Permanently removes the customer order and every purchase made for it.
         with transaction.atomic():
             order = QuickOrder.objects.select_for_update().filter(pk=order_id).first()
             if order is None or not _can_see(request.user, order):
                 return JsonResponse({"error": "Order not found."}, status=404)
-            purchase_orders = list(order.purchase_orders.select_related("store__owner"))
-            for po in purchase_orders:
-                if po.status in ACTIVE_PURCHASE_ORDER_STATUSES:
-                    notifications.notify_vendor_purchase_order_cancelled(po)
+            purchase_orders = list(order.purchase_orders.all())
             order.purchase_orders.all().delete()
             order.delete()
         return JsonResponse({"success": True, "deleted_purchase_orders": len(purchase_orders)})
@@ -727,7 +727,6 @@ def admin_order_detail_view(request, order_id):
                         po.status = PurchaseOrderStatus.CANCELLED
                         po.updated_by = request.user
                         po.save(update_fields=["status", "updated_by", "updated_at"])
-                        notifications.notify_vendor_purchase_order_cancelled(po)
                 elif new_status in (
                     QuickOrderStatus.NEW,
                     QuickOrderStatus.CONTACTED,
@@ -918,25 +917,17 @@ def admin_create_purchase_order_view(request, order_id):
         if quantity < 1 or quantity > 999:
             return JsonResponse({"error": "Enter a valid quantity."}, status=400)
 
-        # Either offer a price, or ask the store to quote (common for services
-        # whose price depends on the size of the job).
-        request_quote = data.get("request_quote") is True
-        if request_quote:
-            unit_price = Decimal("0")
-            price_status = PriceStatus.AWAITING_QUOTE
-        else:
-            raw_price = data.get("unit_price")
-            try:
-                unit_price = (
-                    Decimal(str(raw_price).replace(",", "")) if raw_price not in (None, "") else default_price
-                )
-            except (InvalidOperation, TypeError):
-                return JsonResponse({"error": "Enter a valid unit price."}, status=400)
-            if unit_price <= 0:
-                return JsonResponse(
-                    {"error": "Enter a price, or ask the store to send its quote."}, status=400
-                )
-            price_status = PriceStatus.OFFERED
+        # Admins/staff buy directly at the price they agreed with the store;
+        # the store does not need to accept anything in the system.
+        raw_price = data.get("unit_price")
+        try:
+            unit_price = (
+                Decimal(str(raw_price).replace(",", "")) if raw_price not in (None, "") else default_price
+            )
+        except (InvalidOperation, TypeError):
+            return JsonResponse({"error": "Enter a valid unit price."}, status=400)
+        if unit_price <= 0:
+            return JsonResponse({"error": "Enter the price you are paying the store."}, status=400)
 
         po = StorePurchaseOrder.objects.create(
             po_number=_new_po_number(),
@@ -947,7 +938,9 @@ def admin_create_purchase_order_view(request, order_id):
             quantity=quantity,
             unit_price=unit_price,
             total_amount=unit_price * quantity,
-            price_status=price_status,
+            price_status=PriceStatus.AGREED,
+            status=PurchaseOrderStatus.ACCEPTED,
+            accepted_at=timezone.now(),
             currency=listing.currency,
             admin_note=(data.get("admin_note") or "").strip(),
             created_by=request.user,
@@ -957,7 +950,6 @@ def admin_create_purchase_order_view(request, order_id):
         order.status = QuickOrderStatus.SOURCING
         order.updated_by = request.user
         order.save(update_fields=["status", "updated_by", "updated_at"])
-        notifications.notify_vendor_new_purchase_order(po)
 
     order = _admin_order_queryset().get(pk=order.pk)
     return JsonResponse(
@@ -968,12 +960,12 @@ def admin_create_purchase_order_view(request, order_id):
 
 @csrf_exempt
 def admin_purchase_order_detail_view(request, po_id):
-    """Admin: PATCH a purchase order.
+    """Admin/staff: PATCH a purchase they are making from a store.
 
+    {"payment": {"amount", "method", "reference"?}} records paying the store,
     {"status": "picked_up" | "cancelled"} moves it on,
-    {"unit_price": "45000"} offers a (new) price - the store must accept it again,
-    {"accept_quote": true} agrees to the price the store proposed.
-    Price changes are only possible before the store confirms payment.
+    {"unit_price": "45000"} corrects the agreed price (before payment),
+    {"accept_quote": true} agrees to a price a store proposed (older orders).
     """
     if not _handles_orders(request.user):
         return JsonResponse({"error": "Forbidden"}, status=403)
@@ -1001,9 +993,38 @@ def admin_purchase_order_detail_view(request, po_id):
         price_change = not new_status and ("unit_price" in data or data.get("accept_quote") is True)
         if price_change and po.payment_status == PurchaseOrderPaymentStatus.PAID:
             return JsonResponse(
-                {"error": "The store already confirmed payment; the price can no longer change."},
+                {"error": "The store is already paid; the price can no longer change."},
                 status=400,
             )
+
+        payment = data.get("payment")
+        if isinstance(payment, dict) and not new_status:
+            if po.payment_status == PurchaseOrderPaymentStatus.PAID:
+                return JsonResponse({"error": "This purchase is already paid."}, status=400)
+            try:
+                amount = Decimal(str(payment.get("amount")).replace(",", ""))
+            except (InvalidOperation, TypeError):
+                return JsonResponse({"error": "Enter the amount paid to the store."}, status=400)
+            if amount <= 0 or amount > Decimal("9999999999"):
+                return JsonResponse({"error": "Enter the amount paid to the store."}, status=400)
+            method = (payment.get("method") or "").strip()
+            if method not in StorePaymentMethod.values:
+                return JsonResponse({"error": "Choose how the store was paid."}, status=400)
+            po.payment_status = PurchaseOrderPaymentStatus.PAID
+            po.amount_received = amount
+            po.payment_method = method
+            po.payment_reference = (payment.get("reference") or "").strip()[:100]
+            po.paid_at = timezone.now()
+            po.paid_by = request.user
+            if po.status == PurchaseOrderStatus.SENT:
+                # Older purchases still waiting on the store: paying settles it.
+                po.status = PurchaseOrderStatus.ACCEPTED
+                po.accepted_at = po.accepted_at or timezone.now()
+                po.price_status = PriceStatus.AGREED
+            po.updated_by = request.user
+            po.save()
+            order = _admin_order_queryset().get(pk=order.pk)
+            return JsonResponse({"success": True, "order": _admin_order_to_dict(order)})
 
         if data.get("accept_quote") is True and not new_status:
             if po.price_status != PriceStatus.VENDOR_PROPOSED or po.vendor_quote is None:
@@ -1020,7 +1041,6 @@ def admin_purchase_order_detail_view(request, po_id):
                 "total_amount", "unit_price", "price_status", "status", "accepted_at",
                 "updated_by", "updated_at",
             ])
-            notifications.notify_vendor_quote_accepted(po)
         elif "unit_price" in data and not new_status:
             try:
                 unit_price = Decimal(str(data.get("unit_price")).replace(",", ""))
@@ -1028,33 +1048,22 @@ def admin_purchase_order_detail_view(request, po_id):
                 return JsonResponse({"error": "Enter a valid unit price."}, status=400)
             if unit_price <= 0:
                 return JsonResponse({"error": "Enter a valid unit price."}, status=400)
-            old_total = po.total_amount
             po.unit_price = unit_price
             po.total_amount = unit_price * po.quantity
-            # A new offer goes back to the store to accept.
-            po.price_status = PriceStatus.OFFERED
-            update_fields = ["unit_price", "total_amount", "price_status", "updated_by", "updated_at"]
-            if po.status != PurchaseOrderStatus.SENT:
-                po.status = PurchaseOrderStatus.SENT
-                update_fields.append("status")
+            # Admins/staff agree the price with the store themselves.
+            po.price_status = PriceStatus.AGREED
             po.updated_by = request.user
-            po.save(update_fields=update_fields)
-            notifications.notify_vendor_price_changed(po, old_total)
+            po.save(update_fields=["unit_price", "total_amount", "price_status", "updated_by", "updated_at"])
         elif new_status == PurchaseOrderStatus.PICKED_UP:
-            if po.status == PurchaseOrderStatus.SENT:
-                return JsonResponse(
-                    {"error": "The store has not accepted this order yet."}, status=400
-                )
             if po.payment_status != PurchaseOrderPaymentStatus.PAID:
                 return JsonResponse(
-                    {"error": "The store must mark this order as paid before it can be picked up."},
+                    {"error": "Record the payment to the store before picking up."},
                     status=400,
                 )
             po.status = PurchaseOrderStatus.PICKED_UP
             po.picked_up_at = timezone.now()
             po.updated_by = request.user
             po.save(update_fields=["status", "picked_up_at", "updated_by", "updated_at"])
-            notifications.notify_vendor_picked_up(po)
             if order.status != QuickOrderStatus.CANCELLED:
                 order.status = QuickOrderStatus.PICKED_UP
                 order.updated_by = request.user
@@ -1063,7 +1072,6 @@ def admin_purchase_order_detail_view(request, po_id):
             po.status = PurchaseOrderStatus.CANCELLED
             po.updated_by = request.user
             po.save(update_fields=["status", "updated_by", "updated_at"])
-            notifications.notify_vendor_purchase_order_cancelled(po)
             _reopen_customer_order_if_unsourced(order, request.user)
         else:
             return JsonResponse({"error": "Invalid status."}, status=400)

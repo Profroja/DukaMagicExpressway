@@ -337,6 +337,17 @@ class PurchaseOrderPaymentStatus(models.TextChoices):
     PAID = 'paid', _('Paid (confirmed by store)')
 
 
+class StorePaymentMethod(models.TextChoices):
+    """How the admin/staff paid the store for a purchase."""
+    CASH = 'cash', _('Cash')
+    MPESA = 'mpesa', _('M-Pesa')
+    TIGO_PESA = 'tigo_pesa', _('Mixx by Yas (Tigo Pesa)')
+    AIRTEL_MONEY = 'airtel_money', _('Airtel Money')
+    HALOPESA = 'halopesa', _('HaloPesa')
+    BANK = 'bank', _('Bank transfer')
+    OTHER = 'other', _('Other')
+
+
 class PriceStatus(models.TextChoices):
     """Where the price negotiation between SokoLink and the store stands."""
     OFFERED = 'offered', _('Offered by SokoLink - store to accept')
@@ -418,6 +429,19 @@ class StorePurchaseOrder(models.Model):
         null=True,
         blank=True,
         help_text=_('Amount the store says it received when marking the order as paid')
+    )
+    payment_method = models.CharField(max_length=20, choices=StorePaymentMethod.choices, blank=True)
+    payment_reference = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text=_('Receipt / transaction number of the payment to the store')
+    )
+    paid_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='store_payments_made'
     )
     vendor_note = models.TextField(blank=True)
     admin_note = models.TextField(
