@@ -16,6 +16,7 @@ import {
   LogOut,
   CircleUserRound,
   Truck,
+  BarChart3,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -24,12 +25,16 @@ export const Route = createFileRoute("/admin")({
   component: AdminLayout,
 });
 
+// Staff see their orders and their own work only.
+const STAFF_PAGES = ["/admin/orders", "/admin/my-work"];
+
 const menuItems = [
   { icon: LayoutDashboard, label: "Home", href: "/admin" },
   { icon: Users, label: "Users", href: "/admin/users" },
   { icon: Store, label: "Stores", href: "/admin/stores" },
   { icon: Package, label: "Products", href: "/admin/products" },
   { icon: ShoppingCart, label: "Orders", href: "/admin/orders" },
+  { icon: BarChart3, label: "Staff Performance", href: "/admin/my-work" },
   { icon: Truck, label: "Delivery", href: "/admin/delivery" },
   { icon: TrendingUp, label: "Revenue", href: "/admin/revenue" },
   { icon: Coins, label: "Monthly Subscriptions", href: "/admin/subscriptions" },
@@ -66,7 +71,7 @@ function AdminLayout() {
 
   // Staff work on orders only.
   useEffect(() => {
-    if (role === "staff" && location.pathname !== "/admin/orders")
+    if (role === "staff" && !STAFF_PAGES.includes(location.pathname))
       navigate({ to: "/admin/orders" });
   }, [role, location.pathname, navigate]);
 
@@ -107,38 +112,41 @@ function AdminLayout() {
 
         {/* Menu */}
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-          {(role === "staff" ? menuItems.filter((i) => i.href === "/admin/orders") : menuItems).map(
-            (item) => {
-              const active = location.pathname === item.href;
-              if (item.href === "#") {
-                return (
-                  <button
-                    key={item.label}
-                    type="button"
-                    className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-700 transition"
-                  >
-                    <item.icon className="size-5 shrink-0" />
-                    <span className="text-sm font-medium">{item.label}</span>
-                  </button>
-                );
-              }
+          {(role === "staff"
+            ? menuItems
+                .filter((i) => STAFF_PAGES.includes(i.href))
+                .map((i) => (i.href === "/admin/my-work" ? { ...i, label: "My Work" } : i))
+            : menuItems
+          ).map((item) => {
+            const active = location.pathname === item.href;
+            if (item.href === "#") {
               return (
-                <Link
+                <button
                   key={item.label}
-                  to={item.href}
-                  onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition ${
-                    active
-                      ? "bg-gradient-to-r from-primary to-orange-600 text-white"
-                      : "text-slate-300 hover:bg-slate-700"
-                  }`}
+                  type="button"
+                  className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-700 transition"
                 >
                   <item.icon className="size-5 shrink-0" />
                   <span className="text-sm font-medium">{item.label}</span>
-                </Link>
+                </button>
               );
-            },
-          )}
+            }
+            return (
+              <Link
+                key={item.label}
+                to={item.href}
+                onClick={() => setSidebarOpen(false)}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition ${
+                  active
+                    ? "bg-gradient-to-r from-primary to-orange-600 text-white"
+                    : "text-slate-300 hover:bg-slate-700"
+                }`}
+              >
+                <item.icon className="size-5 shrink-0" />
+                <span className="text-sm font-medium">{item.label}</span>
+              </Link>
+            );
+          })}
 
           {/* Logout */}
           <button

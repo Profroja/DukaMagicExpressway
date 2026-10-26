@@ -60,6 +60,7 @@ function AppShell() {
         <Stack.Screen name="staff/login" options={{ title: "" }} />
         <Stack.Screen name="staff/index" options={{ headerShown: false, gestureEnabled: false }} />
         <Stack.Screen name="staff/[id]" options={{ title: "" }} />
+        <Stack.Screen name="staff/work" options={{ headerShown: false }} />
         <Stack.Screen
           name="track/[id]"
           options={{ headerShown: false, presentation: "fullScreenModal", gestureEnabled: false }}

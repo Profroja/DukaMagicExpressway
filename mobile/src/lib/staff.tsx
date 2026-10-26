@@ -82,6 +82,47 @@ export async function fetchStaffOrders(token: string) {
   return staffRequest<{ user: StaffUser; orders: StaffOrder[] }>("/api/staff/orders/", token);
 }
 
+export type StaffWorkRow = {
+  id: string;
+  product_title: string;
+  listing_type: "product" | "service";
+  quantity: number;
+  customer_name: string;
+  customer_phone: string;
+  city: string;
+  status: StaffOrderStatus;
+  status_label: string;
+  grand_total: string;
+  amount_paid: string | null;
+  created_at: string | null;
+  closed_at: string | null;
+  closed_by: string;
+  currency: string;
+};
+
+/** Orders received and closed, and money collected, in a date range. */
+export type StaffWork = {
+  range: { from: string; to: string };
+  today: { date: string; received: number; closed: number; collected: string };
+  totals: {
+    received: number;
+    closed: number;
+    collected: string;
+    average: string;
+    delivered: number;
+    cancelled: number;
+  };
+  open: Partial<Record<StaffOrderStatus, number>>;
+  daily: { date: string; received: number; closed: number; collected: string }[];
+  closed_orders: StaffWorkRow[];
+  received_orders: StaffWorkRow[];
+};
+
+/** from / to are YYYY-MM-DD days. */
+export async function fetchStaffWork(token: string, from: string, to: string) {
+  return staffRequest<StaffWork>(`/api/staff/performance/?from=${from}&to=${to}`, token);
+}
+
 /**
  * Orders not seen before. The first check after signing in only remembers
  * what is already there, so staff aren't flooded with old orders.

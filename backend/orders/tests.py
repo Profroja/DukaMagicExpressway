@@ -661,3 +661,48 @@ class StaffTests(TestCase):
         # Customers and vendors can't use the staff app.
         vendor_login = self._post("/api/staff/login/", {"username": "+255700000202", "password": "pw"})
         self.assertEqual(vendor_login.status_code, 403)
+
+    def test_performance_counts_what_staff_closed_and_collected(self):
+        mine, other_city = self._order(self.SINZA), self._order(self.ARUSHA)
+        created = self._create_staff()
+        login = self._post("/api/login/", {"email": "neema@example.com", "password": created["password"]})
+        self.assertEqual(login.status_code, 200)
+
+        QuickOrder.objects.filter(pk=mine.pk).update(status=QuickOrderStatus.DELIVERED)
+        res = self.client.patch(f"/api/admin/orders/{mine.pk}/",
+                                data=json.dumps({"status": "closed", "amount_paid": "305000"}),
+                                content_type="application/json")
+        self.assertEqual(res.status_code, 200, res.content)
+        mine.refresh_from_db()
+        self.assertEqual(mine.closed_by.phone_number, "+255711300300")
+
+        data = self.client.get("/api/admin/orders/performance/").json()
+        self.assertFalse(data["team"])
+        self.assertEqual(data["today"], {"date": data["range"]["from"], "received": 1, "closed": 1,
+                                         "collected": "305000.00"})
+        self.assertEqual(data["totals"]["collected"], "305000.00")
+        self.assertEqual([o["id"] for o in data["closed_orders"]], [str(mine.pk)])
+        self.assertEqual([o["id"] for o in data["received_orders"]], [str(mine.pk)])
+        self.assertEqual(sum(d["closed"] for d in data["daily"]), 1)
+
+        # A range with nothing in it.
+        empty = self.client.get("/api/admin/orders/performance/?from=2020-01-01&to=2020-01-31").json()
+        self.assertEqual(empty["totals"]["closed"], 0)
+        self.assertEqual(len(empty["daily"]), 31)
+
+        # Same numbers in the app.
+        token = self._post("/api/staff/login/", {"username": "+255711300300",
+                                                 "password": created["password"]}).json()["token"]
+        app = Client().get("/api/staff/performance/", HTTP_AUTHORIZATION=f"Bearer {token}").json()
+        self.assertEqual(app["totals"]["closed"], 1)
+
+        # Admin sees the whole team, with a row per staff member.
+        self.client.force_login(self.admin)
+        team = self.client.get("/api/admin/orders/performance/").json()
+        self.assertTrue(team["team"])
+        self.assertEqual(team["totals"]["received"], 2)
+        self.assertEqual([r["closed"] for r in team["by_staff"]], [1])
+        one = self.client.get(f"/api/admin/orders/performance/?staff={team['by_staff'][0]['id']}").json()
+        self.assertFalse(one["team"])
+        self.assertEqual(one["totals"]["received"], 1)
+        self.assertNotIn(str(other_city.pk), [o["id"] for o in one["received_orders"]])

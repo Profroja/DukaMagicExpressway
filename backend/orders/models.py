@@ -292,6 +292,14 @@ class QuickOrder(models.Model):
         help_text=_('Exactly what the customer paid, recorded when the order is closed')
     )
     closed_at = models.DateTimeField(null=True, blank=True)
+    # Staff member (or admin) who closed the order and collected the money.
+    closed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='closed_quick_orders'
+    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

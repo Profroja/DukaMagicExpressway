@@ -14,6 +14,7 @@ from django.views.decorators.csrf import csrf_exempt
 from auths.views import _handles_orders
 from .cities import CITIES
 from .models import QuickOrder, QuickOrderStatus
+from .performance import parse_range, staff_performance
 from .views import _primary_image_url, _visible_orders
 
 User = get_user_model()
@@ -121,3 +122,12 @@ def staff_orders_view(request):
 def cities_view(request):
     """GET: city names staff can be assigned to."""
     return JsonResponse({"cities": sorted(CITIES)})
+
+
+def staff_performance_view(request):
+    """GET ?from=&to=: orders received and closed, and money collected, in a date range."""
+    user = user_from_request(request)
+    if user is None:
+        return JsonResponse({"error": "Please sign in again."}, status=401)
+    start, end = parse_range(request.GET)
+    return JsonResponse(staff_performance(user, start, end, request.GET.get("staff")))

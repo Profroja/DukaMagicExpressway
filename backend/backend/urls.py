@@ -23,6 +23,7 @@ from auths import views as auths_views
 from catalog import views as catalog_views
 from orders import delivery as orders_delivery
 from orders import finance as orders_finance
+from orders import performance as orders_performance
 from orders import staff_api as orders_staff
 from orders import views as orders_views
 from stores import views as stores_views
@@ -47,6 +48,7 @@ urlpatterns = [
     path('api/staff/login/', orders_staff.staff_login_view),
     path('api/staff/me/', orders_staff.staff_me_view),
     path('api/staff/orders/', orders_staff.staff_orders_view),
+    path('api/staff/performance/', orders_staff.staff_performance_view),
     path('api/cities/', orders_staff.cities_view),
     path('api/orders/quick/<uuid:order_id>/', orders_views.quick_order_status_view),
     path('api/vendor/orders/', orders_views.vendor_orders_view),
@@ -62,6 +64,7 @@ urlpatterns = [
     path('api/admin/products/', catalog_views.admin_products_view),
     path('api/admin/products/<uuid:listing_id>/', catalog_views.admin_product_update_view),
     path('api/admin/orders/', orders_views.admin_orders_view),
+    path('api/admin/orders/performance/', orders_performance.admin_performance_view),
     path('api/admin/orders/<uuid:order_id>/', orders_views.admin_order_detail_view),
     path('api/admin/orders/<uuid:order_id>/sourcing/', orders_views.admin_order_sourcing_view),
     path('api/admin/orders/<uuid:order_id>/purchase-orders/', orders_views.admin_create_purchase_order_view),

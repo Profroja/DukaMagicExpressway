@@ -12,7 +12,7 @@ import { mediaUrl } from "@/lib/api";
 import { formatMoney } from "@/lib/catalog";
 import { useLanguage } from "@/lib/i18n";
 import { checkStaffOrders } from "@/lib/notifications";
-import { useStaff, type StaffOrder } from "@/lib/staff";
+import { fetchStaffWork, useStaff, type StaffOrder, type StaffWork } from "@/lib/staff";
 
 const REFRESH_MS = 30_000;
 const ACTIVE = ["contacted", "confirmed", "sourcing", "picked_up", "delivered"];
@@ -28,9 +28,18 @@ export default function StaffOrdersScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [failed, setFailed] = useState(false);
   const [filter, setFilter] = useState<Filter>("new");
+  const [today, setToday] = useState<StaffWork["today"] | null>(null);
 
-  const refresh = () =>
-    checkStaffOrders()
+  const refresh = () => {
+    // Today's numbers for the "My work" card.
+    if (session) {
+      const day = new Date();
+      const key = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
+      fetchStaffWork(session.token, key, key)
+        .then((work) => setToday(work.today))
+        .catch(() => {});
+    }
+    return checkStaffOrders()
       .then((list) => {
         if (list === null) {
           // Session expired or signed out elsewhere.
@@ -45,6 +54,7 @@ export default function StaffOrdersScreen() {
         setLoading(false);
         setRefreshing(false);
       });
+  };
 
   useEffect(() => {
     refresh();
@@ -95,6 +105,30 @@ export default function StaffOrdersScreen() {
             <Ionicons name="log-out-outline" size={16} color="#FFFFFF" />
           </Pressable>
         </View>
+
+        <Pressable
+          onPress={() => router.push("/staff/work")}
+          style={({ pressed }) => [styles.work, pressed && { opacity: 0.85 }]}
+          accessibilityRole="button"
+          accessibilityLabel={t("myWork")}
+        >
+          <View style={styles.workIcon}>
+            <Ionicons name="stats-chart" size={18} color="#FFFFFF" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.workLabel}>
+              {t("myWork")} · {t("collectedToday")}
+            </Text>
+            <Text style={styles.workMoney} numberOfLines={1}>
+              {today ? formatMoney("TZS", today.collected) : "…"}
+            </Text>
+          </View>
+          <View style={styles.workStat}>
+            <Text style={styles.workStatValue}>{today?.closed ?? "–"}</Text>
+            <Text style={styles.workStatLabel}>{t("closedToday")}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.7)" />
+        </Pressable>
 
         <Text style={styles.title}>{t("staffOrders")}</Text>
         <View style={styles.filters}>
@@ -226,7 +260,31 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.14)",
   },
   pillText: { color: "#FFFFFF", fontSize: 12, fontWeight: "900" },
-  title: { marginTop: 18, color: "#FFFFFF", fontSize: 26, fontWeight: "900" },
+  title: { marginTop: 16, color: "#FFFFFF", fontSize: 26, fontWeight: "900" },
+  work: {
+    marginTop: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 12,
+    borderRadius: Radius.lg,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(249,115,22,0.6)",
+  },
+  workIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: Colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  workLabel: { color: "rgba(255,255,255,0.75)", fontSize: 11, fontWeight: "800" },
+  workMoney: { marginTop: 1, color: "#FFFFFF", fontSize: 18, fontWeight: "900" },
+  workStat: { alignItems: "center", paddingHorizontal: 6 },
+  workStatValue: { color: "#FFFFFF", fontSize: 18, fontWeight: "900" },
+  workStatLabel: { color: "rgba(255,255,255,0.7)", fontSize: 9.5, fontWeight: "700" },
   filters: { marginTop: 12, flexDirection: "row", gap: 8 },
   filter: {
     flexDirection: "row",

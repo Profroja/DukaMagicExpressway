@@ -716,7 +716,8 @@ def admin_order_detail_view(request, order_id):
                         )
                     order.amount_paid = amount_paid
                     order.closed_at = timezone.now()
-                    update_fields += ["amount_paid", "closed_at"]
+                    order.closed_by = request.user
+                    update_fields += ["amount_paid", "closed_at", "closed_by"]
                 if new_status == QuickOrderStatus.CANCELLED:
                     active_pos = list(
                         order.purchase_orders.select_related("store__owner").filter(
