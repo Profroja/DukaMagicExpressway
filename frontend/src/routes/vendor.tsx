@@ -1,4 +1,5 @@
 import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
+import { NO_INDEX } from "@/lib/seo";
 import {
   LayoutDashboard,
   Package,
@@ -15,12 +16,11 @@ import {
 import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/vendor")({
+  head: () => ({ meta: [{ title: "Vendor | SokoLink" }, NO_INDEX] }),
   component: VendorLayout,
 });
 
-const baseMenuItems = [
-  { icon: ShoppingCart, label: "Orders", href: "/vendor/orders" },
-];
+const baseMenuItems = [{ icon: ShoppingCart, label: "Orders", href: "/vendor/orders" }];
 
 function VendorLayout() {
   const location = useLocation();
@@ -96,7 +96,11 @@ function VendorLayout() {
             className="rounded p-1 hover:bg-slate-700"
             aria-label={mobileSidebarOpen || sidebarOpen ? "Collapse menu" : "Open menu"}
           >
-            {mobileSidebarOpen || sidebarOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+            {mobileSidebarOpen || sidebarOpen ? (
+              <X className="size-5" />
+            ) : (
+              <Menu className="size-5" />
+            )}
           </button>
         </div>
 
@@ -116,7 +120,9 @@ function VendorLayout() {
                 }`}
               >
                 <item.icon className="size-5 shrink-0" />
-                {(sidebarOpen || mobileSidebarOpen) && <span className="text-sm font-medium">{item.label}</span>}
+                {(sidebarOpen || mobileSidebarOpen) && (
+                  <span className="text-sm font-medium">{item.label}</span>
+                )}
               </a>
             );
           })}

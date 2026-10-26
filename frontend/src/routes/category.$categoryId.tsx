@@ -1,4 +1,5 @@
 import { createFileRoute, useParams } from "@tanstack/react-router";
+import { absolute, DEFAULT_TITLE, pageMeta } from "@/lib/seo";
 import { ShoppingCart, Store as StoreIcon, Wrench, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,20 @@ import { useLanguage } from "@/lib/LanguageContext";
 import { addToCart } from "@/lib/customerCart";
 
 export const Route = createFileRoute("/category/$categoryId")({
+  head: ({ params }) => {
+    const raw = safeDecode(params.categoryId).trim();
+    const name = /^\d+$/.test(raw) ? (LEGACY_CATEGORIES[Number(raw)] ?? "") : raw;
+    if (!name) return { meta: pageMeta({ title: DEFAULT_TITLE }) };
+    const path = `/category/${encodeURIComponent(name)}`;
+    return {
+      meta: pageMeta({
+        title: `${name} - Buy Online in Tanzania | SokoLink`,
+        description: `Shop ${name} online on SokoLink with fast delivery in Dar es Salaam, Arusha, Mwanza, Dodoma and across Tanzania. Nunua ${name} mtandaoni, tunakuletea.`,
+        path,
+      }),
+      links: [{ rel: "canonical", href: absolute(path) }],
+    };
+  },
   component: CategoryPage,
 });
 

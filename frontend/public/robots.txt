@@ -1,14 +1,11 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
+# SokoLink - https://sokolink.co.tz
+# Shop pages are open to search engines; sign-in and dashboards are private.
+# (/api stays open: Google needs it to render the products on the pages.)
 
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /vendor
+Disallow: /login
+
+Sitemap: https://sokolink.co.tz/sitemap.xml

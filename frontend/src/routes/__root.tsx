@@ -12,6 +12,15 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { LanguageProvider } from "../lib/LanguageContext";
+import {
+  DEFAULT_DESCRIPTION,
+  DEFAULT_TITLE,
+  KEYWORDS,
+  OG_IMAGE,
+  SITE_NAME,
+  SITE_URL,
+  STRUCTURED_DATA,
+} from "../lib/seo";
 
 function NotFoundComponent() {
   return (
@@ -78,17 +87,36 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "SokoLink" },
-      { name: "description", content: "Products and services at your fingertips." },
-      { name: "author", content: "SokoLink" },
-      { property: "og:title", content: "SokoLink" },
-      { property: "og:description", content: "Products and services at your fingertips." },
+      { title: DEFAULT_TITLE },
+      { name: "description", content: DEFAULT_DESCRIPTION },
+      { name: "keywords", content: KEYWORDS },
+      { name: "author", content: SITE_NAME },
+      { name: "robots", content: "index, follow, max-image-preview:large" },
+      // Tanzania: helps local search results.
+      { name: "geo.region", content: "TZ" },
+      { name: "geo.placename", content: "Dar es Salaam, Tanzania" },
+      { name: "language", content: "English, Swahili" },
+      { property: "og:site_name", content: SITE_NAME },
+      { property: "og:title", content: DEFAULT_TITLE },
+      { property: "og:description", content: DEFAULT_DESCRIPTION },
       { property: "og:type", content: "website" },
-      { property: "og:image", content: "/logo.png" },
+      { property: "og:url", content: SITE_URL },
+      { property: "og:image", content: OG_IMAGE },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      {
+        property: "og:image:alt",
+        content: "SokoLink - shop products and book services across Tanzania",
+      },
+      { property: "og:locale", content: "en_TZ" },
+      { property: "og:locale:alternate", content: "sw_TZ" },
       { name: "theme-color", content: "#f97316" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:image", content: OG_IMAGE },
+      // Google Search Console ownership check (HTML tag method) - keep it, or verification is lost.
+      { name: "google-site-verification", content: "I4m9aqhi8Pc8kv601wIFvyRPV4c2ajKGSfqKazQuqWw" },
     ],
+    scripts: [{ type: "application/ld+json", children: JSON.stringify(STRUCTURED_DATA) }],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },

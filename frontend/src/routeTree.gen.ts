@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as RegisterRouteImport } from './routes/register'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as VendorRouteImport } from './routes/vendor'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminDeliveryRouteImport } from './routes/admin/delivery'
@@ -47,6 +48,11 @@ const LoginRoute = LoginRouteImport.update({
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const VendorRoute = VendorRouteImport.update({
@@ -130,6 +136,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/vendor': typeof VendorRouteWithChildren
   '/admin/delivery': typeof AdminDeliveryRoute
   '/admin/my-work': typeof AdminMyWorkRoute
@@ -150,6 +157,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/delivery': typeof AdminDeliveryRoute
   '/admin/my-work': typeof AdminMyWorkRoute
   '/admin/orders': typeof AdminOrdersRoute
@@ -171,6 +179,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/vendor': typeof VendorRouteWithChildren
   '/admin/delivery': typeof AdminDeliveryRoute
   '/admin/my-work': typeof AdminMyWorkRoute
@@ -194,6 +203,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/login'
     | '/register'
+    | '/sitemap.xml'
     | '/vendor'
     | '/admin/delivery'
     | '/admin/my-work'
@@ -214,6 +224,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/register'
+    | '/sitemap.xml'
     | '/admin/delivery'
     | '/admin/my-work'
     | '/admin/orders'
@@ -234,6 +245,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/login'
     | '/register'
+    | '/sitemap.xml'
     | '/vendor'
     | '/admin/delivery'
     | '/admin/my-work'
@@ -256,6 +268,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   LoginRoute: typeof LoginRoute
   RegisterRoute: typeof RegisterRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   VendorRoute: typeof VendorRouteWithChildren
   CategoryCategoryIdRoute: typeof CategoryCategoryIdRoute
 }
@@ -288,6 +301,13 @@ declare module '@tanstack/react-router' {
       path: '/register'
       fullPath: '/register'
       preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/vendor': {
@@ -446,6 +466,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   VendorRoute: VendorRouteWithChildren,
   CategoryCategoryIdRoute: CategoryCategoryIdRoute,
 }

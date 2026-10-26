@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { NO_INDEX } from "@/lib/seo";
 import { useState } from "react";
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ export const Route = createFileRoute("/login")({
     meta: [
       { title: "Login | SokoLink" },
       { name: "description", content: "Login to your SokoLink account" },
+      NO_INDEX,
     ],
   }),
   component: LoginPage,

@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { absolute, pageMeta } from "@/lib/seo";
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
@@ -33,14 +34,13 @@ import {
 
 export const Route = createFileRoute("/register")({
   head: () => ({
-    meta: [
-      { title: "Vendor Registration | SokoLink" },
-      {
-        name: "description",
-        content:
-          "Register your business on SokoLink and start selling goods and services today.",
-      },
-    ],
+    meta: pageMeta({
+      title: "Sell on SokoLink | Register Your Shop or Service in Tanzania",
+      description:
+        "Register your shop or service business on SokoLink and reach customers across Tanzania. Uza bidhaa na huduma zako mtandaoni.",
+      path: "/register",
+    }),
+    links: [{ rel: "canonical", href: absolute("/register") }],
   }),
   component: RegisterPage,
 });

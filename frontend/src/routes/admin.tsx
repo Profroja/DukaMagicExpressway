@@ -1,4 +1,5 @@
 import { createFileRoute, Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
+import { NO_INDEX } from "@/lib/seo";
 import {
   LayoutDashboard,
   Users,
@@ -22,6 +23,7 @@ import { useEffect, useState } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
 
 export const Route = createFileRoute("/admin")({
+  head: () => ({ meta: [{ title: "Admin | SokoLink" }, NO_INDEX] }),
   component: AdminLayout,
 });
 

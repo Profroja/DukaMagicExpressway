@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { absolute, DEFAULT_TITLE, pageMeta } from "@/lib/seo";
 import { ArrowRight, ChevronLeft, ChevronRight, Truck, ShoppingCart, Wrench } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { TopBar } from "@/components/TopBar";
@@ -19,22 +20,8 @@ import { useLanguage } from "@/lib/LanguageContext";
 
 export const Route = createFileRoute("/")({
   head: () => ({
-    meta: [
-      { title: "SokoLink | Products & Services at Your Fingertips" },
-      {
-        name: "description",
-        content:
-          "Shop quality products and book trusted services with fast delivery across Tanzania.",
-      },
-      { property: "og:title", content: "SokoLink | Everything in One Place" },
-      {
-        property: "og:description",
-        content:
-          "Shop quality products and book trusted services with fast delivery across Tanzania.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
+    meta: pageMeta({ title: DEFAULT_TITLE, path: "/" }),
+    links: [{ rel: "canonical", href: absolute("/") }],
   }),
   component: Storefront,
 });
