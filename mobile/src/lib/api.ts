@@ -166,3 +166,39 @@ export async function fetchCategories(): Promise<CategoryLists> {
   const data = await request<Partial<CategoryLists>>("/api/categories/");
   return { goods: data.goods ?? [], services: data.services ?? [] };
 }
+
+let searchIndex: Promise<Listing[]> | null = null;
+
+/** Every product and service once (cached for live search), de-duplicated by id. */
+export function loadSearchIndex(fresh = false): Promise<Listing[]> {
+  if (!searchIndex || fresh) {
+    searchIndex = Promise.all([fetchCatalog({ type: "product" }), fetchCatalog({ type: "service" })])
+      .then(([products, services]) => {
+        const unique = new Map<string, Listing>();
+        for (const item of [...products.products, ...products.services, ...services.services]) {
+          unique.set(item.id, item);
+        }
+        return [...unique.values()];
+      })
+      .catch((error) => {
+        searchIndex = null;
+        throw error;
+      });
+  }
+  return searchIndex;
+}
+
+/** Items whose title, description, category or store contain every word typed. */
+export function matchListings(items: Listing[], query: string): Listing[] {
+  const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+  if (!terms.length) return [];
+  return items.filter((item) => {
+    const haystack = [item.title, item.description, item.category, item.subcategory, item.store]
+      .join(" ")
+      .toLowerCase();
+    return terms.every((term) => haystack.includes(term));
+  });
+}
+
+/** Open the order form straight away (services: the booking form). */
+export const orderHref = (id: string) => ({ pathname: "/listing/[id]" as const, params: { id, step: "contact" as const } });

@@ -40,7 +40,7 @@
           "icon": "./assets/images/adaptive-icon.png",
           "color": "#FF5A14",
           "defaultChannel": "orders",
-          "sounds": ["./assets/sounds/new_order.wav"]
+          "sounds": ["./assets/sounds/new_order.wav", "./assets/sounds/new_order_bell.wav"]
         }
       ],
       [

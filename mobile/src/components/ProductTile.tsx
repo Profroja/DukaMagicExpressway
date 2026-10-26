@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Colors, Shadow } from "@/constants/theme";
-import { mediaUrl, type Listing } from "@/lib/api";
+import { mediaUrl, orderHref, type Listing } from "@/lib/api";
 import { formatMoney } from "@/lib/catalog";
 import { useLanguage } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
@@ -38,7 +38,7 @@ export function AddButton({ item, size = 30 }: { item: Listing; size?: number })
     <Pressable
       onPress={() => {
         if (isService) {
-          router.push({ pathname: "/listing/[id]", params: { id: item.id, step: "contact" } });
+          router.push(orderHref(item.id));
           return;
         }
         addToCart(item, 1);
@@ -65,7 +65,8 @@ export function ProductTile({ item, width }: { item: Listing; width: number }) {
   const price = useListingPrice();
   return (
     <Pressable
-      onPress={() => router.push({ pathname: "/listing/[id]", params: { id: item.id } })}
+      // Straight to the order form (services: booking form).
+      onPress={() => router.push(orderHref(item.id))}
       style={({ pressed }) => [styles.card, { width }, pressed && { transform: [{ scale: 0.98 }] }]}
       accessibilityRole="button"
       accessibilityLabel={item.title}

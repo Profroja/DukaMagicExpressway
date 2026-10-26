@@ -34,24 +34,47 @@ function MarqueeRow({ items, reverse }: { items: Listing[]; reverse: boolean }) 
   const copies = Math.max(1, Math.ceil(6 / items.length));
   const base = Array.from({ length: copies }, () => items).flat();
   const span = base.length * (CARD_WIDTH + GAP);
-  const [offset] = useState(() => new Animated.Value(0));
+  const [offset] = useState(() => new Animated.Value(reverse ? -span : 0));
+  // Paused while a finger is on the row, so taps aren't cancelled by the movement.
+  const [paused, setPaused] = useState(false);
 
   useEffect(() => {
-    offset.setValue(reverse ? -span : 0);
-    const loop = Animated.loop(
-      Animated.timing(offset, {
-        toValue: reverse ? 0 : -span,
-        duration: (span / PX_PER_SECOND) * 1000,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      }),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [offset, span, reverse]);
+    if (paused) return;
+    const start = reverse ? -span : 0;
+    const end = reverse ? 0 : -span;
+    let running = true;
+    const run = () => {
+      // Continue from wherever the row stopped, at the same speed.
+      offset.stopAnimation((current) => {
+        if (!running) return;
+        const from = Number.isFinite(current) ? current : start;
+        Animated.timing(offset, {
+          toValue: end,
+          duration: (Math.abs(end - from) / PX_PER_SECOND) * 1000,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }).start(({ finished }) => {
+          if (finished && running) {
+            offset.setValue(start);
+            run();
+          }
+        });
+      });
+    };
+    run();
+    return () => {
+      running = false;
+      offset.stopAnimation();
+    };
+  }, [offset, span, reverse, paused]);
 
   return (
-    <View style={styles.viewport}>
+    <View
+      style={styles.viewport}
+      onTouchStart={() => setPaused(true)}
+      onTouchEnd={() => setPaused(false)}
+      onTouchCancel={() => setPaused(false)}
+    >
       <Animated.View style={[styles.track, { transform: [{ translateX: offset }] }]}>
         {[...base, ...base].map((item, i) => (
           <ProductTile key={`${item.id}-${i}`} item={item} width={CARD_WIDTH} />

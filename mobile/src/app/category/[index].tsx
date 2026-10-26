@@ -18,7 +18,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AddButton, useListingPrice } from "@/components/ProductTile";
 import { EmptyState, ErrorState } from "@/components/ui";
 import { Colors, Shadow } from "@/constants/theme";
-import { fetchCatalog, fetchCategories, mediaUrl, type Listing } from "@/lib/api";
+import { fetchCatalog, fetchCategories, mediaUrl, orderHref, type Listing } from "@/lib/api";
 import { CATEGORIES, inCategory, legacyKey } from "@/lib/catalog";
 import { useLanguage } from "@/lib/i18n";
 
@@ -181,7 +181,7 @@ export default function CategoryScreen() {
             const uri = mediaUrl(item.image_url);
             return (
               <Pressable
-                onPress={() => router.push({ pathname: "/listing/[id]", params: { id: item.id } })}
+                onPress={() => router.push(orderHref(item.id))}
                 style={({ pressed }) => [styles.row, pressed && { transform: [{ scale: 0.99 }] }]}
               >
                 <View style={styles.thumb}>
