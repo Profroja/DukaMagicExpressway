@@ -140,7 +140,7 @@ function Storefront() {
 
           {/* Hero */}
           <section
-            className="relative min-h-[540px] overflow-hidden rounded-3xl bg-[#FDF8E9] shadow-card"
+            className="relative min-h-[230px] overflow-hidden rounded-2xl bg-[#111827] shadow-card sm:min-h-[300px] md:min-h-[540px] md:rounded-3xl md:bg-[#FDF8E9]"
             onMouseEnter={() => setSlidePaused(true)}
             onMouseLeave={() => setSlidePaused(false)}
           >
@@ -151,17 +151,19 @@ function Storefront() {
                 width={1600}
                 height={800}
                 alt={item.title.replace("|", " ")}
-                className={`absolute inset-0 h-full w-full object-cover object-[78%_center] transition-all duration-1000 md:object-right ${
+                className={`absolute inset-0 h-full w-full object-cover object-[72%_center] transition-all duration-1000 md:object-right ${
                   index === slide ? "scale-100 opacity-100" : "scale-105 opacity-0"
                 }`}
               />
             ))}
-            {/* White blur under the words, fading out left to right so the picture on the right stays clear */}
-            <div className="absolute inset-0 backdrop-blur-md [mask-image:linear-gradient(to_bottom,black_55%,transparent_90%)] md:[mask-image:linear-gradient(to_right,black_0%,black_38%,transparent_62%)]" />
-            <div className="absolute inset-0 bg-gradient-to-b from-white/90 via-white/75 to-white/20 md:bg-[linear-gradient(to_right,rgba(255,255,255,0.94)_0%,rgba(255,255,255,0.82)_38%,rgba(255,255,255,0.35)_52%,transparent_64%)]" />
+            {/* Phones: dark fade on the left only (like the app), so the picture stays clear */}
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(17,24,39,0.92)_0%,rgba(17,24,39,0.7)_45%,rgba(17,24,39,0)_85%)] md:hidden" />
+            {/* Larger screens: white blur under the words, fading out left to right so the picture on the right stays clear */}
+            <div className="absolute inset-0 hidden backdrop-blur-md [mask-image:linear-gradient(to_right,black_0%,black_38%,transparent_62%)] md:block" />
+            <div className="absolute inset-0 hidden bg-[linear-gradient(to_right,rgba(255,255,255,0.94)_0%,rgba(255,255,255,0.82)_38%,rgba(255,255,255,0.35)_52%,transparent_64%)] md:block" />
             {/* corner swoosh */}
-            <div className="pointer-events-none absolute -bottom-20 -right-16 size-56 rounded-full border-[16px] border-primary" />
-            <div className="pointer-events-none absolute -bottom-28 -right-6 size-56 rounded-full bg-navy" />
+            <div className="pointer-events-none absolute -bottom-20 -right-16 hidden size-56 rounded-full border-[16px] border-primary md:block" />
+            <div className="pointer-events-none absolute -bottom-28 -right-6 hidden size-56 rounded-full bg-navy md:block" />
 
             {/* handwritten-style tag, per picture */}
             <p
@@ -174,12 +176,12 @@ function Storefront() {
 
             <div
               key={slide}
-              className="relative z-10 flex min-h-[540px] animate-banner-in flex-col justify-center px-6 py-10 sm:px-12 md:max-w-[62%] lg:px-14"
+              className="relative z-10 flex min-h-[230px] max-w-[62%] animate-banner-in flex-col justify-center px-5 pb-9 pt-6 sm:min-h-[300px] sm:px-8 md:min-h-[540px] md:px-12 md:py-10 lg:px-14"
             >
-              <span className="inline-flex w-fit items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-black text-white shadow-md shadow-primary/30 sm:text-base">
+              <span className="hidden w-fit items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-black text-white shadow-md shadow-primary/30 sm:text-base md:inline-flex">
                 <Truck className="size-5" /> {t("heroEyebrow")}
               </span>
-              <h1 className="mt-6 text-4xl font-black leading-[1.05] tracking-tight text-navy sm:text-5xl xl:text-6xl">
+              <h1 className="text-xl font-black leading-[1.15] tracking-tight text-white drop-shadow sm:text-3xl md:mt-6 md:text-5xl md:leading-[1.05] md:text-navy md:drop-shadow-none xl:text-6xl">
                 {current.title.split("|")[0]}
                 {current.title.includes("|") && (
                   <span className="block text-primary">{current.title.split("|")[1]}</span>
@@ -188,10 +190,11 @@ function Storefront() {
 
               <a
                 href={current.service ? "#services" : "#products"}
-                className="mt-9 inline-flex w-fit items-center gap-3 rounded-full bg-gradient-to-r from-primary to-orange-600 px-8 py-4 text-xl font-black text-white shadow-lg shadow-primary/30 transition hover:brightness-110"
+                className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-xl bg-gradient-to-r from-primary to-orange-600 px-4 py-2 text-sm font-black text-white shadow-lg shadow-primary/30 transition hover:brightness-110 md:mt-9 md:gap-3 md:rounded-full md:px-8 md:py-4 md:text-xl"
               >
-                <ShoppingCart className="size-6" /> {current.service ? t("bookNow") : t("shopNow")}
-                <ChevronRight className="size-6" />
+                <ShoppingCart className="size-4 md:size-6" />{" "}
+                {current.service ? t("bookNow") : t("shopNow")}
+                <ChevronRight className="size-4 md:size-6" />
               </a>
             </div>
 
@@ -212,16 +215,16 @@ function Storefront() {
             >
               <ChevronRight className="size-6" />
             </button>
-            <div className="absolute bottom-5 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2">
+            <div className="absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5 md:bottom-5 md:gap-2">
               {slides.map((item, index) => (
                 <button
                   key={item.title}
                   type="button"
                   onClick={() => setSlide(index)}
-                  className={`h-3 rounded-full border-2 transition-all ${
+                  className={`h-2 rounded-full border-2 transition-all md:h-3 ${
                     index === slide
-                      ? "w-8 border-primary bg-primary"
-                      : "w-3 border-slate-300 bg-white hover:border-primary"
+                      ? "w-6 border-primary bg-primary md:w-8"
+                      : "w-2 border-white/70 bg-white/40 hover:border-primary md:w-3 md:border-slate-300 md:bg-white"
                   }`}
                   aria-label={`Show picture ${index + 1}`}
                 />
