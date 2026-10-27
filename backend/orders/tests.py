@@ -706,3 +706,62 @@ class StaffTests(TestCase):
         self.assertFalse(one["team"])
         self.assertEqual(one["totals"]["received"], 1)
         self.assertNotIn(str(other_city.pk), [o["id"] for o in one["received_orders"]])
+
+
+class LipaNumberTests(TestCase):
+    """Admins keep lipa numbers; customers pay, tap "Nimeshalipia" and the order says so."""
+
+    def setUp(self):
+        self.admin = User.objects.create_user("+255700000301", "pw", role=UserRole.ADMIN)
+        vendor = User.objects.create_user("+255700000302", "pw", role=UserRole.VENDOR_OWNER)
+        store = Store.objects.create(owner=vendor, name="Kariakoo Phones",
+                                     category=StoreCategory.objects.create(name="Electronics"),
+                                     status=StoreStatus.APPROVED)
+        self.listing = Listing.objects.create(store=store, category=ProductCategory.objects.create(name="Phones"),
+                                              title="Tecno Spark", description="Phone", price="300000")
+
+    def _json(self, method, url, body=None):
+        return getattr(self.client, method)(url, data=json.dumps(body or {}), content_type="application/json")
+
+    def test_admin_manages_numbers_and_customer_pays(self):
+        # Only admins can manage the numbers.
+        self.assertEqual(self.client.get("/api/admin/payment-accounts/").status_code, 403)
+        self.client.force_login(self.admin)
+        bad = self._json("post", "/api/admin/payment-accounts/", {"provider": "mpesa", "number": ""})
+        self.assertEqual(bad.status_code, 400)
+        mpesa = self._json("post", "/api/admin/payment-accounts/",
+                           {"provider": "mpesa", "number": "5544332", "account_name": "SokoLink Ltd"}).json()
+        airtel = self._json("post", "/api/admin/payment-accounts/",
+                            {"provider": "airtel_money", "number": "998877", "account_name": "SokoLink"}).json()
+        self._json("patch", f"/api/admin/payment-accounts/{airtel['account']['id']}/", {"is_active": False})
+        self.client.logout()
+
+        # Customers see the active ones only.
+        public = self.client.get("/api/payment-accounts/").json()["accounts"]
+        self.assertEqual([a["number"] for a in public], ["5544332"])
+        self.assertEqual(public[0]["provider_label"], "M-Pesa")
+
+        # Order with "Nimeshalipia".
+        order = {"listing_id": str(self.listing.pk), "quantity": 1, "name": "Amina", "phone": "0712345678"}
+        wrong = self._json("post", "/api/orders/quick/",
+                           {**order, "payment": {"paid": True, "account_id": airtel["account"]["id"]}})
+        self.assertEqual(wrong.status_code, 400)
+        res = self._json("post", "/api/orders/quick/",
+                         {**order, "payment": {"paid": True, "account_id": mpesa["account"]["id"],
+                                               "reference": "QJK7H2X9"}})
+        self.assertEqual(res.status_code, 201, res.content)
+        saved = QuickOrder.objects.get(pk=res.json()["order_id"])
+        self.assertTrue(saved.customer_paid)
+        self.assertEqual(saved.customer_payment_account, "M-Pesa 5544332 (SokoLink Ltd)")
+        self.assertEqual(saved.customer_payment_reference, "QJK7H2X9")
+
+        # Without paying ahead still works (price on request, old app versions).
+        plain = self._json("post", "/api/orders/quick/", order)
+        self.assertFalse(QuickOrder.objects.get(pk=plain.json()["order_id"]).customer_paid)
+
+        # Admins see it on the order.
+        self.client.force_login(self.admin)
+        orders = {o["id"]: o for o in self.client.get("/api/admin/orders/").json()["orders"]}
+        paid = orders[str(saved.pk)]["customer_payment"]
+        self.assertEqual((paid["provider_label"], paid["reference"]), ("M-Pesa", "QJK7H2X9"))
+        self.assertIsNone(orders[plain.json()["order_id"]]["customer_payment"])

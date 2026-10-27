@@ -41,6 +41,14 @@ export type StaffOrder = {
   grand_total: string;
   currency: string;
   city: string;
+  /** The customer tapped "Nimeshalipia": they say they paid to this lipa number. */
+  customer_payment?: {
+    provider: string;
+    provider_label: string;
+    account: string;
+    reference: string;
+    paid_at: string | null;
+  } | null;
 };
 
 const SESSION_KEY = "duka-staff-session";

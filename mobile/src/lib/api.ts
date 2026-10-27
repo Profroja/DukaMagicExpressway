@@ -131,6 +131,8 @@ export async function placeOrder(input: {
   address: string;
   latitude?: number | null;
   longitude?: number | null;
+  /** "Nimeshalipia": paid ahead to this lipa number. */
+  payment?: { accountId: string; reference: string } | null;
 }): Promise<{ order_id: string; total: string; delivery_fee: string; grand_total: string; currency: string }> {
   return request("/api/orders/quick/", {
     method: "POST",
@@ -142,8 +144,26 @@ export async function placeOrder(input: {
       address: input.address,
       latitude: input.latitude != null ? input.latitude.toFixed(6) : null,
       longitude: input.longitude != null ? input.longitude.toFixed(6) : null,
+      payment: input.payment
+        ? { paid: true, account_id: input.payment.accountId, reference: input.payment.reference }
+        : null,
     }),
   });
+}
+
+/** A lipa number customers pay to before sending an order (set by admins on the website). */
+export type PaymentAccount = {
+  id: string;
+  provider: string;
+  provider_label: string;
+  number: string;
+  account_name: string;
+  note: string;
+};
+
+export async function fetchPaymentAccounts(): Promise<PaymentAccount[]> {
+  const data = await request<{ accounts: PaymentAccount[] }>("/api/payment-accounts/");
+  return data.accounts ?? [];
 }
 
 export async function fetchOrderStatus(orderId: string): Promise<{ status: OrderStatus }> {

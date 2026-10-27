@@ -1,4 +1,5 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
+import * as Clipboard from "expo-clipboard";
 import { Image } from "expo-image";
 import * as Location from "expo-location";
 import { router, Stack, useLocalSearchParams } from "expo-router";
@@ -22,16 +23,30 @@ import {
   ApiError,
   fetchDeliveryQuote,
   fetchListing,
+  fetchPaymentAccounts,
   getCachedListing,
   mediaUrl,
   placeOrder,
   type DeliveryQuote,
   type Listing,
+  type PaymentAccount,
 } from "@/lib/api";
 import { formatMoney } from "@/lib/catalog";
 import { useLanguage } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 import { useKeyboardOverlap } from "@/lib/useKeyboardOverlap";
+
+/** Provider colours so customers recognise their mobile money service. */
+const PROVIDER: Record<string, { bg: string; text: string; short: string }> = {
+  mpesa: { bg: "#E60000", text: "#FFFFFF", short: "M-Pesa" },
+  mixx: { bg: "#FFD200", text: "#0B2A6F", short: "Mixx" },
+  airtel_money: { bg: "#ED1C24", text: "#FFFFFF", short: "Airtel" },
+  halopesa: { bg: "#F58220", text: "#FFFFFF", short: "Halo" },
+  azampesa: { bg: "#00A3E0", text: "#FFFFFF", short: "Azam" },
+  ttcl_pesa: { bg: "#0066B3", text: "#FFFFFF", short: "T-Pesa" },
+  bank: { bg: Colors.navy, text: "#FFFFFF", short: "Bank" },
+  other: { bg: "#475569", text: "#FFFFFF", short: "Pay" },
+};
 
 export default function ListingScreen() {
   const { t } = useLanguage();
@@ -47,7 +62,7 @@ export default function ListingScreen() {
   const [loading, setLoading] = useState(!listing);
   const [failed, setFailed] = useState(false);
   const [quantity, setQuantity] = useState(Math.max(1, Number(qty) || 1));
-  const [chosenStep, setStep] = useState<"details" | "contact" | "location">(
+  const [chosenStep, setStep] = useState<"details" | "contact" | "location" | "payment">(
     initialStep === "contact" ? "contact" : "details",
   );
   const [name, setName] = useState("");
@@ -60,6 +75,11 @@ export default function ListingScreen() {
   const [locationError, setLocationError] = useState("");
   const [quote, setQuote] = useState<DeliveryQuote | null>(null);
   const [mapFailed, setMapFailed] = useState(false);
+  // Lipa numbers: customers pay first, then tap "Nimeshalipia" to send the order.
+  const [accounts, setAccounts] = useState<PaymentAccount[]>([]);
+  const [paidWith, setPaidWith] = useState<string | null>(null);
+  const [reference, setReference] = useState("");
+  const [copied, setCopied] = useState<string | null>(null);
   // Keep the form above the keyboard and the focused field in view.
   const { ref: rootRef, overlap: keyboardOverlap } = useKeyboardOverlap();
   const scrollRef = useRef<ScrollView>(null);
@@ -87,6 +107,20 @@ export default function ListingScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  useEffect(() => {
+    let alive = true;
+    fetchPaymentAccounts()
+      .then((list) => {
+        if (!alive) return;
+        setAccounts(list);
+        setPaidWith((current) => current ?? list[0]?.id ?? null);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   const isService = listing?.listing_type === "service";
   // Services skip quantity - straight to the booking form.
   const step = isService && chosenStep === "details" ? "contact" : chosenStep;
@@ -103,6 +137,14 @@ export default function ListingScreen() {
   // Goods are delivered from our main store; services happen at the customer's place.
   const deliveryFee = !isService && quote?.configured && quote.deliverable ? Number(quote.fee) || 0 : 0;
   const outOfRange = !isService && !!quote?.configured && !quote.deliverable;
+  // Goods with a price are paid before the order is sent (when we have lipa numbers).
+  const payFirst = !isService && total > 0 && accounts.length > 0;
+
+  const copyNumber = (account: PaymentAccount) => {
+    Clipboard.setStringAsync(account.number).catch(() => {});
+    setCopied(account.id);
+    setTimeout(() => setCopied((c) => (c === account.id ? null : c)), 1500);
+  };
 
   const shareLocation = async () => {
     setLocationError("");
@@ -149,13 +191,29 @@ export default function ListingScreen() {
     if (!coords) shareLocation();
   };
 
-  const submit = async () => {
-    if (!name.trim()) return setError(t("errName"));
+  const locationProblem = () => {
+    if (!name.trim()) return t("errName");
     const digits = phone.replace(/\D/g, "");
-    if (digits.length < 9 || digits.length > 15) return setError(t("errPhone"));
-    if (!isService && !coords) return setError(t("errLocation"));
+    if (digits.length < 9 || digits.length > 15) return t("errPhone");
+    if (!isService && !coords) return t("errLocation");
     if (outOfRange)
-      return setError(t("outOfRangeNote", { max: String(Number(quote?.max_km)), km: String(Number(quote?.distance_km)) }));
+      return t("outOfRangeNote", { max: String(Number(quote?.max_km)), km: String(Number(quote?.distance_km)) });
+    return "";
+  };
+
+  // Location step: on to paying, or send the order straight away.
+  const confirmLocation = () => {
+    if (!payFirst) return submit();
+    const problem = locationProblem();
+    if (problem) return setError(problem);
+    setError("");
+    setStep("payment");
+  };
+
+  const submit = async () => {
+    const problem = locationProblem();
+    if (problem) return setError(problem);
+    if (payFirst && !paidWith) return setError(t("errChoosePaidTo"));
     setError("");
     setSubmitting(true);
     try {
@@ -167,6 +225,7 @@ export default function ListingScreen() {
         address: address.trim(),
         latitude: coords?.latitude,
         longitude: coords?.longitude,
+        payment: payFirst && paidWith ? { accountId: paidWith, reference: reference.trim() } : null,
       });
       saveOrder({
         id: result.order_id,
@@ -334,9 +393,9 @@ export default function ListingScreen() {
                 ref={addressRef}
                 style={styles.input}
                 maxLength={255}
-                returnKeyType="send"
+                returnKeyType={payFirst ? "next" : "send"}
                 onFocus={revealField}
-                onSubmitEditing={submit}
+                onSubmitEditing={confirmLocation}
               />
             </View>
 
@@ -374,6 +433,93 @@ export default function ListingScreen() {
                 )}
               </View>
             )}
+
+            {!!error && (
+              <View style={styles.error}>
+                <Ionicons name="alert-circle" size={16} color={Colors.danger} />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
+          </View>
+        ) : step === "payment" ? (
+          <View style={styles.form}>
+            <Text style={styles.stepTitle}>{t("payTitle")}</Text>
+            <Text style={styles.formHint}>{t("payHint")}</Text>
+
+            {/* Amount */}
+            <View style={styles.payAmount}>
+              <Text style={styles.payAmountLabel} numberOfLines={1}>
+                {t("amountToPay")} · {quantity}x {listing.title}
+              </Text>
+              <Text style={styles.payAmountValue}>{formatMoney(listing.currency, total + deliveryFee)}</Text>
+              {deliveryFee > 0 && (
+                <Text style={styles.payAmountNote}>
+                  {t("inclDeliveryShort", { fee: formatMoney(listing.currency, deliveryFee) })}
+                </Text>
+              )}
+              {!quote?.configured && (
+                <Text style={[styles.payAmountNote, { color: "#FDE68A" }]}>{t("deliveryOnArrival")}</Text>
+              )}
+            </View>
+
+            <Text style={styles.payLabel}>{t("choosePaidTo")}</Text>
+            {accounts.map((account) => {
+              const style = PROVIDER[account.provider] ?? PROVIDER.other!;
+              const on = paidWith === account.id;
+              return (
+                <Pressable
+                  key={account.id}
+                  onPress={() => {
+                    setPaidWith(account.id);
+                    setError("");
+                  }}
+                  style={[styles.payCard, on && styles.payCardOn]}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: on }}
+                >
+                  <View style={[styles.payBadge, { backgroundColor: style.bg }]}>
+                    <Text style={[styles.payBadgeText, { color: style.text }]}>{style.short}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.payProvider}>{account.provider_label}</Text>
+                    <Text style={styles.payNumber} selectable>
+                      {account.number}
+                    </Text>
+                    <Text style={styles.payName} numberOfLines={1}>
+                      {account.account_name}
+                    </Text>
+                    {!!account.note && <Text style={styles.payNote}>{account.note}</Text>}
+                  </View>
+                  <Pressable onPress={() => copyNumber(account)} hitSlop={6} style={styles.copyBtn}>
+                    <Ionicons
+                      name={copied === account.id ? "checkmark-circle" : "copy-outline"}
+                      size={15}
+                      color={copied === account.id ? Colors.success : Colors.textMuted}
+                    />
+                    <Text style={styles.copyText}>{copied === account.id ? t("copied") : t("copy")}</Text>
+                  </Pressable>
+                  <View style={[styles.radio, on && styles.radioOn]}>{on && <View style={styles.radioDot} />}</View>
+                </Pressable>
+              );
+            })}
+
+            <Text style={[styles.payLabel, { textTransform: "none", letterSpacing: 0 }]}>{t("transactionId")}</Text>
+            <View style={styles.inputWrap}>
+              <Ionicons name="receipt-outline" size={18} color={Colors.textFaint} />
+              <TextInput
+                value={reference}
+                onChangeText={(v) => setReference(v.toUpperCase())}
+                placeholder={t("transactionPlaceholder")}
+                placeholderTextColor={Colors.textFaint}
+                style={[styles.input, { fontWeight: "800", letterSpacing: 1 }]}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                maxLength={100}
+                returnKeyType="send"
+                onFocus={revealField}
+                onSubmitEditing={submit}
+              />
+            </View>
 
             {!!error && (
               <View style={styles.error}>
@@ -489,14 +635,45 @@ export default function ListingScreen() {
               />
             )}
           </View>
+        ) : step === "payment" ? (
+          <View style={{ gap: 6 }}>
+            <Button
+              title={submitting ? t("submitting") : t("iHavePaid")}
+              icon="checkmark-done-circle"
+              loading={submitting}
+              disabled={!paidWith}
+              onPress={submit}
+              style={{ backgroundColor: Colors.success }}
+            />
+            <Text style={styles.payFooterNote}>{t("weCheckPayment")}</Text>
+            <Button
+              title={t("back")}
+              icon="arrow-back"
+              variant="ghost"
+              onPress={() => {
+                setError("");
+                setStep("location");
+              }}
+              disabled={submitting}
+              style={{ height: 36 }}
+            />
+          </View>
         ) : (
           <View style={{ gap: 8 }}>
             <Button
-              title={submitting ? t("submitting") : isService ? t("confirmBooking") : t("confirmOrder")}
-              icon="checkmark-circle"
+              title={
+                submitting
+                  ? t("submitting")
+                  : payFirst
+                    ? t("continueToPay")
+                    : isService
+                      ? t("confirmBooking")
+                      : t("confirmOrder")
+              }
+              icon={payFirst ? "wallet" : "checkmark-circle"}
               loading={submitting}
               disabled={locating}
-              onPress={submit}
+              onPress={confirmLocation}
             />
             <Button
               title={t("back")}
@@ -650,6 +827,59 @@ const styles = StyleSheet.create({
   },
   errorText: { flex: 1, fontSize: 13, fontWeight: "700", color: Colors.danger },
   stepTitle: { fontSize: 22, fontWeight: "900", color: Colors.navy, marginBottom: 6 },
+  payAmount: { marginTop: 14, padding: 16, borderRadius: Radius.lg, backgroundColor: Colors.navy },
+  payAmountLabel: { color: "rgba(255,255,255,0.7)", fontSize: 12, fontWeight: "700" },
+  payAmountValue: { marginTop: 4, color: "#FFFFFF", fontSize: 28, fontWeight: "900" },
+  payAmountNote: { marginTop: 2, color: "rgba(255,255,255,0.6)", fontSize: 11.5 },
+  payLabel: {
+    marginTop: 18,
+    marginBottom: 8,
+    fontSize: 11.5,
+    fontWeight: "900",
+    color: Colors.textFaint,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
+  payCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 12,
+    marginBottom: 10,
+    borderRadius: Radius.lg,
+    borderWidth: 2,
+    borderColor: Colors.border,
+    backgroundColor: "#FFFFFF",
+  },
+  payCardOn: { borderColor: Colors.primary, backgroundColor: "#FFF7ED" },
+  payBadge: { width: 50, height: 50, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  payBadgeText: { fontSize: 11, fontWeight: "900" },
+  payProvider: { fontSize: 11.5, fontWeight: "800", color: Colors.textMuted },
+  payNumber: { fontSize: 20, fontWeight: "900", color: Colors.navy, letterSpacing: 1.5 },
+  payName: { fontSize: 12, fontWeight: "700", color: Colors.textMuted },
+  payNote: { marginTop: 2, fontSize: 11, color: Colors.textFaint },
+  copyBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 7,
+    borderRadius: 10,
+    backgroundColor: "#F1F5F9",
+  },
+  copyText: { fontSize: 11.5, fontWeight: "800", color: Colors.textMuted },
+  radio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: "#CBD5E1",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  radioOn: { borderColor: Colors.primary, backgroundColor: Colors.primary },
+  radioDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#FFFFFF" },
+  payFooterNote: { textAlign: "center", fontSize: 11.5, color: Colors.textFaint },
   mapCard: {
     marginTop: 16,
     height: 280,

@@ -76,6 +76,20 @@ export default function StaffOrderScreen() {
             />
           )}
           <Row label={t("total")} value={formatMoney(order.currency, order.grand_total)} strong />
+          {order.customer_payment && (
+            <View style={styles.paid}>
+              <Text style={styles.paidTitle}>
+                <Ionicons name="checkmark-done-circle" size={15} color={Colors.success} /> {t("customerPaidAhead")}
+              </Text>
+              <Text style={styles.paidText}>{order.customer_payment.account}</Text>
+              {!!order.customer_payment.reference && (
+                <Text style={styles.paidRef} selectable>
+                  {t("transactionIdShort")}: {order.customer_payment.reference}
+                </Text>
+              )}
+              <Text style={styles.paidHint}>{t("checkStatement")}</Text>
+            </View>
+          )}
         </View>
 
         {/* Customer */}
@@ -138,6 +152,18 @@ function Row({ label, value, strong = false }: { label: string; value: string; s
 }
 
 const styles = StyleSheet.create({
+  paid: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: Colors.successBg,
+    borderWidth: 1,
+    borderColor: "#A7F3D0",
+  },
+  paidTitle: { fontSize: 13.5, fontWeight: "900", color: "#065F46" },
+  paidText: { marginTop: 4, fontSize: 13, fontWeight: "700", color: "#064E3B" },
+  paidRef: { marginTop: 2, fontSize: 12.5, fontWeight: "900", color: "#064E3B", letterSpacing: 0.5 },
+  paidHint: { marginTop: 6, fontSize: 11.5, color: "#047857" },
   card: {
     backgroundColor: "#FFFFFF",
     borderRadius: Radius.lg,

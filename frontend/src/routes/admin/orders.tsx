@@ -105,7 +105,49 @@ type AdminOrder = {
   amount_paid: string | null;
   purchase_orders: PurchaseOrder[];
   created_at: string | null;
+  /** The customer tapped "Nimeshalipia": they say they paid to this lipa number. */
+  customer_payment: {
+    provider: string;
+    provider_label: string;
+    account: string;
+    reference: string;
+    paid_at: string | null;
+  } | null;
 };
+
+/** "Customer says paid" - staff check the provider statement before buying. */
+function CustomerPaidNote({ order, compact }: { order: AdminOrder; compact?: boolean }) {
+  const paid = order.customer_payment;
+  if (!paid) return null;
+  if (compact) {
+    return (
+      <span
+        className="mt-1 inline-flex items-center gap-1 rounded-md bg-emerald-100 px-1.5 py-0.5 text-[10px] font-black text-emerald-700"
+        title={`${paid.account}${paid.reference ? ` · ref ${paid.reference}` : ""}`}
+      >
+        ✓ Paid ahead · {paid.provider_label}
+      </span>
+    );
+  }
+  return (
+    <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm">
+      <p className="font-black text-emerald-800">✓ Customer says they paid ahead</p>
+      <p className="mt-1 text-emerald-900">
+        To <b>{paid.account}</b>
+      </p>
+      {paid.reference ? (
+        <p className="mt-0.5 font-mono text-xs font-bold text-emerald-900">
+          Transaction ID: {paid.reference}
+        </p>
+      ) : (
+        <p className="mt-0.5 text-xs text-emerald-700">No transaction ID given.</p>
+      )}
+      <p className="mt-1.5 text-[11px] text-emerald-700">
+        Check the {paid.provider_label} statement before buying from the store.
+      </p>
+    </div>
+  );
+}
 
 type KnownStore = {
   id: string;
@@ -411,6 +453,13 @@ function AdminOrdersPage() {
             "."
           : "") +
         (cost !== null ? `<br/>We paid the store <b>${money(order.currency, cost)}</b>.` : "") +
+        (order.customer_payment
+          ? `<br/>Customer paid ahead to <b>${escapeHtml(order.customer_payment.account)}</b>` +
+            (order.customer_payment.reference
+              ? ` (ref ${escapeHtml(order.customer_payment.reference)})`
+              : "") +
+            "."
+          : "") +
         (order.listing_type === "service"
           ? "<br/><br/>Enter exactly what the customer paid for this job (not the starting price)."
           : "<br/><br/>Enter exactly what the customer paid."),
@@ -791,6 +840,7 @@ function AdminOrdersPage() {
             >
               <Phone className="size-4" /> {order.customer_phone}
             </a>
+            <CustomerPaidNote order={order} />
             {order.delivery_address && (
               <p className="mt-3 flex items-start gap-1.5 text-sm text-slate-600">
                 <MapPin className="mt-0.5 size-4 shrink-0 text-slate-400" />{" "}
@@ -1099,6 +1149,7 @@ function AdminOrdersPage() {
                         >
                           <Phone className="size-3" /> {order.customer_phone}
                         </a>
+                        <CustomerPaidNote order={order} compact />
                         {order.delivery_address && (
                           <p className="mt-0.5 flex max-w-[180px] items-center gap-1 truncate text-[11px] text-slate-500">
                             <MapPin className="size-3 shrink-0" /> {order.delivery_address}

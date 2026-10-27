@@ -18,6 +18,7 @@ import {
   CircleUserRound,
   Truck,
   BarChart3,
+  Smartphone,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -38,6 +39,7 @@ const menuItems = [
   { icon: ShoppingCart, label: "Orders", href: "/admin/orders" },
   { icon: BarChart3, label: "Staff Performance", href: "/admin/my-work" },
   { icon: Truck, label: "Delivery", href: "/admin/delivery" },
+  { icon: Smartphone, label: "Lipa Numbers", href: "/admin/payments" },
   { icon: TrendingUp, label: "Revenue", href: "/admin/revenue" },
   { icon: Coins, label: "Monthly Subscriptions", href: "/admin/subscriptions" },
   { icon: Calendar, label: "Calendar", href: "#" },

@@ -19,6 +19,7 @@ import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminDeliveryRouteImport } from './routes/admin/delivery'
 import { Route as AdminMyWorkRouteImport } from './routes/admin/my-work'
 import { Route as AdminOrdersRouteImport } from './routes/admin/orders'
+import { Route as AdminPaymentsRouteImport } from './routes/admin/payments'
 import { Route as AdminProductsRouteImport } from './routes/admin/products'
 import { Route as AdminRevenueRouteImport } from './routes/admin/revenue'
 import { Route as AdminStoresRouteImport } from './routes/admin/stores'
@@ -78,6 +79,11 @@ const AdminMyWorkRoute = AdminMyWorkRouteImport.update({
 const AdminOrdersRoute = AdminOrdersRouteImport.update({
   id: '/orders',
   path: '/orders',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPaymentsRoute = AdminPaymentsRouteImport.update({
+  id: '/payments',
+  path: '/payments',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminProductsRoute = AdminProductsRouteImport.update({
@@ -141,6 +147,7 @@ export interface FileRoutesByFullPath {
   '/admin/delivery': typeof AdminDeliveryRoute
   '/admin/my-work': typeof AdminMyWorkRoute
   '/admin/orders': typeof AdminOrdersRoute
+  '/admin/payments': typeof AdminPaymentsRoute
   '/admin/products': typeof AdminProductsRoute
   '/admin/revenue': typeof AdminRevenueRoute
   '/admin/stores': typeof AdminStoresRoute
@@ -161,6 +168,7 @@ export interface FileRoutesByTo {
   '/admin/delivery': typeof AdminDeliveryRoute
   '/admin/my-work': typeof AdminMyWorkRoute
   '/admin/orders': typeof AdminOrdersRoute
+  '/admin/payments': typeof AdminPaymentsRoute
   '/admin/products': typeof AdminProductsRoute
   '/admin/revenue': typeof AdminRevenueRoute
   '/admin/stores': typeof AdminStoresRoute
@@ -184,6 +192,7 @@ export interface FileRoutesById {
   '/admin/delivery': typeof AdminDeliveryRoute
   '/admin/my-work': typeof AdminMyWorkRoute
   '/admin/orders': typeof AdminOrdersRoute
+  '/admin/payments': typeof AdminPaymentsRoute
   '/admin/products': typeof AdminProductsRoute
   '/admin/revenue': typeof AdminRevenueRoute
   '/admin/stores': typeof AdminStoresRoute
@@ -208,6 +217,7 @@ export interface FileRouteTypes {
     | '/admin/delivery'
     | '/admin/my-work'
     | '/admin/orders'
+    | '/admin/payments'
     | '/admin/products'
     | '/admin/revenue'
     | '/admin/stores'
@@ -228,6 +238,7 @@ export interface FileRouteTypes {
     | '/admin/delivery'
     | '/admin/my-work'
     | '/admin/orders'
+    | '/admin/payments'
     | '/admin/products'
     | '/admin/revenue'
     | '/admin/stores'
@@ -250,6 +261,7 @@ export interface FileRouteTypes {
     | '/admin/delivery'
     | '/admin/my-work'
     | '/admin/orders'
+    | '/admin/payments'
     | '/admin/products'
     | '/admin/revenue'
     | '/admin/stores'
@@ -345,6 +357,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminOrdersRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/payments': {
+      id: '/admin/payments'
+      path: '/payments'
+      fullPath: '/admin/payments'
+      preLoaderRoute: typeof AdminPaymentsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/products': {
       id: '/admin/products'
       path: '/products'
@@ -422,6 +441,7 @@ interface AdminRouteChildren {
   AdminDeliveryRoute: typeof AdminDeliveryRoute
   AdminMyWorkRoute: typeof AdminMyWorkRoute
   AdminOrdersRoute: typeof AdminOrdersRoute
+  AdminPaymentsRoute: typeof AdminPaymentsRoute
   AdminProductsRoute: typeof AdminProductsRoute
   AdminRevenueRoute: typeof AdminRevenueRoute
   AdminStoresRoute: typeof AdminStoresRoute
@@ -434,6 +454,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminDeliveryRoute: AdminDeliveryRoute,
   AdminMyWorkRoute: AdminMyWorkRoute,
   AdminOrdersRoute: AdminOrdersRoute,
+  AdminPaymentsRoute: AdminPaymentsRoute,
   AdminProductsRoute: AdminProductsRoute,
   AdminRevenueRoute: AdminRevenueRoute,
   AdminStoresRoute: AdminStoresRoute,

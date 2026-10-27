@@ -292,6 +292,21 @@ class QuickOrder(models.Model):
         help_text=_('Exactly what the customer paid, recorded when the order is closed')
     )
     closed_at = models.DateTimeField(null=True, blank=True)
+    # The customer paid to one of our lipa numbers before sending the order
+    # ("Nimeshalipia"). Staff check it on the provider's statement.
+    customer_paid = models.BooleanField(default=False)
+    customer_payment_provider = models.CharField(max_length=30, blank=True)
+    customer_payment_account = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text=_('Lipa number the customer paid to, as shown to them (snapshot)')
+    )
+    customer_payment_reference = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text=_('Transaction ID from the payment message, if the customer gave it')
+    )
+    customer_paid_at = models.DateTimeField(null=True, blank=True)
     # Staff member (or admin) who closed the order and collected the money.
     closed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -519,6 +534,54 @@ class DeliverySettings(models.Model):
     def load(cls):
         obj, _ = cls.objects.get_or_create(pk=1)
         return obj
+
+
+class LipaProvider(models.TextChoices):
+    """Mobile money / bank services customers can pay us with."""
+    MPESA = 'mpesa', _('M-Pesa')
+    MIXX = 'mixx', _('Mixx by Yas (Tigo Pesa)')
+    AIRTEL_MONEY = 'airtel_money', _('Airtel Money')
+    HALOPESA = 'halopesa', _('HaloPesa')
+    AZAMPESA = 'azampesa', _('AzamPesa')
+    TTCL_PESA = 'ttcl_pesa', _('T-Pesa (TTCL)')
+    BANK = 'bank', _('Bank')
+    OTHER = 'other', _('Other')
+
+
+class PaymentAccount(models.Model):
+    """A lipa number (or bank account) customers pay to before sending an order."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    provider = models.CharField(max_length=20, choices=LipaProvider.choices)
+    # Name shown for "Bank" / "Other" (e.g. "CRDB Bank"); the provider name otherwise.
+    provider_name = models.CharField(max_length=60, blank=True)
+    number = models.CharField(max_length=40, help_text=_('Lipa number, till or account number'))
+    account_name = models.CharField(max_length=120, help_text=_('Name the customer sees when paying'))
+    note = models.CharField(max_length=200, blank=True, help_text=_('Short tip, e.g. "Lipa kwa simu > Lipa namba"'))
+    is_active = models.BooleanField(default=True)
+    sort_order = models.PositiveSmallIntegerField(default=0)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='+'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'payment_accounts'
+        verbose_name = _('payment account')
+        verbose_name_plural = _('payment accounts')
+        ordering = ['sort_order', 'created_at']
+
+    def __str__(self):
+        return f"{self.label} {self.number}"
+
+    @property
+    def label(self):
+        return self.provider_name.strip() or self.get_provider_display()
 
 
 class DeliveryFeeRange(models.Model):

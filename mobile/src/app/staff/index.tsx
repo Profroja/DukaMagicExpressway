@@ -194,7 +194,7 @@ function timeAgo(iso: string | null, sw: boolean) {
 }
 
 function OrderRow({ order }: { order: StaffOrder }) {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const uri = mediaUrl(order.product_image);
   const isNew = order.status === "new";
   return (
@@ -226,6 +226,14 @@ function OrderRow({ order }: { order: StaffOrder }) {
         )}
         <View style={styles.rowBottom}>
           <StaffStatusBadge status={order.status} />
+          {order.customer_payment && (
+            <View style={styles.paidTag}>
+              <Ionicons name="checkmark-done" size={11} color={Colors.success} />
+              <Text style={styles.paidTagText}>
+                {t("paidAhead")} · {order.customer_payment.provider_label}
+              </Text>
+            </View>
+          )}
           <Text style={styles.time}>{timeAgo(order.created_at, language === "sw")}</Text>
         </View>
       </View>
@@ -325,5 +333,15 @@ const styles = StyleSheet.create({
   address: { fontSize: 11.5, color: Colors.textFaint },
   rowBottom: { marginTop: 3, flexDirection: "row", alignItems: "center", gap: 8 },
   time: { fontSize: 11, color: Colors.textFaint, fontWeight: "600" },
+  paidTag: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    backgroundColor: Colors.successBg,
+  },
+  paidTagText: { fontSize: 10.5, fontWeight: "900", color: Colors.success },
   total: { fontSize: 13, fontWeight: "900", color: Colors.primary },
 });

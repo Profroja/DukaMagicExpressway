@@ -14,6 +14,7 @@ from django.views.decorators.csrf import csrf_exempt
 from auths.views import _handles_orders
 from .cities import CITIES
 from .models import QuickOrder, QuickOrderStatus
+from .payments import customer_payment_payload
 from .performance import parse_range, staff_performance
 from .views import _primary_image_url, _visible_orders
 
@@ -104,6 +105,7 @@ def _order_payload(order):
         "grand_total": str(order.total_amount + order.delivery_fee),
         "currency": order.currency,
         "city": order.city,
+        "customer_payment": customer_payment_payload(order),
     }
 
 

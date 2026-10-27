@@ -18,6 +18,7 @@ from subscriptions.views import _current_month, store_plan_payload, unpaid_store
 from auths.views import _handles_orders, _is_admin
 from .models import (
     ACTIVE_PURCHASE_ORDER_STATUSES,
+    PaymentAccount,
     PriceStatus,
     PurchaseOrderPaymentStatus,
     PurchaseOrderStatus,
@@ -28,6 +29,7 @@ from .models import (
 )
 from . import delivery, notifications
 from .cities import nearest_city
+from .payments import account_label, customer_payment_payload
 from .notifications import PLATFORM_BUYER_NAME
 
 
@@ -125,6 +127,19 @@ def quick_order_view(request):
     elif coords is not None and delivery.is_configured():
         distance_km = delivery.quote(*coords)["distance_km"]
 
+    # "Nimeshalipia": the customer says they paid to one of our lipa numbers.
+    paid_to, payment_reference = None, ""
+    payment = data.get("payment")
+    if isinstance(payment, dict) and payment.get("paid"):
+        account_id = str(payment.get("account_id") or "").strip()
+        try:
+            paid_to = PaymentAccount.objects.filter(pk=uuid.UUID(account_id), is_active=True).first()
+        except ValueError:
+            paid_to = None
+        if paid_to is None:
+            return JsonResponse({"error": "Choose the number you paid to."}, status=400)
+        payment_reference = str(payment.get("reference") or "").strip()[:100]
+
     order = QuickOrder.objects.create(
         listing=listing,
         store=listing.store,
@@ -140,6 +155,11 @@ def quick_order_view(request):
         unit_price=unit_price,
         total_amount=total,
         currency=listing.currency,
+        customer_paid=paid_to is not None,
+        customer_payment_provider=paid_to.provider if paid_to else "",
+        customer_payment_account=account_label(paid_to) if paid_to else "",
+        customer_payment_reference=payment_reference,
+        customer_paid_at=timezone.now() if paid_to else None,
         created_by=request.user if request.user.is_authenticated else None,
         updated_by=request.user if request.user.is_authenticated else None,
     )
@@ -562,6 +582,7 @@ def _admin_order_to_dict(order):
         "updated_at": order.updated_at.isoformat() if order.updated_at else None,
         "delivered_at": order.delivered_at.isoformat() if order.delivered_at else None,
         "closed_at": order.closed_at.isoformat() if order.closed_at else None,
+        "customer_payment": customer_payment_payload(order),
     }
 
 

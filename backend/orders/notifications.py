@@ -123,6 +123,11 @@ def notify_admins_new_customer_order(order):
         distance = f" ({order.delivery_distance_km} km)" if order.delivery_distance_km is not None else ""
         rows.append(("Delivery fee", _money(order.currency, order.delivery_fee) + distance))
         rows.append(("Total with delivery", _money(order.currency, order.total_amount + order.delivery_fee)))
+    if order.customer_paid:
+        paid = f"Yes - to {order.customer_payment_account}"
+        if order.customer_payment_reference:
+            paid += f" (ref {order.customer_payment_reference})"
+        rows.append(("Customer says paid", paid + ". Check the statement before buying."))
     rows += [
         ("Customer", order.customer_name),
         ("Phone", order.customer_phone),

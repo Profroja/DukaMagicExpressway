@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
+  Copy,
   MapPin,
   Minus,
   PackageCheck,
@@ -30,6 +31,7 @@ import {
 } from "@/lib/customerOrders";
 import { LocationPicker, type LatLng } from "@/components/LocationPicker";
 import { reverseGeocode } from "@/lib/googleMaps";
+import { fetchPaymentAccounts, providerStyle, type PaymentAccount } from "@/lib/lipa";
 
 type DeliveryQuote = {
   configured: boolean;
@@ -74,7 +76,9 @@ export function OrderModal({
   const { t } = useLanguage();
   const [mounted, setMounted] = useState(false);
   const [quantity, setQuantity] = useState(1);
-  const [step, setStep] = useState<"details" | "contact" | "location" | "tracking">("details");
+  const [step, setStep] = useState<"details" | "contact" | "location" | "payment" | "tracking">(
+    "details",
+  );
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
@@ -86,6 +90,11 @@ export function OrderModal({
   const [quote, setQuote] = useState<DeliveryQuote | null>(null);
   const [quoting, setQuoting] = useState(false);
   const [placedFee, setPlacedFee] = useState(0);
+  // Lipa numbers: customers pay first, then tap "Nimeshalipia" to send the order.
+  const [accounts, setAccounts] = useState<PaymentAccount[]>([]);
+  const [paidWith, setPaidWith] = useState<string | null>(null);
+  const [reference, setReference] = useState("");
+  const [copied, setCopied] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -101,6 +110,12 @@ export function OrderModal({
       setLocation(null);
       setQuote(null);
       setPlacedFee(0);
+      setPaidWith(null);
+      setReference("");
+      fetchPaymentAccounts().then((list) => {
+        setAccounts(list);
+        setPaidWith(list[0]?.id ?? null);
+      });
       document.body.style.overflow = "hidden";
       return () => {
         document.body.style.overflow = "";
@@ -173,6 +188,9 @@ export function OrderModal({
     !isService && quote?.configured && quote.deliverable ? Number(quote.fee) || 0 : 0;
   const outOfRange = !isService && !!quote?.configured && !quote.deliverable;
   const grandTotal = totalPrice + deliveryFee;
+  // Goods with a price are paid before the order is sent (when we have lipa numbers).
+  const payFirst = !isService && totalPrice > 0 && accounts.length > 0;
+  const deliveryUnknown = !isService && !quote?.configured;
 
   const pickLocation = (point: LatLng) => {
     setLocation(point);
@@ -203,7 +221,43 @@ export function OrderModal({
     setStep("location");
   };
 
+  const copyNumber = (account: PaymentAccount) => {
+    navigator.clipboard?.writeText(account.number).catch(() => {});
+    setCopied(account.id);
+    window.setTimeout(() => setCopied((c) => (c === account.id ? null : c)), 1500);
+  };
+
+  /** Location step: go on to paying, or send the order straight away. */
+  const confirmLocation = () => {
+    if (!payFirst) {
+      handleOrder();
+      return;
+    }
+    if (!location) {
+      setError(
+        isSwahili
+          ? "Tafadhali onyesha mahali pa kuletewa kwenye ramani."
+          : "Please share your delivery location on the map.",
+      );
+      return;
+    }
+    if (outOfRange) {
+      setError(
+        isSwahili
+          ? `Samahani, tunaleta hadi km ${Number(quote?.max_km)} kutoka dukani kwetu.`
+          : `Sorry, we deliver up to ${Number(quote?.max_km)} km from our store.`,
+      );
+      return;
+    }
+    setError("");
+    setStep("payment");
+  };
+
   const handleOrder = async () => {
+    if (payFirst && !paidWith) {
+      setError(isSwahili ? "Chagua namba uliyolipia." : "Choose the number you paid to.");
+      return;
+    }
     if (!name.trim()) {
       setError(isSwahili ? "Tafadhali weka jina lako." : "Please enter your name.");
       return;
@@ -245,6 +299,10 @@ export function OrderModal({
           address: address.trim(),
           latitude: location ? location.lat.toFixed(6) : null,
           longitude: location ? location.lng.toFixed(6) : null,
+          payment:
+            payFirst && paidWith
+              ? { paid: true, account_id: paidWith, reference: reference.trim() }
+              : null,
         }),
       });
       const data = await res.json().catch(() => null);
@@ -623,7 +681,7 @@ export function OrderModal({
                   setError("");
                 }}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") handleOrder();
+                  if (e.key === "Enter") confirmLocation();
                 }}
                 maxLength={255}
                 placeholder={
@@ -713,7 +771,7 @@ export function OrderModal({
 
             <div className="mt-5 space-y-2">
               <Button
-                onClick={handleOrder}
+                onClick={confirmLocation}
                 disabled={ordering || quoting}
                 className="w-full h-12 rounded-xl text-base font-black shadow-lg shadow-primary/20 transition hover:shadow-xl active:scale-[0.99]"
               >
@@ -722,19 +780,191 @@ export function OrderModal({
                   ? isSwahili
                     ? "Inatuma..."
                     : "Submitting..."
-                  : isService
+                  : payFirst
                     ? isSwahili
-                      ? "Thibitisha Uhifadhi"
-                      : "Confirm Booking"
-                    : isSwahili
-                      ? "Thibitisha Agizo"
-                      : "Confirm Order"}
+                      ? "Endelea Kulipa"
+                      : "Continue to Payment"
+                    : isService
+                      ? isSwahili
+                        ? "Thibitisha Uhifadhi"
+                        : "Confirm Booking"
+                      : isSwahili
+                        ? "Thibitisha Agizo"
+                        : "Confirm Order"}
               </Button>
               <button
                 type="button"
                 onClick={() => {
                   setError("");
                   setStep("contact");
+                }}
+                disabled={ordering}
+                className="flex w-full items-center justify-center gap-1.5 text-xs font-bold text-muted-foreground transition hover:text-navy"
+              >
+                <ArrowLeft className="size-3.5" />
+                {isSwahili ? "Rudi nyuma" : "Back"}
+              </button>
+            </div>
+          </div>
+        ) : step === "payment" ? (
+          <div className="flex flex-col p-4 pb-6 sm:p-6 md:p-8">
+            <div className="pr-10">
+              <h2 className="text-xl font-black leading-tight text-navy sm:text-2xl">
+                {isSwahili ? "Lipia Agizo Lako" : "Pay for Your Order"}
+              </h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {isSwahili
+                  ? 'Lipa kiasi hiki kwa mojawapo ya namba hizi, kisha bonyeza "Nimeshalipia".'
+                  : 'Pay this amount to one of these numbers, then tap "I\'ve paid".'}
+              </p>
+            </div>
+
+            {/* Amount */}
+            <div className="mt-4 rounded-2xl bg-gradient-to-r from-navy to-slate-800 p-4 text-white">
+              <p className="text-xs font-semibold text-white/70">
+                {isSwahili ? "Kiasi cha kulipa" : "Amount to pay"} · {itemLabel}
+              </p>
+              <p className="mt-1 text-3xl font-black">
+                {currency} {grandTotal.toLocaleString()}
+              </p>
+              {deliveryFee > 0 && (
+                <p className="mt-0.5 text-[11px] text-white/60">
+                  {isSwahili ? "Pamoja na usafiri" : "Includes delivery"} {currency}{" "}
+                  {deliveryFee.toLocaleString()}
+                </p>
+              )}
+              {deliveryUnknown && (
+                <p className="mt-0.5 text-[11px] text-amber-200">
+                  {isSwahili
+                    ? "Gharama ya usafiri tutakujulisha - utalipia ukifikishiwa."
+                    : "We'll confirm the delivery fee - you pay it on delivery."}
+                </p>
+              )}
+            </div>
+
+            {/* Lipa numbers */}
+            <p className="mt-4 text-xs font-black uppercase tracking-wider text-slate-400">
+              {isSwahili ? "Chagua ulipolipia" : "Choose where you paid"}
+            </p>
+            <div className="mt-2 space-y-2">
+              {accounts.map((account) => {
+                const style = providerStyle(account.provider);
+                const on = paidWith === account.id;
+                return (
+                  <div
+                    key={account.id}
+                    role="radio"
+                    aria-checked={on}
+                    tabIndex={0}
+                    onClick={() => {
+                      setPaidWith(account.id);
+                      setError("");
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") setPaidWith(account.id);
+                    }}
+                    className={`flex cursor-pointer items-center gap-3 rounded-2xl border-2 p-3 transition ${
+                      on
+                        ? "border-primary bg-orange-50/60 shadow-sm"
+                        : "border-slate-200 hover:border-slate-300"
+                    }`}
+                  >
+                    <span
+                      className={`grid size-12 shrink-0 place-items-center rounded-xl text-[11px] font-black ${style.bg} ${style.text}`}
+                    >
+                      {style.short}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold text-slate-500">{account.provider_label}</p>
+                      <p className="font-mono text-xl font-black tracking-wider text-navy">
+                        {account.number}
+                      </p>
+                      <p className="truncate text-xs font-semibold text-slate-600">
+                        {account.account_name}
+                      </p>
+                      {account.note && (
+                        <p className="mt-0.5 text-[11px] text-slate-400">{account.note}</p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        copyNumber(account);
+                      }}
+                      className="flex shrink-0 items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-200"
+                    >
+                      {copied === account.id ? (
+                        <CheckCircle2 className="size-3.5 text-emerald-600" />
+                      ) : (
+                        <Copy className="size-3.5" />
+                      )}
+                      {copied === account.id
+                        ? isSwahili
+                          ? "Imenakiliwa"
+                          : "Copied"
+                        : isSwahili
+                          ? "Nakili"
+                          : "Copy"}
+                    </button>
+                    <span
+                      className={`grid size-5 shrink-0 place-items-center rounded-full border-2 ${
+                        on ? "border-primary bg-primary" : "border-slate-300"
+                      }`}
+                    >
+                      {on && <span className="size-2 rounded-full bg-white" />}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            <label className="mt-4 block">
+              <span className="text-xs font-bold text-slate-600">
+                {isSwahili
+                  ? "Namba ya muamala (hiari) - kutoka kwenye ujumbe wa malipo"
+                  : "Transaction ID (optional) - from your payment message"}
+              </span>
+              <input
+                value={reference}
+                onChange={(e) => setReference(e.target.value.toUpperCase())}
+                maxLength={100}
+                placeholder={isSwahili ? "mf. QJK7H2X9AB" : "e.g. QJK7H2X9AB"}
+                className="mt-1.5 h-12 w-full rounded-xl border border-slate-200 bg-white px-4 font-mono text-sm font-bold uppercase tracking-wider text-navy outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+              />
+            </label>
+
+            {error && (
+              <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-600">
+                {error}
+              </p>
+            )}
+
+            <div className="mt-5 space-y-2">
+              <Button
+                onClick={handleOrder}
+                disabled={ordering || !paidWith}
+                className="h-14 w-full rounded-xl bg-emerald-600 text-base font-black shadow-lg shadow-emerald-600/25 transition hover:bg-emerald-700 hover:shadow-xl active:scale-[0.99]"
+              >
+                <CheckCircle2 className="size-5" />
+                {ordering
+                  ? isSwahili
+                    ? "Inatuma..."
+                    : "Submitting..."
+                  : isSwahili
+                    ? "Nimeshalipia - Tuma Agizo"
+                    : "I've Paid - Send Order"}
+              </Button>
+              <p className="text-center text-[11px] text-slate-400">
+                {isSwahili
+                  ? "Tutahakiki malipo yako kisha tukupigie kuthibitisha."
+                  : "We'll check your payment, then call you to confirm."}
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setError("");
+                  setStep("location");
                 }}
                 disabled={ordering}
                 className="flex w-full items-center justify-center gap-1.5 text-xs font-bold text-muted-foreground transition hover:text-navy"

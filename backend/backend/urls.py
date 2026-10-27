@@ -23,6 +23,7 @@ from auths import views as auths_views
 from catalog import views as catalog_views
 from orders import delivery as orders_delivery
 from orders import finance as orders_finance
+from orders import payments as orders_payments
 from orders import performance as orders_performance
 from orders import staff_api as orders_staff
 from orders import views as orders_views
@@ -45,6 +46,7 @@ urlpatterns = [
     path('api/delivery/quote/', orders_delivery.delivery_quote_view),
     path('api/delivery/map/', orders_delivery.delivery_map_view),
     path('api/orders/quick/', orders_views.quick_order_view),
+    path('api/payment-accounts/', orders_payments.public_payment_accounts_view),
     path('api/staff/login/', orders_staff.staff_login_view),
     path('api/staff/me/', orders_staff.staff_me_view),
     path('api/staff/orders/', orders_staff.staff_orders_view),
@@ -70,6 +72,8 @@ urlpatterns = [
     path('api/admin/orders/<uuid:order_id>/purchase-orders/', orders_views.admin_create_purchase_order_view),
     path('api/admin/purchase-orders/<uuid:po_id>/', orders_views.admin_purchase_order_detail_view),
     path('api/admin/delivery/', orders_delivery.admin_delivery_view),
+    path('api/admin/payment-accounts/', orders_payments.admin_payment_accounts_view),
+    path('api/admin/payment-accounts/<uuid:account_id>/', orders_payments.admin_payment_account_detail_view),
     path('api/admin/finance/', orders_finance.admin_finance_view),
     path('api/admin/dashboard/', orders_finance.admin_dashboard_view),
     path('api/admin/revenue/', subscriptions_views.admin_revenue_view),
