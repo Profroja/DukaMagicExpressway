@@ -5,6 +5,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-
 
 import { BrandLogo, Button } from "@/components/ui";
 import { Colors, Radius } from "@/constants/theme";
+import { PrivacyLink } from "@/components/PrivacyLink";
 import { ApiError } from "@/lib/api";
 import { useLanguage } from "@/lib/i18n";
 import { useStaff } from "@/lib/staff";
@@ -101,6 +102,7 @@ export default function StaffLoginScreen() {
           onPress={submit}
           style={{ marginTop: 22 }}
         />
+        <PrivacyLink style={{ marginTop: 10 }} />
       </View>
     </ScrollView>
   );

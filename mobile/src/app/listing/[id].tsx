@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { PrivacyLink } from "@/components/PrivacyLink";
 import { Button, EmptyState, ErrorState, PriceText } from "@/components/ui";
 import { Colors, Radius, Shadow } from "@/constants/theme";
 import {
@@ -593,6 +594,7 @@ export default function ListingScreen() {
                 onSubmitEditing={goToLocation}
               />
             </Field>
+            <PrivacyLink note style={{ marginTop: 4 }} />
             {!!error && (
               <View style={styles.error}>
                 <Ionicons name="alert-circle" size={16} color={Colors.danger} />

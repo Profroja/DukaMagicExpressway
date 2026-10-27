@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import {
   Facebook,
   Instagram,
@@ -159,9 +160,9 @@ export function Footer() {
               <Heart className="inline size-3.5 fill-current text-primary" /> {t("inTanzania")}
             </p>
             <div className="flex flex-wrap items-center justify-center gap-4 font-medium">
-              <a href="#privacy" className="transition hover:text-primary">
+              <Link to="/privacy" className="transition hover:text-primary">
                 {t("privacyPolicy")}
-              </a>
+              </Link>
               <span className="hidden md:inline">•</span>
               <a href="#terms" className="transition hover:text-primary">
                 {t("terms")}

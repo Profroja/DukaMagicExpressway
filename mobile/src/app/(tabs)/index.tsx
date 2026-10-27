@@ -14,6 +14,7 @@ import {
 
 import { HeroCarousel } from "@/components/HeroCarousel";
 import { HomeHeader } from "@/components/HomeHeader";
+import { PrivacyLink } from "@/components/PrivacyLink";
 import { ProductMarquee } from "@/components/ProductMarquee";
 import { EmptyState, ErrorState } from "@/components/ui";
 import { Colors } from "@/constants/theme";
@@ -163,6 +164,7 @@ export default function HomeScreen() {
             )}
           </>
         )}
+        <PrivacyLink style={{ marginTop: 28 }} />
       </ScrollView>
     </View>
   );
