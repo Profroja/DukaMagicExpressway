@@ -310,7 +310,7 @@ export function OrderModal({
         setError(
           data?.error ||
             (isSwahili
-              ? "Imeshindwa kutuma agizo. Jaribu tena."
+              ? "Imeshindwa kutuma oda. Jaribu tena."
               : "Could not place the order. Try again."),
         );
         return;
@@ -500,11 +500,11 @@ export function OrderModal({
             ) : orderStatus === "cancelled" ? (
               <>
                 <h2 className="text-2xl sm:text-3xl font-black text-white">
-                  {isSwahili ? "Agizo Limeghairiwa" : "Order Cancelled"}
+                  {isSwahili ? "Oda Imeghairiwa" : "Order Cancelled"}
                 </h2>
                 <p className="mt-3 max-w-sm text-sm text-slate-300">
                   {isSwahili
-                    ? "Agizo hili halijatelekezwa tena."
+                    ? "Oda hii haitashughulikiwa tena."
                     : "This order is no longer being processed."}
                 </p>
               </>
@@ -513,24 +513,24 @@ export function OrderModal({
                 <h2 className="text-2xl sm:text-3xl font-black text-white">
                   {orderStatus === "picked_up"
                     ? isSwahili
-                      ? "Agizo Liko Njiani!"
+                      ? "Oda Iko Njiani!"
                       : "On the Way!"
                     : orderStatus === "confirmed" || orderStatus === "sourcing"
                       ? isSwahili
-                        ? "Tunaandaa Agizo Lako"
+                        ? "Tunaandaa Oda Yako"
                         : "Preparing Your Order"
                       : orderStatus === "contacted"
                         ? isSwahili
-                          ? "Tunathibitisha Agizo"
+                          ? "Tunathibitisha Oda"
                           : "Confirming Your Order"
                         : isSwahili
-                          ? "Agizo Limepokelewa!"
+                          ? "Oda Imepokelewa!"
                           : "Order Received!"}
                 </h2>
                 <p className="mt-3 flex items-center justify-center gap-1 text-sm text-slate-300">
                   {orderStatus === "picked_up"
                     ? isSwahili
-                      ? "SokoLink inakuletea agizo lako"
+                      ? "SokoLink inakuletea oda yako"
                       : "SokoLink is bringing your order to you"
                     : orderStatus === "confirmed" || orderStatus === "sourcing"
                       ? isSwahili
@@ -630,7 +630,7 @@ export function OrderModal({
                       ? "Sawa, Asante!"
                       : "Done"
                     : isSwahili
-                      ? "Funga — fuatilia kwenye Maagizo Yangu"
+                      ? "Funga — fuatilia kwenye Oda Zangu"
                       : "Close — track in My Orders"}
                 </Button>
               ) : (
@@ -639,7 +639,7 @@ export function OrderModal({
                   onClick={cancelOrder}
                   className="w-full rounded-xl border border-white/15 py-3 text-xs font-bold text-slate-300 transition hover:border-red-400/50 hover:bg-red-500/10 hover:text-red-300"
                 >
-                  {isSwahili ? "Ghairi Agizo" : "Cancel Order"}
+                  {isSwahili ? "Ghairi Oda" : "Cancel Order"}
                 </button>
               )}
             </div>
@@ -789,7 +789,7 @@ export function OrderModal({
                         ? "Thibitisha Uhifadhi"
                         : "Confirm Booking"
                       : isSwahili
-                        ? "Thibitisha Agizo"
+                        ? "Thibitisha Oda"
                         : "Confirm Order"}
               </Button>
               <button
@@ -810,7 +810,7 @@ export function OrderModal({
           <div className="flex flex-col p-4 pb-6 sm:p-6 md:p-8">
             <div className="pr-10">
               <h2 className="text-xl font-black leading-tight text-navy sm:text-2xl">
-                {isSwahili ? "Lipia Agizo Lako" : "Pay for Your Order"}
+                {isSwahili ? "Lipia Oda Yako" : "Pay for Your Order"}
               </h2>
               <p className="mt-1 text-xs text-muted-foreground">
                 {isSwahili
@@ -952,7 +952,7 @@ export function OrderModal({
                     ? "Inatuma..."
                     : "Submitting..."
                   : isSwahili
-                    ? "Nimeshalipia - Tuma Agizo"
+                    ? "Nimeshalipia - Tuma Oda"
                     : "I've Paid - Send Order"}
               </Button>
               <p className="text-center text-[11px] text-slate-400">
@@ -1094,7 +1094,7 @@ export function OrderModal({
                             ? "Maliza Uhifadhi Wako"
                             : "Complete Your Booking"
                           : isSwahili
-                            ? "Maliza Agizo Lako"
+                            ? "Maliza Oda Yako"
                             : "Complete Your Order"}
                       </h2>
                       <p className="mt-1 text-xs text-muted-foreground">

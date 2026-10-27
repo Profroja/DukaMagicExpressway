@@ -240,13 +240,13 @@ export const translations = {
     partnersTitle: "Kua pamoja na SokoLink",
     partnersSubtitle: "Uza bidhaa na huduma zako kwa wateja wengi zaidi — tunanunua kwako na kushughulikia usafirishaji.",
     joinUsTitle: "Jiunge Nasi",
-    joinUsDesc: "Sajili biashara yako na anza kupokea maagizo.",
+    joinUsDesc: "Sajili biashara yako na anza kupokea oda.",
     joinUsPerk1: "Fikia wateja wengi zaidi kila siku",
     joinUsPerk2: "Tunachukua na kuwasilisha kwa ajili yako",
-    joinUsPerk3: "Lipwa kwa kila agizo",
+    joinUsPerk3: "Lipwa kwa kila oda",
     joinUsCta: "Sajili biashara yako",
     loginCardTitle: "Tayari ni mshirika?",
-    loginCardDesc: "Wauzaji na wafanyakazi ingia kusimamia maagizo, bidhaa na malipo.",
+    loginCardDesc: "Wauzaji na wafanyakazi ingia kusimamia oda, bidhaa na malipo.",
     loginCardCta: "Ingia",
 
     // Services section

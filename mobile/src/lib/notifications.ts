@@ -43,12 +43,12 @@ const TEXT: Record<"en" | "sw", Partial<Record<OrderStatus, [string, string]>>> 
     cancelled: ["Order cancelled", "This order is no longer being processed."],
   },
   sw: {
-    contacted: ["📞 Tunathibitisha agizo lako", "SokoLink itakupigia hivi punde."],
-    confirmed: ["✅ Agizo limethibitishwa", "Agizo lako limethibitishwa na linaandaliwa."],
-    sourcing: ["📦 Tunaandaa agizo lako", "Tunakusanya bidhaa zako."],
-    picked_up: ["🛵 Liko njiani!", "SokoLink inakuletea agizo lako."],
+    contacted: ["📞 Tunathibitisha oda yako", "SokoLink itakupigia hivi punde."],
+    confirmed: ["✅ Oda imethibitishwa", "Oda yako imethibitishwa na inaandaliwa."],
+    sourcing: ["📦 Tunaandaa oda yako", "Tunakusanya bidhaa zako."],
+    picked_up: ["🛵 Iko njiani!", "SokoLink inakuletea oda yako."],
     delivered: ["🎉 Limefika", "Asante kwa kununua na SokoLink."],
-    cancelled: ["Agizo limeghairiwa", "Agizo hili halishughulikiwi tena."],
+    cancelled: ["Oda imeghairiwa", "Oda hii haishughulikiwi tena."],
   },
 };
 
