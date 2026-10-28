@@ -41,3 +41,6 @@ example
 # generated native folders
 /ios
 /android
+
+# release signing (upload key + passwords) - back up, never commit
+/credentials

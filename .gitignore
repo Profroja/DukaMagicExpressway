@@ -68,3 +68,7 @@ mobile/ios/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# --- App builds (large binaries, never commit) -------------
+*.apk
+*.aab
