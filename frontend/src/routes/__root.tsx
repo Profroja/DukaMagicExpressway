@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { LanguageProvider } from "../lib/LanguageContext";
+import { AndroidAppPrompt } from "../components/AndroidAppPrompt";
 import {
   DEFAULT_DESCRIPTION,
   DEFAULT_TITLE,
@@ -163,6 +164,7 @@ function RootComponent() {
       <LanguageProvider>
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
         <Outlet />
+        <AndroidAppPrompt />
       </LanguageProvider>
     </QueryClientProvider>
   );

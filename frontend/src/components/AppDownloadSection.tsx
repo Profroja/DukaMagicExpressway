@@ -1,6 +1,7 @@
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, ChevronDown, Download } from "lucide-react";
 import type { ReactNode } from "react";
 import { useLanguage } from "@/lib/LanguageContext";
+import { APK } from "@/lib/app";
 import appShowcase from "@/assets/app-showcase.jpg";
 
 /**
@@ -31,6 +32,41 @@ function AppleIcon() {
         d="M16.4 12.6c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-4 2.4-1.7 3-.4 7.4 1.2 9.8.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8 1.5 0 1.9.8 3.2.8 1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8-.1 0-2.5-1-2.5-3.9ZM14 5.4c.7-.8 1.1-1.9 1-3-.9 0-2.1.6-2.8 1.4-.6.7-1.2 1.8-1 2.9 1.1.1 2.1-.5 2.8-1.3Z"
       />
     </svg>
+  );
+}
+
+export function AndroidIcon({ className = "size-7" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <path
+        fill="#3DDC84"
+        d="M17.6 9.48 19.44 6.3a.38.38 0 1 0-.66-.38l-1.87 3.23a11.4 11.4 0 0 0-9.82 0L5.22 5.92a.38.38 0 1 0-.66.38L6.4 9.48A10.8 10.8 0 0 0 1 18h22a10.8 10.8 0 0 0-5.4-8.52ZM7 15.25a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm10 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"
+      />
+    </svg>
+  );
+}
+
+/** The main "Download for Android" button (direct APK until Play is live). */
+function ApkButton() {
+  const { t } = useLanguage();
+  return (
+    <a
+      href={APK.url}
+      download={APK.fileName}
+      className="group relative inline-flex h-16 items-center gap-3 rounded-2xl bg-white pl-4 pr-5 text-slate-900 shadow-xl ring-1 ring-black/5 transition duration-300 hover:-translate-y-0.5 hover:shadow-2xl"
+    >
+      <span className="grid size-11 place-items-center rounded-xl bg-slate-900">
+        <AndroidIcon />
+      </span>
+      <span className="flex flex-col text-left leading-none">
+        <span className="text-[10px] font-bold tracking-wide text-slate-500">{t("apkPre")}</span>
+        <span className="mt-1 text-lg font-black tracking-tight">Android</span>
+        <span className="mt-1 text-[11px] font-semibold text-slate-500">
+          {t("apkInfo")} · v{APK.version} · {APK.sizeMb} MB
+        </span>
+      </span>
+      <Download className="ml-2 size-5 text-primary transition group-hover:translate-y-0.5" />
+    </a>
   );
 }
 
@@ -117,7 +153,29 @@ export function AppDownloadSection() {
             ))}
           </ul>
 
-          <div className="mt-8 flex flex-wrap justify-center gap-3 md:justify-start">
+          <div className="mt-8 flex justify-center md:justify-start">
+            <ApkButton />
+          </div>
+
+          <details className="group mx-auto mt-4 max-w-sm rounded-xl bg-white/10 text-left ring-1 ring-white/20 md:mx-0">
+            <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-2.5 text-sm font-bold [&::-webkit-details-marker]:hidden">
+              {t("apkHowTitle")}
+              <ChevronDown className="size-4 transition group-open:rotate-180" />
+            </summary>
+            <ol className="space-y-2 px-4 pb-4 text-sm text-white/90">
+              {[t("apkStep1"), t("apkStep2"), t("apkStep3")].map((step, i) => (
+                <li key={step} className="flex gap-2.5">
+                  <span className="grid size-5 shrink-0 place-items-center rounded-full bg-white text-[11px] font-black text-primary">
+                    {i + 1}
+                  </span>
+                  {step}
+                </li>
+              ))}
+              <li className="pt-1 text-xs text-white/75">{t("apkNote")}</li>
+            </ol>
+          </details>
+
+          <div className="mt-5 flex flex-wrap justify-center gap-3 md:justify-start">
             <StoreBadge
               href={APP_LINKS.googlePlay}
               icon={<GooglePlayIcon />}
